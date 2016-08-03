@@ -47,7 +47,7 @@ var exponentialBackoff = func() []time.Duration {
 	return ds
 }()
 
-// Remote call
+// Call invokes the named function, waits for it to complete, and returns its error status.
 func Call(srvAddr string, rpcname string, args interface{}, reply interface{}) error {
 	var (
 		conn net.Conn
