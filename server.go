@@ -47,7 +47,8 @@ func (this *ClientIPs) notAllow(addr string) bool {
 	return true
 }
 
-// Add the client ip that is allowed to connect.
+// Add the client ip that is allowed to connect,
+// LAN ips are always allowed.
 func AllowClients(ips ...string) {
 	clientIPs.Lock()
 	defer clientIPs.Unlock()
