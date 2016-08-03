@@ -18,10 +18,10 @@ type gobClientCodec struct {
 }
 
 func (c *gobClientCodec) WriteRequest(r *rpc.Request, body interface{}) (err error) {
-	if err = TimeoutCoder(c.enc.Encode, r, "client write request"); err != nil {
+	if err = timeoutCoder(c.enc.Encode, r, "client write request"); err != nil {
 		return
 	}
-	if err = TimeoutCoder(c.enc.Encode, body, "client write request body"); err != nil {
+	if err = timeoutCoder(c.enc.Encode, body, "client write request body"); err != nil {
 		return
 	}
 	return c.encBuf.Flush()

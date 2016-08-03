@@ -55,7 +55,7 @@ func AllowClients(ips ...string) {
 	}
 }
 
-func TimeoutCoder(f func(interface{}) error, e interface{}, msg string) error {
+func timeoutCoder(f func(interface{}) error, e interface{}, msg string) error {
 	echan := make(chan error, 1)
 	go func() { echan <- f(e) }()
 	select {
@@ -75,22 +75,22 @@ type gobServerCodec struct {
 }
 
 func (c *gobServerCodec) ReadRequestHeader(r *rpc.Request) error {
-	return TimeoutCoder(c.dec.Decode, r, "server read request header")
+	return timeoutCoder(c.dec.Decode, r, "server read request header")
 }
 
 func (c *gobServerCodec) ReadRequestBody(body interface{}) error {
-	return TimeoutCoder(c.dec.Decode, body, "server read request body")
+	return timeoutCoder(c.dec.Decode, body, "server read request body")
 }
 
 func (c *gobServerCodec) WriteResponse(r *rpc.Response, body interface{}) (err error) {
-	if err = TimeoutCoder(c.enc.Encode, r, "server write response"); err != nil {
+	if err = timeoutCoder(c.enc.Encode, r, "server write response"); err != nil {
 		if c.encBuf.Flush() == nil {
 			log.Println("rpc: gob error encoding response:", err)
 			c.Close()
 		}
 		return
 	}
-	if err = TimeoutCoder(c.enc.Encode, body, "server write response body"); err != nil {
+	if err = timeoutCoder(c.enc.Encode, body, "server write response body"); err != nil {
 		if c.encBuf.Flush() == nil {
 			log.Println("rpc: gob error encoding body:", err)
 			c.Close()
