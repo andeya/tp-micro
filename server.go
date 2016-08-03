@@ -47,6 +47,7 @@ func (this *ClientIPs) notAllow(addr string) bool {
 	return true
 }
 
+// Add the client ip that is allowed to connect.
 func AllowClients(ips ...string) {
 	clientIPs.Lock()
 	defer clientIPs.Unlock()
@@ -109,13 +110,14 @@ func (c *gobServerCodec) Close() error {
 	return c.rwc.Close()
 }
 
-// be called before 'ListenRPC'
+// make sure called before 'ListenRPC'.
 func Register(rcvrs ...interface{}) {
 	for _, rcvr := range rcvrs {
 		rpc.Register(rcvr)
 	}
 }
 
+// Open Service
 func ListenRPC(addr string) {
 	l, e := net.Listen("tcp", addr)
 	if e != nil {
