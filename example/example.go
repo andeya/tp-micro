@@ -30,7 +30,7 @@ func (w *Worker) DoJob(task string, reply *string) error {
 func main() {
 	// server
 	rpc2.Register(NewWorker())
-	rpc2.AllowClients("127.0.0.1")
+	rpc2.AddAllowedIPPrefix("127.0.0.1")
 	go rpc2.ListenRPC("0.0.0.0:80")
 	time.Sleep(2e9)
 

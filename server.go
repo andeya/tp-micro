@@ -8,64 +8,62 @@ import (
 	"log"
 	"net"
 	"net/rpc"
-	"strings"
-	"sync"
 	"time"
 )
 
-type ClientIPs struct {
-	ips       map[string]bool
-	ipPrefixs []string
-	sync.RWMutex
-}
-
-var clientIPs = &ClientIPs{
-	ips: map[string]bool{},
-
-	// lan is allowed
-	ipPrefixs: []string{
-		"[",
-		"127.",
-		"192.168.",
-		"",
-		"10.",
-	},
-}
-
-func (this *ClientIPs) notAllow(addr string) bool {
-	this.RLock()
-	defer this.RUnlock()
-	ip := strings.Split(addr, ":")[0]
-	if this.ips[ip] {
-		return false
+// Register publishes in the server the set of methods of the
+// receiver value that satisfy the following conditions:
+//	- exported method of exported type
+//	- two arguments, both of exported type
+//	- the second argument is a pointer
+//	- one return value, of type error
+// It returns an error if the receiver is not an exported type or has
+// no suitable methods. It also logs the error using package log.
+// The client accesses each method using a string of the form "Type.Method",
+// where Type is the receiver's concrete type.
+// make sure called before 'ListenRPC'.
+func Register(rcvrs ...interface{}) {
+	for _, rcvr := range rcvrs {
+		rpc.Register(rcvr)
 	}
-	for i, count := 0, len(this.ipPrefixs); i < count; i++ {
-		if strings.HasPrefix(ip, this.ipPrefixs[i]) {
-			return false
+}
+
+// Open Service
+func ListenRPC(addr string) {
+	l, e := net.Listen("tcp", addr)
+	if e != nil {
+		log.Fatal("Error: listen %s error:", addr, e)
+	}
+	go func() {
+		for {
+			conn, err := l.Accept()
+			if err != nil {
+				log.Println("Error: accept rpc connection", err.Error())
+				continue
+			}
+
+			// filter ip
+			if !ipWhitelist.allowAccess(conn.RemoteAddr().String()) {
+				log.Println("Client Not allow:", conn.RemoteAddr().String())
+				continue
+			}
+
+			go func(conn net.Conn) {
+				buf := bufio.NewWriter(conn)
+				srv := &gobServerCodec{
+					rwc:    conn,
+					dec:    gob.NewDecoder(conn),
+					enc:    gob.NewEncoder(buf),
+					encBuf: buf,
+				}
+				err = rpc.ServeRequest(srv)
+				if err != nil {
+					log.Print("Error: server rpc request", err.Error())
+				}
+				srv.Close()
+			}(conn)
 		}
-	}
-	return true
-}
-
-// Add the client ip that is allowed to connect,
-// LAN ips are always allowed.
-func AllowClients(ips ...string) {
-	clientIPs.Lock()
-	defer clientIPs.Unlock()
-	for _, ip := range ips {
-		clientIPs.ips[ip] = true
-	}
-}
-
-func timeoutCoder(f func(interface{}) error, e interface{}, msg string) error {
-	echan := make(chan error, 1)
-	go func() { echan <- f(e) }()
-	select {
-	case e := <-echan:
-		return e
-	case <-time.After(time.Minute):
-		return fmt.Errorf("Timeout %s", msg)
-	}
+	}()
 }
 
 type gobServerCodec struct {
@@ -111,57 +109,13 @@ func (c *gobServerCodec) Close() error {
 	return c.rwc.Close()
 }
 
-// Register publishes in the server the set of methods of the
-// receiver value that satisfy the following conditions:
-//	- exported method of exported type
-//	- two arguments, both of exported type
-//	- the second argument is a pointer
-//	- one return value, of type error
-// It returns an error if the receiver is not an exported type or has
-// no suitable methods. It also logs the error using package log.
-// The client accesses each method using a string of the form "Type.Method",
-// where Type is the receiver's concrete type.
-// make sure called before 'ListenRPC'.
-func Register(rcvrs ...interface{}) {
-	for _, rcvr := range rcvrs {
-		rpc.Register(rcvr)
+func timeoutCoder(f func(interface{}) error, e interface{}, msg string) error {
+	echan := make(chan error, 1)
+	go func() { echan <- f(e) }()
+	select {
+	case e := <-echan:
+		return e
+	case <-time.After(time.Minute):
+		return fmt.Errorf("Timeout %s", msg)
 	}
-}
-
-// Open Service
-func ListenRPC(addr string) {
-	l, e := net.Listen("tcp", addr)
-	if e != nil {
-		log.Fatal("Error: listen %s error:", addr, e)
-	}
-	go func() {
-		for {
-			conn, err := l.Accept()
-			if err != nil {
-				log.Println("Error: accept rpc connection", err.Error())
-				continue
-			}
-
-			// filter ip
-			if clientIPs.notAllow(conn.RemoteAddr().String()) {
-				log.Println("Client Not allow:", conn.RemoteAddr().String())
-				continue
-			}
-
-			go func(conn net.Conn) {
-				buf := bufio.NewWriter(conn)
-				srv := &gobServerCodec{
-					rwc:    conn,
-					dec:    gob.NewDecoder(conn),
-					enc:    gob.NewEncoder(buf),
-					encBuf: buf,
-				}
-				err = rpc.ServeRequest(srv)
-				if err != nil {
-					log.Print("Error: server rpc request", err.Error())
-				}
-				srv.Close()
-			}(conn)
-		}
-	}()
 }
