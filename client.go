@@ -10,36 +10,19 @@ import (
 	"time"
 )
 
-type gobClientCodec struct {
-	rwc    io.ReadWriteCloser
-	dec    *gob.Decoder
-	enc    *gob.Encoder
-	encBuf *bufio.Writer
-}
-
-func (c *gobClientCodec) WriteRequest(r *rpc.Request, body interface{}) (err error) {
-	if err = timeoutCoder(c.enc.Encode, r, "client write request"); err != nil {
-		return
+type (
+	Client struct {
+		*rpc.Client
+		srvAddr            string
+		exponentialBackoff []time.Duration
+		clientCodecFunc    ClientCodecFunc
 	}
-	if err = timeoutCoder(c.enc.Encode, body, "client write request body"); err != nil {
-		return
-	}
-	return c.encBuf.Flush()
-}
 
-func (c *gobClientCodec) ReadResponseHeader(r *rpc.Response) error {
-	return c.dec.Decode(r)
-}
+	// ClientCodecFunc is used to create a rpc.ClientCodecFunc from net.Conn.
+	ClientCodecFunc func(io.ReadWriteCloser) rpc.ClientCodec
+)
 
-func (c *gobClientCodec) ReadResponseBody(body interface{}) error {
-	return c.dec.Decode(body)
-}
-
-func (c *gobClientCodec) Close() error {
-	return c.rwc.Close()
-}
-
-var exponentialBackoff = func() []time.Duration {
+var defaultExponentialBackoff = func() []time.Duration {
 	var ds []time.Duration
 	for i := uint(0); i < 4; i++ {
 		ds = append(ds, time.Duration(0.75e9*2<<i))
@@ -47,33 +30,64 @@ var exponentialBackoff = func() []time.Duration {
 	return ds
 }()
 
-// Call invokes the named function, waits for it to complete, and returns its error status.
-func Call(srvAddr string, rpcname string, args interface{}, reply interface{}) error {
+func NewClient(srvAddr string, clientCodecFunc ClientCodecFunc) *Client {
+	if clientCodecFunc == nil {
+		clientCodecFunc = func(conn io.ReadWriteCloser) rpc.ClientCodec {
+			encBuf := bufio.NewWriter(conn)
+			return &gobClientCodec{
+				rwc:    conn,
+				dec:    gob.NewDecoder(conn),
+				enc:    gob.NewEncoder(encBuf),
+				encBuf: encBuf,
+			}
+		}
+	}
+	return &Client{
+		srvAddr:            srvAddr,
+		exponentialBackoff: defaultExponentialBackoff,
+		clientCodecFunc:    clientCodecFunc,
+	}
+}
+
+func (client *Client) dialTCP() (net.Conn, error) {
 	var (
 		conn net.Conn
 		err  error
 	)
-	for _, d := range exponentialBackoff {
-		conn, err = net.DialTimeout("tcp", srvAddr, d)
-		// fmt.Println(d)
+	for _, d := range client.exponentialBackoff {
+		conn, err = net.DialTimeout("tcp", client.srvAddr, d)
 		if err == nil {
 			break
 		}
 	}
 	if err != nil {
-		return fmt.Errorf("ConnectError: %s", err.Error())
+		return nil, fmt.Errorf("ConnectError: %s", err.Error())
 	}
-	encBuf := bufio.NewWriter(conn)
-	codec := &gobClientCodec{conn, gob.NewDecoder(conn), gob.NewEncoder(encBuf), encBuf}
-	c := rpc.NewClientWithCodec(codec)
-	err = c.Call(rpcname, args, reply)
-	errc := c.Close()
-	if err != nil && errc != nil {
-		return fmt.Errorf("%s %s", err, errc)
+	return conn, nil
+}
+
+// Call invokes the named function, waits for it to complete, and returns its error status.
+func (client *Client) Call(rpcname string, args interface{}, reply interface{}) error {
+	if client.Client == nil {
+		conn, err := client.dialTCP()
+		if err != nil {
+			return err
+		}
+
+		codec := client.clientCodecFunc(conn)
+
+		client.Client = rpc.NewClientWithCodec(codec)
 	}
-	if err != nil {
+
+	return client.Client.Call(rpcname, args, reply)
+}
+
+// Close closes the connection
+func (client *Client) Close() error {
+	if client.Client != nil {
+		err := client.Client.Close()
+		client.Client = nil
 		return err
-	} else {
-		return errc
 	}
+	return nil
 }

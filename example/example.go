@@ -29,12 +29,15 @@ func (w *Worker) DoJob(task string, reply *string) error {
 // rpc2
 func main() {
 	// server
-	rpc2.Register(NewWorker())
 	rpc2.AddAllowedIPPrefix("127.0.0.1")
-	go rpc2.ListenRPC("0.0.0.0:80")
+	server := rpc2.NewDefaultServer("0.0.0.0:80")
+	server.Register(NewWorker())
+	go server.ListenTCP()
 	time.Sleep(2e9)
 
 	// client
+	client := rpc2.NewClient("127.0.0.1:80", nil)
+
 	N := 1000
 	bad := 0
 	good := 0
@@ -44,7 +47,7 @@ func main() {
 		for i := 0; i < N; i++ {
 			go func(i int) {
 				var reply = new(string)
-				e := rpc2.Call("127.0.0.1:80", "Worker.DoJob", strconv.Itoa(ii*N+i), reply)
+				e := client.Call("Worker.DoJob", strconv.Itoa(ii*N+i), reply)
 				log.Println(ii*N+i, *reply, e)
 				if e != nil {
 					mapChan <- 0
@@ -61,6 +64,7 @@ func main() {
 			}
 		}
 	}
+	client.Close()
 	log.Println("cost time:", time.Now().Sub(t1))
 	log.Println("failure rate:", float64(bad)/float64(good)*100, "%")
 }
