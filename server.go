@@ -3,12 +3,10 @@ package rpc2
 import (
 	"bufio"
 	"encoding/gob"
-	"fmt"
 	"io"
 	"log"
 	"net"
 	"net/rpc"
-	"time"
 )
 
 // Register publishes in the server the set of methods of the
@@ -30,16 +28,7 @@ func Register(rcvrs ...interface{}) {
 
 // Open Service
 // @timeout, optional, setting server response timeout.
-func ListenRPC(addr string, timeout ...time.Duration) {
-	if len(timeout) > 0 {
-		afterTime = timeout[0]
-		if afterTime <= 0 {
-			afterTime = 1<<63 - 1
-		}
-	} else {
-		afterTime = time.Minute
-	}
-
+func ListenRPC(addr string) {
 	l, e := net.Listen("tcp", addr)
 	if e != nil {
 		log.Fatal("Error: listen %s error:", addr, e)
@@ -117,19 +106,4 @@ func (c *gobServerCodec) Close() error {
 	}
 	c.closed = true
 	return c.rwc.Close()
-}
-
-var (
-	afterTime time.Duration
-)
-
-func timeoutCoder(f func(interface{}) error, e interface{}, msg string) error {
-	echan := make(chan error, 1)
-	go func() { echan <- f(e) }()
-	select {
-	case e := <-echan:
-		return e
-	case <-time.After(afterTime):
-		return fmt.Errorf("Timeout %s", msg)
-	}
 }
