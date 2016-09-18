@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net"
 	"net/http"
@@ -20,9 +21,21 @@ func NewWorker() *Worker {
 }
 
 func (w *Worker) DoJob(task string, reply *string) error {
-	// log.Println("Worker: do job", task)
+	log.Println("Worker: do job", task)
 	// time.Sleep(time.Second * 3)
 	*reply = "OK"
+	return nil
+}
+
+type testPlugin struct{}
+
+func (t *testPlugin) PostReadRequestHeader(req *rpc.Request) error {
+	fmt.Printf("PostReadRequestHeader -> %#v\n", *req)
+	return nil
+}
+
+func (t *testPlugin) PostReadRequestBody(body interface{}) error {
+	fmt.Printf("PostReadRequestBody -> %#v\n", body)
 	return nil
 }
 
@@ -31,7 +44,11 @@ func main() {
 	// server
 	rpc2.AddAllowedIPPrefix("127.0.0.1")
 	server := rpc2.NewDefaultServer("0.0.0.0:80")
-	server.Register(NewWorker())
+	g := server.Group("test", new(testPlugin))
+	err := g.RegisterName("work", NewWorker())
+	if err != nil {
+		panic(err)
+	}
 	go server.ListenTCP()
 	time.Sleep(2e9)
 
@@ -47,7 +64,8 @@ func main() {
 		for i := 0; i < N; i++ {
 			go func(i int) {
 				var reply = new(string)
-				e := client.Call("Worker.DoJob", strconv.Itoa(ii*N+i), reply)
+				// e := client.Call("Worker.DoJob", strconv.Itoa(ii*N+i), reply)
+				e := client.Call("test/work.DoJob", strconv.Itoa(ii*N+i), reply)
 				log.Println(ii*N+i, *reply, e)
 				if e != nil {
 					mapChan <- 0

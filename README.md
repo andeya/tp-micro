@@ -28,14 +28,22 @@ func (w *Worker) DoJob(task string, reply *string) error {
 func main() {
     // server
     rpc2.Register(NewWorker())
-    rpc2.AllowLANAccess()
-    go rpc2.ListenRPC("0.0.0.0:80")
+    server := rpc2.NewDefaultServer("0.0.0.0:80")
+    err := server.Register(NewWorker())
+    if err != nil {
+        panic(err)
+    }
+    go server.ListenTCP()
     time.Sleep(2e9)
 
     // client
+    client := rpc2.NewClient("127.0.0.1:80", nil)
     var reply = new(string)
-    e := rpc2.Call("127.0.0.1:80", "Worker.DoJob", "henrylee2cn", reply)
+    e := client.Call("Worker.DoJob", "henrylee2cn", reply)
     log.Println(*reply, e)
+    e := client.Call("Worker.DoJob", "henrylee2cn--rpc2", reply)
+    log.Println(*reply, e)
+    client.Close()
 }
 
 ```

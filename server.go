@@ -110,12 +110,10 @@ func (server *Server) Group(typePrefix string, plugins ...Plugin) *Group {
 		panic("Group's prefix ('" + typePrefix + "') can not contain '.'.")
 		return nil
 	}
-	g := &Group{
+	return (&Group{
 		plugins: []Plugin{},
 		Server:  server,
-	}
-	g.Group(typePrefix, plugins...)
-	return g
+	}).Group(typePrefix, plugins...)
 }
 
 func (server *Server) Plugin(plugins ...Plugin) {
@@ -147,11 +145,7 @@ func (server *Server) RegisterName(name string, rcvr interface{}) error {
 		panic("RegisterName ('" + name + "') can not contain '/'.")
 		return nil
 	}
-	if !strings.Contains(name, ".") {
-		panic("RegisterName '" + name + "' must contain '.'.")
-		return nil
-	}
-	return server.RegisterName(name, rcvr)
+	return server.Server.RegisterName(name, rcvr)
 }
 
 func (group *Group) RegisterName(name string, rcvr interface{}) error {
@@ -159,12 +153,7 @@ func (group *Group) RegisterName(name string, rcvr interface{}) error {
 		panic("RegisterName '" + name + "' can not contain '/'.")
 		return nil
 	}
-	if !strings.Contains(name, ".") {
-		panic("RegisterName '" + name + "' must contain '.'.")
-		return nil
-	}
-
-	return group.RegisterName(path.Join(group.prefix, name), rcvr)
+	return group.Server.Server.RegisterName(path.Join(group.prefix, name), rcvr)
 }
 
 // ServeConnx runs the server on a single connection.
