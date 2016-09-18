@@ -29,7 +29,17 @@ func Register(rcvrs ...interface{}) {
 }
 
 // Open Service
-func ListenRPC(addr string) {
+// @timeout, optional, setting server response timeout.
+func ListenRPC(addr string, timeout ...time.Duration) {
+	if len(timeout) > 0 {
+		afterTime = timeout[0]
+		if afterTime <= 0 {
+			afterTime = 1<<63 - 1
+		}
+	} else {
+		afterTime = time.Minute
+	}
+
 	l, e := net.Listen("tcp", addr)
 	if e != nil {
 		log.Fatal("Error: listen %s error:", addr, e)
@@ -109,13 +119,17 @@ func (c *gobServerCodec) Close() error {
 	return c.rwc.Close()
 }
 
+var (
+	afterTime time.Duration
+)
+
 func timeoutCoder(f func(interface{}) error, e interface{}, msg string) error {
 	echan := make(chan error, 1)
 	go func() { echan <- f(e) }()
 	select {
 	case e := <-echan:
 		return e
-	case <-time.After(time.Minute):
+	case <-time.After(afterTime):
 		return fmt.Errorf("Timeout %s", msg)
 	}
 }
