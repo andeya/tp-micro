@@ -27,7 +27,6 @@ func (w *Worker) DoJob(task string, reply *string) error {
 
 func main() {
     // server
-    rpc2.Register(NewWorker())
     server := rpc2.NewDefaultServer("0.0.0.0:80")
     err := server.Register(NewWorker())
     if err != nil {
