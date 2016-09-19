@@ -48,10 +48,6 @@ type (
 
 	// ServerCodecFunc is used to create a rpc.ServerCodec from net.Conn.
 	ServerCodecFunc func(net.Conn) rpc.ServerCodec
-
-	debugHTTP struct {
-		*Server
-	}
 )
 
 func NewServer(
@@ -344,10 +340,8 @@ func (server *Server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	server.ServeConn(conn)
 }
 
-// HandleHTTP registers an HTTP handler for RPC messages on rpcPath,
-// and a debugging handler on debugPath.
+// HandleHTTP registers an HTTP handler for RPC messages on rpcPath.
 // It is still necessary to invoke http.Serve(), typically in a go statement.
-func (server *Server) HandleHTTP(rpcPath, debugPath string) {
+func (server *Server) HandleHTTP(rpcPath string) {
 	http.Handle(rpcPath, server)
-	http.Handle(debugPath, debugHTTP{server})
 }
