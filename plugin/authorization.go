@@ -18,6 +18,8 @@ type (
 	AuthorizationFunc func(token string, tag string, serviceMethod string) error
 )
 
+var _ rpc2.Plugin = new(AuthorizationPlugin)
+
 func (auth *AuthorizationPlugin) String() string {
 	return url.Values{
 		"auth_token": []string{auth.Token},
