@@ -50,6 +50,7 @@ func (this *IPWhitelist) AllowIPPrefix(ipPrefix ...string) *IPWhitelist {
 }
 
 func (this *IPWhitelist) OnlyLAN() *IPWhitelist {
+	this.NoAccess()
 	return this.AllowIPPrefix(
 		"[",
 		"127.",
