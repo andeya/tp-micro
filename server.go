@@ -11,7 +11,6 @@ import (
 	"net/rpc"
 	"path"
 	"reflect"
-	"regexp"
 	"strings"
 	"time"
 )
@@ -260,29 +259,6 @@ func (w *serverCodecWrapper) WriteResponse(resp *rpc.Response, body interface{})
 	err := w.ServerCodec.WriteResponse(resp, body)
 
 	return err
-}
-
-var nameRegexp = regexp.MustCompile(`^[a-zA-Z0-9_]+$`)
-
-func nameCharsFunc(r rune) bool {
-	// A-Z
-	if r >= 65 && r <= 90 {
-		return false
-	}
-	// a-z
-	if r >= 97 && r <= 122 {
-		return false
-	}
-	// _
-	if r == 95 {
-		return false
-	}
-	// 0-9
-	if r >= 48 && r <= 57 {
-		return false
-	}
-
-	return true
 }
 
 // Open Service

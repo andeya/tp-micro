@@ -30,7 +30,15 @@ func (w *Worker) DoJob(task string, reply *string) error {
 type testPlugin struct{}
 
 func (t *testPlugin) PostReadRequestHeader(req *rpc.Request) error {
-	fmt.Printf("PostReadRequestHeader -> %#v\n", *req)
+	s, err := rpc2.ParseServiceMethod(req.ServiceMethod)
+	if err != nil {
+		return err
+	}
+	v, err := s.ParseQuery()
+	if err != nil {
+		return err
+	}
+	fmt.Printf("PostReadRequestHeader -> key[%d]: %#v\n", req.Seq, v.Get("key"))
 	return nil
 }
 
@@ -65,7 +73,7 @@ func main() {
 			go func(i int) {
 				var reply = new(string)
 				// e := client.Call("Worker.DoJob", strconv.Itoa(ii*N+i), reply)
-				e := client.Call("test/work.DoJob", strconv.Itoa(ii*N+i), reply)
+				e := client.Call("test/work.DoJob?key=henrylee2cn", strconv.Itoa(ii*N+i), reply)
 				log.Println(ii*N+i, *reply, e)
 				if e != nil {
 					mapChan <- 0
