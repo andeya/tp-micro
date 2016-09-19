@@ -1,5 +1,6 @@
-# rpc2
-rpc2 is modified version that based on the standard package, 42% performance increase.
+# rpc2    [![GoDoc](https://godoc.org/github.com/tsuna/gohbase?status.png)](https://godoc.org/github.com/henrylee2cn/rpc2)
+
+RPC2 is modified version that based on the standard package, 42% performance increase.
 
 Added router group, middleware and header information in an form of 'URL Query'. 
 
