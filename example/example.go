@@ -49,11 +49,11 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	go server.ListenTCP("0.0.0.0:80")
+	go server.ListenTCP("0.0.0.0:8080")
 	time.Sleep(2e9)
 
 	// client
-	client := rpc2.NewClient("127.0.0.1:80", nil)
+	client := rpc2.NewClient("127.0.0.1:8080", nil)
 
 	N := 1000
 	bad := 0

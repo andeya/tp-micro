@@ -303,8 +303,8 @@ func (server *Server) Accept(lis net.Listener) {
 	for {
 		conn, err := lis.Accept()
 		if err != nil {
-			log.Println("Error: accept rpc connection", err.Error())
-			continue
+			log.Print("rpc.Serve: accept:", err.Error())
+			return
 		}
 
 		// filter ip
