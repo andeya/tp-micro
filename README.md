@@ -1,8 +1,8 @@
 # rpc2
 rpc2 is modified version that based on the standard package, 42% performance increase.
 
- Increased router group, middleware and header information in an form of 'URL Query'. 
- 
+Added router group, middleware and header information in an form of 'URL Query'. 
+
 # usage
 
 ```
