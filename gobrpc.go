@@ -16,6 +16,16 @@ type gobServerCodec struct {
 	closed bool
 }
 
+func NewGobServerCodec(conn io.ReadWriteCloser) rpc.ServerCodec {
+	buf := bufio.NewWriter(conn)
+	return &gobServerCodec{
+		rwc:    conn,
+		dec:    gob.NewDecoder(conn),
+		enc:    gob.NewEncoder(buf),
+		encBuf: buf,
+	}
+}
+
 func (c *gobServerCodec) ReadRequestHeader(r *rpc.Request) error {
 	return c.dec.Decode(r)
 }
@@ -60,6 +70,16 @@ type gobClientCodec struct {
 	dec    *gob.Decoder
 	enc    *gob.Encoder
 	encBuf *bufio.Writer
+}
+
+func NewGobClientCodec(conn io.ReadWriteCloser) rpc.ClientCodec {
+	encBuf := bufio.NewWriter(conn)
+	return &gobClientCodec{
+		rwc:    conn,
+		dec:    gob.NewDecoder(conn),
+		enc:    gob.NewEncoder(encBuf),
+		encBuf: encBuf,
+	}
 }
 
 func (c *gobClientCodec) WriteRequest(r *rpc.Request, body interface{}) (err error) {

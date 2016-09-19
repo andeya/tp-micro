@@ -1,8 +1,6 @@
 package rpc2
 
 import (
-	"bufio"
-	"encoding/gob"
 	"fmt"
 	"io"
 	"net"
@@ -32,15 +30,7 @@ var defaultExponentialBackoff = func() []time.Duration {
 
 func NewClient(srvAddr string, clientCodecFunc ClientCodecFunc) *Client {
 	if clientCodecFunc == nil {
-		clientCodecFunc = func(conn io.ReadWriteCloser) rpc.ClientCodec {
-			encBuf := bufio.NewWriter(conn)
-			return &gobClientCodec{
-				rwc:    conn,
-				dec:    gob.NewDecoder(conn),
-				enc:    gob.NewEncoder(encBuf),
-				encBuf: encBuf,
-			}
-		}
+		clientCodecFunc = NewGobClientCodec
 	}
 	return &Client{
 		srvAddr:            srvAddr,

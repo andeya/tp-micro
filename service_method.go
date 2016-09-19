@@ -1,44 +1,45 @@
 package rpc2
 
 import (
-	"errors"
 	"net/url"
 	"regexp"
 	"strings"
 )
 
 type ServiceMethod struct {
-	Service string // service name
-	Method  string // method name
-	Query   string // query values, without '?', only can be use in 'ReadRequestHeader(*rpc.Request)'.
+	Path  string // whole name(service + method) for index.
+	Query string // query values, without '?', only can be use in 'ReadRequestQuery(*rpc.Request)'.
 }
 
-func ParseServiceMethod(serviceMethodString string) (*ServiceMethod, error) {
-	dot := strings.Index(serviceMethodString, ".")
-	if dot < 0 || dot+1 == len(serviceMethodString) {
-		return nil, errors.New("rpc: service/method request ill-formed: " + serviceMethodString)
+func ParseServiceMethod(serviceMethodString string) *ServiceMethod {
+	boundary := strings.Index(serviceMethodString, "?")
+
+	var serviceMethod = new(ServiceMethod)
+
+	if boundary < 0 {
+		serviceMethod.Path = serviceMethodString
+
+	} else {
+		serviceMethod.Path = serviceMethodString[:boundary]
+		serviceMethod.Query = serviceMethodString[boundary+1:]
 	}
 
-	var serviceMethod = &ServiceMethod{
-		Service: serviceMethodString[:dot],
-		Method:  serviceMethodString[dot+1:],
-	}
-
-	boundary := strings.Index(serviceMethod.Method, "?")
-	if boundary == 0 {
-		return nil, errors.New("rpc: service/method request ill-formed: " + serviceMethodString)
-	}
-	if boundary > 0 {
-		serviceMethod.Query = serviceMethod.Method[boundary+1:]
-		serviceMethod.Method = serviceMethod.Method[:boundary]
-	}
-
-	return serviceMethod, nil
+	return serviceMethod
 }
 
-// 'Path' return whole name for index.
-func (s *ServiceMethod) Path() string {
-	return s.Service + "." + s.Method
+// 'Split' return service name and method name.
+func (s *ServiceMethod) Split() (service, method string) {
+	dot := strings.LastIndex(s.Path, ".")
+
+	if dot <= 0 || dot+1 == len(s.Path) {
+		service = s.Path
+		return
+	}
+
+	service = s.Path[:dot]
+	method = s.Path[dot+1:]
+
+	return
 }
 
 // ParseQuery parses the URL-encoded query string and returns
@@ -52,39 +53,18 @@ func (s *ServiceMethod) ParseQuery() (url.Values, error) {
 
 // 'String' return original name.
 func (s *ServiceMethod) String() string {
-	return s.Service + "." + s.Method + "?" + s.Query
+	return s.Path + "?" + s.Query
 }
 
 // 'Groups' return router groups prefixes.
 func (s *ServiceMethod) Groups() []string {
 	var prefixes []string
-	for k, v := range s.Service {
+	for k, v := range s.Path {
 		if v == '/' {
-			prefixes = append(prefixes, s.Service[:k])
+			prefixes = append(prefixes, s.Path[:k])
 		}
 	}
 	return prefixes
 }
 
-var nameRegexp = regexp.MustCompile(`^[a-zA-Z0-9_]+$`)
-
-func nameCharsFunc(r rune) bool {
-	// A-Z
-	if r >= 65 && r <= 90 {
-		return false
-	}
-	// a-z
-	if r >= 97 && r <= 122 {
-		return false
-	}
-	// _
-	if r == 95 {
-		return false
-	}
-	// 0-9
-	if r >= 48 && r <= 57 {
-		return false
-	}
-
-	return true
-}
+var nameRegexp = regexp.MustCompile(`^[a-zA-Z0-9_\.]+$`)

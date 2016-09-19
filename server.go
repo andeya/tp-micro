@@ -1,8 +1,6 @@
 package rpc2
 
 import (
-	"bufio"
-	"encoding/gob"
 	"errors"
 	"io"
 	"log"
@@ -11,7 +9,6 @@ import (
 	"net/rpc"
 	"path"
 	"reflect"
-	"strings"
 	"time"
 )
 
@@ -39,13 +36,13 @@ type (
 
 	serverCodecWrapper struct {
 		rpc.ServerCodec
-		conn         net.Conn
+		conn         io.ReadWriteCloser
 		groupPlugins []Plugin
 		*Server
 	}
 
-	// ServerCodecFunc is used to create a rpc.ServerCodec from net.Conn.
-	ServerCodecFunc func(net.Conn) rpc.ServerCodec
+	// ServerCodecFunc is used to create a rpc.ServerCodec from io.ReadWriteCloser.
+	ServerCodecFunc func(io.ReadWriteCloser) rpc.ServerCodec
 )
 
 func NewServer(
@@ -55,15 +52,7 @@ func NewServer(
 	serverCodecFunc ServerCodecFunc,
 ) *Server {
 	if serverCodecFunc == nil {
-		serverCodecFunc = func(conn net.Conn) rpc.ServerCodec {
-			buf := bufio.NewWriter(conn)
-			return &gobServerCodec{
-				rwc:    conn,
-				dec:    gob.NewDecoder(conn),
-				enc:    gob.NewEncoder(buf),
-				encBuf: buf,
-			}
-		}
+		serverCodecFunc = NewGobServerCodec
 	}
 
 	return &Server{
@@ -83,7 +72,7 @@ func NewDefaultServer() *Server {
 
 func (server *Server) Group(typePrefix string, plugins ...Plugin) *Group {
 	if !nameRegexp.MatchString(typePrefix) {
-		panic("Group's prefix ('" + typePrefix + "') must conform to the regular expression '/^[a-zA-Z0-9_]+$/'.")
+		log.Fatal("Group's prefix ('" + typePrefix + "') must conform to the regular expression '/^[a-zA-Z0-9_\\.]+$/'.")
 		return nil
 	}
 	return (&Group{
@@ -98,7 +87,7 @@ func (server *Server) Plugin(plugins ...Plugin) {
 
 func (group *Group) Group(typePrefix string, plugins ...Plugin) *Group {
 	if !nameRegexp.MatchString(typePrefix) {
-		panic("Group's prefix ('" + typePrefix + "') must conform to the regular expression '/^[a-zA-Z0-9_]+$/'.")
+		log.Fatal("Group's prefix ('" + typePrefix + "') must conform to the regular expression '/^[a-zA-Z0-9_\\.]+$/'.")
 		return nil
 	}
 	g := &Group{
@@ -114,7 +103,7 @@ func (group *Group) Group(typePrefix string, plugins ...Plugin) *Group {
 // instead of the receiver's concrete type.
 func (server *Server) RegisterName(name string, rcvr interface{}) error {
 	if !nameRegexp.MatchString(name) {
-		panic("RegisterName ('" + name + "') must conform to the regular expression '/^[a-zA-Z0-9_]+$/'.")
+		log.Fatal("RegisterName ('" + name + "') must conform to the regular expression '/^[a-zA-Z0-9_\\.]+$/'.")
 		return nil
 	}
 	return server.Server.RegisterName(name, rcvr)
@@ -122,7 +111,7 @@ func (server *Server) RegisterName(name string, rcvr interface{}) error {
 
 func (group *Group) RegisterName(name string, rcvr interface{}) error {
 	if !nameRegexp.MatchString(name) {
-		panic("RegisterName ('" + name + "') must conform to the regular expression '/^[a-zA-Z0-9_]+$/'.")
+		log.Fatal("RegisterName ('" + name + "') must conform to the regular expression '/^[a-zA-Z0-9_\\.]+$/'.")
 		return nil
 	}
 	return group.Server.Server.RegisterName(path.Join(group.prefix, name), rcvr)
@@ -138,24 +127,24 @@ func (group *Group) Register(rcvr interface{}) error {
 // The caller typically invokes ServeConn in a go statement.
 // ServeConn uses the gob wire format (see package gob) on the
 // connection.
-func (server *Server) ServeConn(conn net.Conn) {
+func (server *Server) ServeConn(conn io.ReadWriteCloser) {
 	srv := server.serverCodecFunc(conn)
 	server.ServeCodec(conn, srv)
 }
 
 // ServeCodec is like ServeConn but uses the specified codec to
 // decode requests and encode responses.
-func (server *Server) ServeCodec(conn net.Conn, codec rpc.ServerCodec) {
+func (server *Server) ServeCodec(conn io.ReadWriteCloser, codec rpc.ServerCodec) {
 	server.Server.ServeCodec(server.wrapServerCodec(conn, codec))
 }
 
 // ServeRequest is like ServeCodec but synchronously serves a single request.
 // It does not close the codec upon completion.
-func (server *Server) ServeRequest(conn net.Conn, codec rpc.ServerCodec) error {
+func (server *Server) ServeRequest(conn io.ReadWriteCloser, codec rpc.ServerCodec) error {
 	return server.Server.ServeRequest(server.wrapServerCodec(conn, codec))
 }
 
-func (server *Server) wrapServerCodec(conn net.Conn, codec rpc.ServerCodec) *serverCodecWrapper {
+func (server *Server) wrapServerCodec(conn io.ReadWriteCloser, codec rpc.ServerCodec) *serverCodecWrapper {
 	return &serverCodecWrapper{
 		ServerCodec:  codec,
 		conn:         conn,
@@ -165,22 +154,23 @@ func (server *Server) wrapServerCodec(conn net.Conn, codec rpc.ServerCodec) *ser
 }
 
 func (w *serverCodecWrapper) ReadRequestHeader(r *rpc.Request) error {
+	var (
+		conn net.Conn
+		ok   bool
+	)
 	if w.Server.timeout > 0 {
-		w.conn.SetDeadline(time.Now().Add(w.Server.timeout))
+		if conn, ok = w.conn.(net.Conn); ok {
+			conn.SetDeadline(time.Now().Add(w.Server.timeout))
+		}
 	}
-	if w.Server.readTimeout > 0 {
-		w.conn.SetReadDeadline(time.Now().Add(w.Server.readTimeout))
+	if ok && w.Server.readTimeout > 0 {
+		conn.SetReadDeadline(time.Now().Add(w.Server.readTimeout))
 	}
 
+	// decode
 	err := w.ServerCodec.ReadRequestHeader(r)
-
 	if err != nil {
 		return err
-	}
-
-	var dot = strings.Index(r.ServiceMethod, ".")
-	if dot < 0 || dot+1 == len(r.ServiceMethod) {
-		return errors.New("rpc: service/method request ill-formed: " + r.ServiceMethod)
 	}
 
 	for _, plugin := range w.Server.plugins {
@@ -190,19 +180,12 @@ func (w *serverCodecWrapper) ReadRequestHeader(r *rpc.Request) error {
 		}
 	}
 
-	var serviceName = r.ServiceMethod[:dot]
+	serviceMethod := ParseServiceMethod(r.ServiceMethod)
 
-	var p = strings.Split(serviceName, "/")
-	var prefix string
-	for i, count := 0, len(p)-1; i < count; i++ {
-		if i == 0 {
-			prefix = p[i]
-		} else {
-			prefix = prefix + "/" + p[i]
-		}
-		group, ok := w.groupMap[prefix]
+	for _, groupPrefix := range serviceMethod.Groups() {
+		group, ok := w.groupMap[groupPrefix]
 		if !ok {
-			return errors.New("rpc: can't find group " + prefix)
+			return errors.New("rpc: can't find group " + groupPrefix)
 		}
 		for _, plugin := range group.plugins {
 			err = plugin.PostReadRequestHeader(r)
@@ -213,15 +196,7 @@ func (w *serverCodecWrapper) ReadRequestHeader(r *rpc.Request) error {
 		}
 	}
 
-	var methodName = r.ServiceMethod[dot+1:]
-	boundary := strings.IndexFunc(methodName, nameCharsFunc)
-	if boundary == 0 {
-		return errors.New("rpc: service/method request ill-formed: " + r.ServiceMethod)
-	}
-	if boundary > 0 {
-		// methodName = methodName[:boundary]
-		r.ServiceMethod = serviceName + "." + methodName[:boundary]
-	}
+	r.ServiceMethod = serviceMethod.Path
 
 	return err
 }
@@ -249,11 +224,17 @@ func (w *serverCodecWrapper) ReadRequestBody(body interface{}) error {
 
 // WriteResponse must be safe for concurrent use by multiple goroutines.
 func (w *serverCodecWrapper) WriteResponse(resp *rpc.Response, body interface{}) error {
+	var (
+		conn net.Conn
+		ok   bool
+	)
 	if w.Server.timeout > 0 {
-		w.conn.SetDeadline(time.Now().Add(w.Server.timeout))
+		if conn, ok = w.conn.(net.Conn); ok {
+			conn.SetDeadline(time.Now().Add(w.Server.timeout))
+		}
 	}
-	if w.Server.writeTimeout > 0 {
-		w.conn.SetWriteDeadline(time.Now().Add(w.Server.writeTimeout))
+	if ok && w.Server.writeTimeout > 0 {
+		conn.SetWriteDeadline(time.Now().Add(w.Server.writeTimeout))
 	}
 
 	err := w.ServerCodec.WriteResponse(resp, body)

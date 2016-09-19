@@ -30,10 +30,7 @@ func (w *Worker) DoJob(task string, reply *string) error {
 type testPlugin struct{}
 
 func (t *testPlugin) PostReadRequestHeader(req *rpc.Request) error {
-	s, err := rpc2.ParseServiceMethod(req.ServiceMethod)
-	if err != nil {
-		return err
-	}
+	s := rpc2.ParseServiceMethod(req.ServiceMethod)
 	v, err := s.ParseQuery()
 	if err != nil {
 		return err
@@ -53,7 +50,7 @@ func main() {
 	rpc2.AddAllowedIPPrefix("127.0.0.1")
 	server := rpc2.NewDefaultServer()
 	g := server.Group("test", new(testPlugin))
-	err := g.RegisterName("work", NewWorker())
+	err := g.RegisterName("1.0.work", NewWorker())
 	if err != nil {
 		panic(err)
 	}
@@ -73,7 +70,7 @@ func main() {
 			go func(i int) {
 				var reply = new(string)
 				// e := client.Call("Worker.DoJob", strconv.Itoa(ii*N+i), reply)
-				e := client.Call("test/work.DoJob?key=henrylee2cn", strconv.Itoa(ii*N+i), reply)
+				e := client.Call("test/1.0.work.DoJob?key=henrylee2cn", strconv.Itoa(ii*N+i), reply)
 				log.Println(ii*N+i, *reply, e)
 				if e != nil {
 					mapChan <- 0
