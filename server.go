@@ -8,6 +8,8 @@ import (
 	"net"
 	"net/rpc"
 	"path"
+	"reflect"
+	"regexp"
 	"strings"
 	"time"
 )
@@ -106,8 +108,8 @@ func (server *Server) ListenTCP() {
 }
 
 func (server *Server) Group(typePrefix string, plugins ...Plugin) *Group {
-	if strings.Contains(typePrefix, ".") {
-		panic("Group's prefix ('" + typePrefix + "') can not contain '.'.")
+	if !nameRegexp.MatchString(typePrefix) {
+		panic("Group's prefix ('" + typePrefix + "') must conform to the regular expression '/^[a-zA-Z0-9_]+$/'.")
 		return nil
 	}
 	return (&Group{
@@ -121,12 +123,8 @@ func (server *Server) Plugin(plugins ...Plugin) {
 }
 
 func (group *Group) Group(typePrefix string, plugins ...Plugin) *Group {
-	if strings.Contains(typePrefix, ".") {
-		panic("Group's prefix ('" + typePrefix + "') can not contain '.'.")
-		return nil
-	}
-	if strings.Contains(typePrefix, "/") {
-		panic("Group's prefix ('" + typePrefix + "') can not contain '/'.")
+	if !nameRegexp.MatchString(typePrefix) {
+		panic("Group's prefix ('" + typePrefix + "') must conform to the regular expression '/^[a-zA-Z0-9_]+$/'.")
 		return nil
 	}
 	g := &Group{
@@ -141,18 +139,23 @@ func (group *Group) Group(typePrefix string, plugins ...Plugin) *Group {
 // RegisterName is like server.Register but uses the provided name for the type
 // instead of the receiver's concrete type.
 func (server *Server) RegisterName(name string, rcvr interface{}) error {
-	if strings.Contains(name, "/") {
-		panic("RegisterName ('" + name + "') can not contain '/'.")
+	if !nameRegexp.MatchString(name) {
+		panic("RegisterName ('" + name + "') must conform to the regular expression '/^[a-zA-Z0-9_]+$/'.")
 		return nil
 	}
 	return server.Server.RegisterName(name, rcvr)
 }
 
 func (group *Group) RegisterName(name string, rcvr interface{}) error {
-	if strings.Contains(name, "/") {
-		panic("RegisterName '" + name + "' can not contain '/'.")
+	if !nameRegexp.MatchString(name) {
+		panic("RegisterName ('" + name + "') must conform to the regular expression '/^[a-zA-Z0-9_]+$/'.")
 		return nil
 	}
+	return group.Server.Server.RegisterName(path.Join(group.prefix, name), rcvr)
+}
+
+func (group *Group) Register(rcvr interface{}) error {
+	name := reflect.Indirect(reflect.ValueOf(rcvr)).Type().Name()
 	return group.Server.Server.RegisterName(path.Join(group.prefix, name), rcvr)
 }
 
@@ -201,7 +204,8 @@ func (w *serverCodecWrapper) ReadRequestHeader(r *rpc.Request) error {
 		return err
 	}
 
-	if !strings.Contains(r.ServiceMethod, ".") {
+	var dot = strings.Index(r.ServiceMethod, ".")
+	if dot < 0 || dot+1 == len(r.ServiceMethod) {
 		return errors.New("rpc: service/method request ill-formed: " + r.ServiceMethod)
 	}
 
@@ -212,12 +216,16 @@ func (w *serverCodecWrapper) ReadRequestHeader(r *rpc.Request) error {
 		}
 	}
 
-	var (
-		p      = strings.Split(r.ServiceMethod, "/")
-		prefix string
-	)
+	var serviceName = r.ServiceMethod[:dot]
+
+	var p = strings.Split(serviceName, "/")
+	var prefix string
 	for i, count := 0, len(p)-1; i < count; i++ {
-		prefix += p[i]
+		if i == 0 {
+			prefix = p[i]
+		} else {
+			prefix = prefix + "/" + p[i]
+		}
 		group, ok := w.groupMap[prefix]
 		if !ok {
 			return errors.New("rpc: can't find group " + prefix)
@@ -229,6 +237,16 @@ func (w *serverCodecWrapper) ReadRequestHeader(r *rpc.Request) error {
 			}
 			w.groupPlugins = append(w.plugins, plugin)
 		}
+	}
+
+	var methodName = r.ServiceMethod[dot+1:]
+	boundary := strings.IndexFunc(methodName, nameCharsFunc)
+	if boundary == 0 {
+		return errors.New("rpc: service/method request ill-formed: " + r.ServiceMethod)
+	}
+	if boundary > 0 {
+		// methodName = methodName[:boundary]
+		r.ServiceMethod = serviceName + "." + methodName[:boundary]
 	}
 
 	return err
@@ -267,4 +285,27 @@ func (w *serverCodecWrapper) WriteResponse(resp *rpc.Response, body interface{})
 	err := w.ServerCodec.WriteResponse(resp, body)
 
 	return err
+}
+
+var nameRegexp = regexp.MustCompile(`^[a-zA-Z0-9_]+$`)
+
+func nameCharsFunc(r rune) bool {
+	// A-Z
+	if r >= 65 && r <= 90 {
+		return false
+	}
+	// a-z
+	if r >= 97 && r <= 122 {
+		return false
+	}
+	// _
+	if r == 95 {
+		return false
+	}
+	// 0-9
+	if r >= 48 && r <= 57 {
+		return false
+	}
+
+	return true
 }
