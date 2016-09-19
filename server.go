@@ -4,8 +4,10 @@ import (
 	"bufio"
 	"encoding/gob"
 	"errors"
+	"io"
 	"log"
 	"net"
+	"net/http"
 	"net/rpc"
 	"path"
 	"reflect"
@@ -46,6 +48,10 @@ type (
 
 	// ServerCodecFunc is used to create a rpc.ServerCodec from net.Conn.
 	ServerCodecFunc func(net.Conn) rpc.ServerCodec
+
+	debugHTTP struct {
+		*Server
+	}
 )
 
 func NewServer(
@@ -81,30 +87,6 @@ func NewServer(
 
 func NewDefaultServer(addr string) *Server {
 	return NewServer(addr, time.Minute, 0, 0, nil)
-}
-
-// Open Service
-// @timeout, optional, setting server response timeout.
-func (server *Server) ListenTCP() {
-	l, e := net.Listen("tcp", server.addr)
-	if e != nil {
-		log.Fatal("Error: listen %s error:", server.addr, e)
-	}
-	for {
-		conn, err := l.Accept()
-		if err != nil {
-			log.Println("Error: accept rpc connection", err.Error())
-			continue
-		}
-
-		// filter ip
-		if !ipWhitelist.allowAccess(conn.RemoteAddr().String()) {
-			log.Println("Client Not allow:", conn.RemoteAddr().String())
-			continue
-		}
-
-		go server.ServeCodec(conn, server.serverCodecFunc(conn))
-	}
 }
 
 func (server *Server) Group(typePrefix string, plugins ...Plugin) *Group {
@@ -159,10 +141,10 @@ func (group *Group) Register(rcvr interface{}) error {
 	return group.Server.Server.RegisterName(path.Join(group.prefix, name), rcvr)
 }
 
-// ServeConnx runs the server on a single connection.
-// ServeConnx blocks, serving the connection until the client hangs up.
+// ServeConn runs the server on a single connection.
+// ServeConn blocks, serving the connection until the client hangs up.
 // The caller typically invokes ServeConn in a go statement.
-// ServeConnx uses the gob wire format (see package gob) on the
+// ServeConn uses the gob wire format (see package gob) on the
 // connection.
 func (server *Server) ServeConn(conn net.Conn) {
 	srv := server.serverCodecFunc(conn)
@@ -308,4 +290,64 @@ func nameCharsFunc(r rune) bool {
 	}
 
 	return true
+}
+
+// Open Service
+// @timeout, optional, setting server response timeout.
+func (server *Server) ListenTCP() {
+	lis, err := net.Listen("tcp", server.addr)
+	if err != nil {
+		log.Fatal("Error: listen %s error:", server.addr, err)
+	}
+	server.Accept(lis)
+}
+
+// Accept accepts connections on the listener and serves requests
+// for each incoming connection. Accept blocks until the listener
+// returns a non-nil error. The caller typically invokes Accept in a
+// go statement.
+func (server *Server) Accept(lis net.Listener) {
+	for {
+		conn, err := lis.Accept()
+		if err != nil {
+			log.Println("Error: accept rpc connection", err.Error())
+			continue
+		}
+
+		// filter ip
+		if !ipWhitelist.allowAccess(conn.RemoteAddr().String()) {
+			log.Println("Client Not allow:", conn.RemoteAddr().String())
+			continue
+		}
+
+		go server.ServeCodec(conn, server.serverCodecFunc(conn))
+	}
+}
+
+// Can connect to RPC service using HTTP CONNECT to rpcPath.
+var connected = "200 Connected to Go RPC"
+
+// ServeHTTP implements an http.Handler that answers RPC requests.
+func (server *Server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+	if req.Method != "CONNECT" {
+		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		io.WriteString(w, "405 must CONNECT\n")
+		return
+	}
+	conn, _, err := w.(http.Hijacker).Hijack()
+	if err != nil {
+		log.Print("rpc hijacking ", req.RemoteAddr, ": ", err.Error())
+		return
+	}
+	io.WriteString(conn, "HTTP/1.0 "+connected+"\n\n")
+	server.ServeConn(conn)
+}
+
+// HandleHTTP registers an HTTP handler for RPC messages on rpcPath,
+// and a debugging handler on debugPath.
+// It is still necessary to invoke http.Serve(), typically in a go statement.
+func (server *Server) HandleHTTP(rpcPath, debugPath string) {
+	http.Handle(rpcPath, server)
+	http.Handle(debugPath, debugHTTP{server})
 }
