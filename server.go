@@ -168,7 +168,7 @@ func (server *Server) wrapServerCodec(conn net.Conn, codec rpc.ServerCodec) *ser
 		ServerCodec:  codec,
 		conn:         conn,
 		Server:       server,
-		groupPlugins: make([]Plugin, 0, 50),
+		groupPlugins: make([]Plugin, 0, 10),
 	}
 }
 
