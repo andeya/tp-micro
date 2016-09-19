@@ -18,14 +18,13 @@ import (
 
 type (
 	Server struct {
-		addr string
-		*rpc.Server
 		plugins         []Plugin
 		groupMap        map[string]*Group
 		timeout         time.Duration
 		readTimeout     time.Duration
 		writeTimeout    time.Duration
 		serverCodecFunc ServerCodecFunc
+		*rpc.Server
 	}
 
 	Group struct {
@@ -51,7 +50,6 @@ type (
 )
 
 func NewServer(
-	addr string,
 	timeout,
 	readTimeout,
 	writeTimeout time.Duration,
@@ -70,7 +68,6 @@ func NewServer(
 	}
 
 	return &Server{
-		addr:            addr,
 		Server:          rpc.NewServer(),
 		plugins:         []Plugin{},
 		timeout:         timeout,
@@ -81,8 +78,8 @@ func NewServer(
 	}
 }
 
-func NewDefaultServer(addr string) *Server {
-	return NewServer(addr, time.Minute, 0, 0, nil)
+func NewDefaultServer() *Server {
+	return NewServer(time.Minute, 0, 0, nil)
 }
 
 func (server *Server) Group(typePrefix string, plugins ...Plugin) *Group {
@@ -290,10 +287,10 @@ func nameCharsFunc(r rune) bool {
 
 // Open Service
 // @timeout, optional, setting server response timeout.
-func (server *Server) ListenTCP() {
-	lis, err := net.Listen("tcp", server.addr)
+func (server *Server) ListenTCP(addr string) {
+	lis, err := net.Listen("tcp", addr)
 	if err != nil {
-		log.Fatal("Error: listen %s error:", server.addr, err)
+		log.Fatal("Error: listen %s error:", addr, err)
 	}
 	server.Accept(lis)
 }

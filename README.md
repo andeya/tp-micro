@@ -27,12 +27,12 @@ func (w *Worker) DoJob(task string, reply *string) error {
 
 func main() {
     // server
-    server := rpc2.NewDefaultServer("0.0.0.0:80")
+    server := rpc2.NewDefaultServer()
     err := server.Register(NewWorker())
     if err != nil {
         panic(err)
     }
-    go server.ListenTCP()
+    go server.ListenTCP("0.0.0.0:80")
     time.Sleep(2e9)
 
     // client

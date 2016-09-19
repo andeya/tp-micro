@@ -43,13 +43,13 @@ func (t *testPlugin) PostReadRequestBody(body interface{}) error {
 func main() {
 	// server
 	rpc2.AddAllowedIPPrefix("127.0.0.1")
-	server := rpc2.NewDefaultServer("0.0.0.0:80")
+	server := rpc2.NewDefaultServer()
 	g := server.Group("test", new(testPlugin))
 	err := g.RegisterName("work", NewWorker())
 	if err != nil {
 		panic(err)
 	}
-	go server.ListenTCP()
+	go server.ListenTCP("0.0.0.0:80")
 	time.Sleep(2e9)
 
 	// client
