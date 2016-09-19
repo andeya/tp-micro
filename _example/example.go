@@ -47,10 +47,10 @@ func (t *testPlugin) PostReadRequestBody(body interface{}) error {
 // rpc2
 func main() {
 	// server
-	rpc2.AddAllowedIPPrefix("127.0.0.1")
 	server := rpc2.NewDefaultServer()
-	g := server.Group("test", new(testPlugin))
-	err := g.RegisterName("1.0.work", NewWorker())
+	server.IP().AllowIPPrefix("127.0.0.1")
+	group := server.Group("test", new(testPlugin))
+	err := group.RegisterName("1.0.work", NewWorker())
 	if err != nil {
 		panic(err)
 	}

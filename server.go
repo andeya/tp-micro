@@ -20,6 +20,7 @@ type (
 		readTimeout     time.Duration
 		writeTimeout    time.Duration
 		serverCodecFunc ServerCodecFunc
+		ipWhitelist     *IPWhitelist
 		*rpc.Server
 	}
 
@@ -62,6 +63,7 @@ func NewServer(
 		readTimeout:     readTimeout,
 		writeTimeout:    writeTimeout,
 		serverCodecFunc: serverCodecFunc,
+		ipWhitelist:     NewIPWhitelist(),
 		groupMap:        map[string]*Group{},
 	}
 }
@@ -265,13 +267,18 @@ func (server *Server) Accept(lis net.Listener) {
 		}
 
 		// filter ip
-		if !ipWhitelist.allowAccess(conn.RemoteAddr().String()) {
-			log.Println("Client Not allow:", conn.RemoteAddr().String())
+		if !server.ipWhitelist.IsAllowed(conn.RemoteAddr().String()) {
+			log.Print("Not allowed client IP: ", conn.RemoteAddr().String())
+			conn.Close()
 			continue
 		}
 
 		go server.ServeCodec(conn, server.serverCodecFunc(conn))
 	}
+}
+
+func (server *Server) IP() *IPWhitelist {
+	return server.ipWhitelist
 }
 
 // Can connect to RPC service using HTTP CONNECT to rpcPath.
@@ -285,11 +292,22 @@ func (server *Server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		io.WriteString(w, "405 must CONNECT\n")
 		return
 	}
+
+	var ip = RealRemoteAddr(req)
+
 	conn, _, err := w.(http.Hijacker).Hijack()
 	if err != nil {
-		log.Print("rpc hijacking ", req.RemoteAddr, ": ", err.Error())
+		log.Print("rpc hijacking ", ip, ": ", err.Error())
 		return
 	}
+
+	// filter ip
+	if !server.ipWhitelist.IsAllowed(ip) {
+		log.Print("Not allowed client IP: ", ip)
+		conn.Close()
+		return
+	}
+
 	io.WriteString(conn, "HTTP/1.0 "+connected+"\n\n")
 	server.ServeConn(conn)
 }
@@ -298,4 +316,14 @@ func (server *Server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 // It is still necessary to invoke http.Serve(), typically in a go statement.
 func (server *Server) HandleHTTP(rpcPath string) {
 	http.Handle(rpcPath, server)
+}
+
+func RealRemoteAddr(req *http.Request) string {
+	var ip string
+	if ip = req.Header.Get("X-Real-IP"); len(ip) == 0 {
+		if ip = req.Header.Get("X-Forwarded-For"); len(ip) == 0 {
+			ip, _, _ = net.SplitHostPort(req.RemoteAddr)
+		}
+	}
+	return ip
 }

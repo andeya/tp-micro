@@ -9,23 +9,21 @@ type IPWhitelist struct {
 	prefix []string
 	match  map[string]bool
 	count  int
+	enable bool
 	sync.RWMutex
 }
 
-var ipWhitelist = func() *IPWhitelist {
-	that := new(IPWhitelist).Clean()
-	that.AddAllowedPrefix(
-		"[",
-		"127.",
-		"192.168.",
-		"10.",
-	)
-	return that
-}()
+func NewIPWhitelist() *IPWhitelist {
+	return new(IPWhitelist).FreeAccess()
+}
 
-func (this *IPWhitelist) allowAccess(addr string) bool {
+func (this *IPWhitelist) IsAllowed(addr string) bool {
 	this.RLock()
 	defer this.RUnlock()
+	if !this.enable {
+		return true
+	}
+
 	for i := 0; i < this.count; i++ {
 		if strings.HasPrefix(addr, this.prefix[i]) {
 			return true
@@ -34,13 +32,14 @@ func (this *IPWhitelist) allowAccess(addr string) bool {
 	return false
 }
 
-func (this *IPWhitelist) AddAllowedPrefix(ipPrefix ...string) *IPWhitelist {
+func (this *IPWhitelist) AllowIPPrefix(ipPrefix ...string) *IPWhitelist {
 	this.Lock()
 	defer this.Unlock()
-	if this.match[""] {
-		this.Clean()
-	}
+	this.enable = true
 	for _, ip := range ipPrefix {
+		if len(ip) == 0 {
+			continue
+		}
 		if !this.match[ip] {
 			this.match[ip] = true
 			this.prefix = append(this.prefix, ip)
@@ -50,16 +49,8 @@ func (this *IPWhitelist) AddAllowedPrefix(ipPrefix ...string) *IPWhitelist {
 	return this
 }
 
-func (this *IPWhitelist) Clean() *IPWhitelist {
-	this.Lock()
-	defer this.Unlock()
-	this.prefix = []string{}
-	this.match = map[string]bool{}
-	return this
-}
-
-func (this *IPWhitelist) AllowLAN() *IPWhitelist {
-	return this.AddAllowedPrefix(
+func (this *IPWhitelist) OnlyLAN() *IPWhitelist {
+	return this.AllowIPPrefix(
 		"[",
 		"127.",
 		"192.168.",
@@ -67,24 +58,24 @@ func (this *IPWhitelist) AllowLAN() *IPWhitelist {
 	)
 }
 
-func (this *IPWhitelist) AllowAny() *IPWhitelist {
-	return this.AddAllowedPrefix("")
+func (this *IPWhitelist) FreeAccess() *IPWhitelist {
+	this.Lock()
+	defer this.Unlock()
+	this.prefix = []string{}
+	this.match = map[string]bool{}
+	this.enable = false
+	return this
 }
 
-// Add the client ip that is allowed to connect,
-// LAN match are always allowed.
-func AddAllowedIPPrefix(ipPrefix ...string) {
-	ipWhitelist.AddAllowedPrefix(ipPrefix...)
+func (this *IPWhitelist) NoAccess() *IPWhitelist {
+	return this.Clean()
 }
 
-func CleanIPWhitelist() {
-	ipWhitelist.Clean()
-}
-
-func AllowLANAccess() {
-	ipWhitelist.AllowLAN()
-}
-
-func AllowAnyAccess() {
-	ipWhitelist.AllowAny()
+func (this *IPWhitelist) Clean() *IPWhitelist {
+	this.Lock()
+	defer this.Unlock()
+	this.prefix = []string{}
+	this.match = map[string]bool{}
+	this.enable = true
+	return this
 }
