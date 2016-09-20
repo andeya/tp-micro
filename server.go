@@ -127,28 +127,25 @@ func (group *Group) Register(rcvr interface{}) error {
 // ServeConn runs the server on a single connection.
 // ServeConn blocks, serving the connection until the client hangs up.
 // The caller typically invokes ServeConn in a go statement.
-// ServeConn uses the gob wire format (see package gob) on the
-// connection.
+// ServeConn uses the setted wire format on the connection.
 func (server *Server) ServeConn(conn io.ReadWriteCloser) {
-	srv := server.serverCodecFunc(conn)
-	server.ServeCodec(conn, srv)
+	server.Server.ServeCodec(server.wrapServerCodec(conn))
 }
 
-// ServeCodec is like ServeConn but uses the specified codec to
-// decode requests and encode responses.
-func (server *Server) ServeCodec(conn io.ReadWriteCloser, codec rpc.ServerCodec) {
-	server.Server.ServeCodec(server.wrapServerCodec(conn, codec))
+// ServeCodec is ServeConn's alias.
+func (server *Server) ServeCodec(conn io.ReadWriteCloser) {
+	server.ServeConn(conn)
 }
 
-// ServeRequest is like ServeCodec but synchronously serves a single request.
+// ServeRequest is like ServeConn but synchronously serves a single request.
 // It does not close the codec upon completion.
-func (server *Server) ServeRequest(conn io.ReadWriteCloser, codec rpc.ServerCodec) error {
-	return server.Server.ServeRequest(server.wrapServerCodec(conn, codec))
+func (server *Server) ServeRequest(conn io.ReadWriteCloser) error {
+	return server.Server.ServeRequest(server.wrapServerCodec(conn))
 }
 
-func (server *Server) wrapServerCodec(conn io.ReadWriteCloser, codec rpc.ServerCodec) *serverCodecWrapper {
+func (server *Server) wrapServerCodec(conn io.ReadWriteCloser) *serverCodecWrapper {
 	return &serverCodecWrapper{
-		ServerCodec:  codec,
+		ServerCodec:  server.serverCodecFunc(conn),
 		conn:         conn,
 		Server:       server,
 		groupPlugins: make([]Plugin, 0, 10),
@@ -274,7 +271,7 @@ func (server *Server) Accept(lis net.Listener) {
 			continue
 		}
 
-		go server.ServeCodec(conn, server.serverCodecFunc(conn))
+		go server.ServeConn(conn)
 	}
 }
 
