@@ -9,9 +9,9 @@ import (
 
 type (
 	AuthorizationPlugin struct {
-		Token             string `json:"auth_token"` // Authorization token
-		Tag               string `json:"auth_tag"`   // extra tag for Authorization
-		AuthorizationFunc `json:"-"`
+		token             string // Authorization token
+		tag               string // extra tag for Authorization
+		authorizationFunc AuthorizationFunc
 	}
 
 	// AuthorizationFunc defines a method type which handles Authorization info
@@ -20,15 +20,28 @@ type (
 
 var _ rpc2.Plugin = new(AuthorizationPlugin)
 
+func NewServerAuthorization(fn AuthorizationFunc) *AuthorizationPlugin {
+	return &AuthorizationPlugin{
+		authorizationFunc: fn,
+	}
+}
+
+func NewClientAuthorization(token string, tag string) *AuthorizationPlugin {
+	return &AuthorizationPlugin{
+		token: token,
+		tag:   tag,
+	}
+}
+
 func (auth *AuthorizationPlugin) String() string {
 	return url.Values{
-		"auth_token": []string{auth.Token},
-		"auth_tag":   []string{auth.Tag},
+		"auth_token": []string{auth.token},
+		"auth_tag":   []string{auth.tag},
 	}.Encode()
 }
 
 func (auth *AuthorizationPlugin) PostReadRequestHeader(req *rpc.Request) error {
-	if auth.AuthorizationFunc == nil {
+	if auth.authorizationFunc == nil {
 		return nil
 	}
 
@@ -39,7 +52,7 @@ func (auth *AuthorizationPlugin) PostReadRequestHeader(req *rpc.Request) error {
 		return err
 	}
 
-	return auth.AuthorizationFunc(v.Get("auth_token"), v.Get("auth_tag"), s.Path)
+	return auth.authorizationFunc(v.Get("auth_token"), v.Get("auth_tag"), s.Path)
 }
 
 func (*AuthorizationPlugin) PostReadRequestBody(_ interface{}) error {
