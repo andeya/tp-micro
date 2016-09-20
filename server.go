@@ -21,7 +21,7 @@ type (
 		writeTimeout    time.Duration
 		serverCodecFunc ServerCodecFunc
 		ipWhitelist     *IPWhitelist
-		*rpc.Server
+		server          *rpc.Server
 	}
 
 	Group struct {
@@ -57,7 +57,7 @@ func NewServer(
 	}
 
 	return &Server{
-		Server:          rpc.NewServer(),
+		server:          rpc.NewServer(),
 		plugins:         []Plugin{},
 		timeout:         timeout,
 		readTimeout:     readTimeout,
@@ -108,7 +108,7 @@ func (server *Server) RegisterName(name string, rcvr interface{}) error {
 		log.Fatal("RegisterName ('" + name + "') must conform to the regular expression '/^[a-zA-Z0-9_\\.]+$/'.")
 		return nil
 	}
-	return server.Server.RegisterName(name, rcvr)
+	return server.server.RegisterName(name, rcvr)
 }
 
 func (group *Group) RegisterName(name string, rcvr interface{}) error {
@@ -116,12 +116,12 @@ func (group *Group) RegisterName(name string, rcvr interface{}) error {
 		log.Fatal("RegisterName ('" + name + "') must conform to the regular expression '/^[a-zA-Z0-9_\\.]+$/'.")
 		return nil
 	}
-	return group.Server.Server.RegisterName(path.Join(group.prefix, name), rcvr)
+	return group.Server.server.RegisterName(path.Join(group.prefix, name), rcvr)
 }
 
 func (group *Group) Register(rcvr interface{}) error {
 	name := reflect.Indirect(reflect.ValueOf(rcvr)).Type().Name()
-	return group.Server.Server.RegisterName(path.Join(group.prefix, name), rcvr)
+	return group.Server.server.RegisterName(path.Join(group.prefix, name), rcvr)
 }
 
 // ServeConn runs the server on a single connection.
@@ -129,18 +129,18 @@ func (group *Group) Register(rcvr interface{}) error {
 // The caller typically invokes ServeConn in a go statement.
 // ServeConn uses the setted wire format on the connection.
 func (server *Server) ServeConn(conn io.ReadWriteCloser) {
-	server.Server.ServeCodec(server.wrapServerCodec(conn))
+	server.server.ServeCodec(server.wrapServerCodec(conn))
 }
 
 // ServeCodec is ServeConn's alias.
-func (server *Server) ServeCodec(conn io.ReadWriteCloser) {
-	server.ServeConn(conn)
-}
+// func (server *Server) ServeCodec(conn io.ReadWriteCloser) {
+// 	server.ServeConn(conn)
+// }
 
 // ServeRequest is like ServeConn but synchronously serves a single request.
 // It does not close the codec upon completion.
 func (server *Server) ServeRequest(conn io.ReadWriteCloser) error {
-	return server.Server.ServeRequest(server.wrapServerCodec(conn))
+	return server.server.ServeRequest(server.wrapServerCodec(conn))
 }
 
 func (server *Server) wrapServerCodec(conn io.ReadWriteCloser) *serverCodecWrapper {
