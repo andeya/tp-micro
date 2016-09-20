@@ -6,9 +6,8 @@ import (
 )
 
 type IPWhitelist struct {
-	prefix []string
 	match  map[string]bool
-	count  int
+	prefix map[string]bool
 	enable bool
 	sync.RWMutex
 }
@@ -20,49 +19,54 @@ func NewIPWhitelist() *IPWhitelist {
 func (this *IPWhitelist) IsAllowed(addr string) bool {
 	this.RLock()
 	defer this.RUnlock()
-	if !this.enable {
+	if !this.enable || this.match[addr] {
 		return true
 	}
-
-	for i := 0; i < this.count; i++ {
-		if strings.HasPrefix(addr, this.prefix[i]) {
+	for ipPrefix := range this.prefix {
+		if strings.HasPrefix(addr, ipPrefix) {
 			return true
 		}
 	}
 	return false
 }
 
-func (this *IPWhitelist) AllowIPPrefix(ipPrefix ...string) *IPWhitelist {
+func (this *IPWhitelist) Allow(pattern ...string) *IPWhitelist {
 	this.Lock()
 	defer this.Unlock()
 	this.enable = true
-	for _, ip := range ipPrefix {
-		if len(ip) == 0 {
+	for _, ip := range pattern {
+		ip = strings.TrimSpace(ip)
+		length := len(ip)
+		if length == 0 {
 			continue
 		}
-		if !this.match[ip] {
+		if !strings.HasSuffix(ip, "*") {
 			this.match[ip] = true
-			this.prefix = append(this.prefix, ip)
-			this.count++
+			continue
 		}
+		if length == 1 {
+			go this.FreeAccess()
+			return this
+		}
+		this.prefix[ip[:length-1]] = true
 	}
 	return this
 }
 
 func (this *IPWhitelist) OnlyLAN() *IPWhitelist {
 	this.NoAccess()
-	return this.AllowIPPrefix(
-		"[",
-		"127.",
-		"192.168.",
-		"10.",
+	return this.Allow(
+		"[*",
+		"127.*",
+		"192.168.*",
+		"10.*",
 	)
 }
 
 func (this *IPWhitelist) FreeAccess() *IPWhitelist {
 	this.Lock()
 	defer this.Unlock()
-	this.prefix = []string{}
+	this.prefix = map[string]bool{}
 	this.match = map[string]bool{}
 	this.enable = false
 	return this
@@ -75,7 +79,7 @@ func (this *IPWhitelist) NoAccess() *IPWhitelist {
 func (this *IPWhitelist) Clean() *IPWhitelist {
 	this.Lock()
 	defer this.Unlock()
-	this.prefix = []string{}
+	this.prefix = map[string]bool{}
 	this.match = map[string]bool{}
 	this.enable = true
 	return this

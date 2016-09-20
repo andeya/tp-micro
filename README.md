@@ -31,7 +31,7 @@ func (w *Worker) DoJob(task string, reply *string) error {
 func main() {
     // server
     server := rpc2.NewDefaultServer()
-    // server.IP().AllowIPPrefix("127.0.0.1")
+    // server.IP().Allow("127.0.0.1*")
     err := server.Register(NewWorker())
     if err != nil {
         panic(err)

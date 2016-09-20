@@ -48,7 +48,7 @@ func (t *testPlugin) PostReadRequestBody(body interface{}) error {
 func main() {
 	// server
 	server := rpc2.NewDefaultServer()
-	server.IP().AllowIPPrefix("127.0.0.1")
+	server.IP().Allow("127.0.0.1*")
 	group := server.Group("test", new(testPlugin))
 	err := group.RegisterName("1.0.work", NewWorker())
 	if err != nil {
@@ -98,7 +98,7 @@ func main2() {
 	rpc.Register(NewWorker())
 	rpc.HandleHTTP()
 
-	l, e := net.Listen("tcp", "127.0.0.1:80") // any available address
+	l, e := net.Listen("tcp", "127.0.0.1:8080") // any available address
 	if e != nil {
 		log.Fatalf("net.Listen tcp :0: %v", e)
 	}
@@ -126,7 +126,7 @@ func main2() {
 					log.Println(ii*N+i, *reply, err)
 				}()
 
-				client, err := rpc.DialHTTP("tcp", "127.0.0.1:80")
+				client, err := rpc.DialHTTP("tcp", "127.0.0.1:8080")
 				if err != nil {
 					log.Println("dialing:", err)
 					return
