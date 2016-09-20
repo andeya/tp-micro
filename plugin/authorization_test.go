@@ -1,4 +1,4 @@
-package rpc2
+package plugin
 
 import (
 	"testing"
