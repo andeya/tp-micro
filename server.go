@@ -267,8 +267,9 @@ func (server *Server) Accept(lis net.Listener) {
 		}
 
 		// filter ip
-		if !server.ipWhitelist.IsAllowed(conn.RemoteAddr().String()) {
-			log.Print("Not allowed client IP: ", conn.RemoteAddr().String())
+		ip, _, _ := net.SplitHostPort(conn.RemoteAddr().String())
+		if !server.ipWhitelist.IsAllowed(ip) {
+			log.Print("Not allowed client IP: ", ip)
 			conn.Close()
 			continue
 		}
