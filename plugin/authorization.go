@@ -32,16 +32,14 @@ func (auth *AuthorizationPlugin) PostReadRequestHeader(req *rpc.Request) error {
 		return nil
 	}
 
-	s, err := rpc2.ParseServiceMethod(req.ServiceMethod)
-	if err != nil {
-		return err
-	}
+	s := rpc2.ParseServiceMethod(req.ServiceMethod)
+
 	v, err := s.ParseQuery()
 	if err != nil {
 		return err
 	}
 
-	return auth.AuthorizationFunc(v.Get("auth_token"), v.Get("auth_tag"), s.Path())
+	return auth.AuthorizationFunc(v.Get("auth_token"), v.Get("auth_tag"), s.Path)
 }
 
 func (*AuthorizationPlugin) PostReadRequestBody(_ interface{}) error {
