@@ -31,9 +31,15 @@ func (this *IPWhitelist) IsAllowed(addr string) bool {
 }
 
 func (this *IPWhitelist) Allow(pattern ...string) *IPWhitelist {
+	if len(pattern) == 0 {
+		return this
+	}
+
 	this.Lock()
 	defer this.Unlock()
+
 	this.enable = true
+
 	for _, ip := range pattern {
 		ip = strings.TrimSpace(ip)
 		length := len(ip)
