@@ -201,12 +201,12 @@ func (group *Group) RegisterName(name string, rcvr interface{}) error {
 		log.Fatal("RegisterName ('" + name + "') must conform to the regular expression '/^[a-zA-Z0-9_\\.]+$/'.")
 		return nil
 	}
-	return group.Server.RegisterName(path.Join(group.prefix, name), rcvr)
+	return group.Server.register(rcvr, path.Join(group.prefix, name), true)
 }
 
 func (group *Group) Register(rcvr interface{}) error {
 	name := reflect.Indirect(reflect.ValueOf(rcvr)).Type().Name()
-	return group.Server.RegisterName(path.Join(group.prefix, name), rcvr)
+	return group.Server.register(rcvr, path.Join(group.prefix, name), true)
 }
 
 func (server *Server) register(rcvr interface{}, name string, useName bool) error {
