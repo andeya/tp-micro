@@ -30,7 +30,7 @@ func (w *Worker) DoJob(task string, reply *string) error {
 
 func main() {
     // server
-    server := rpc2.NewDefaultServer()
+    server := rpc2.NewDefaultServer(true)
     // server.IP().Allow("127.0.0.1")
     err := server.Register(NewWorker())
     if err != nil {

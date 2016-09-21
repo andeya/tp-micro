@@ -27,6 +27,20 @@ func (w *Worker) DoJob(task string, reply *string) error {
 	return nil
 }
 
+func (w *Worker) Todo1(task string, reply *string) error {
+	log.Println("Worker: do job", task)
+	// time.Sleep(time.Second * 3)
+	*reply = "OK"
+	return nil
+}
+
+func (w *Worker) Todo2(task string, reply *string) error {
+	log.Println("Worker: do job", task)
+	// time.Sleep(time.Second * 3)
+	*reply = "OK"
+	return nil
+}
+
 type testPlugin struct{}
 
 func (t *testPlugin) PostReadRequestHeader(req *rpc.Request) error {
@@ -47,7 +61,7 @@ func (t *testPlugin) PostReadRequestBody(body interface{}) error {
 // rpc2
 func main() {
 	// server
-	server := rpc2.NewDefaultServer()
+	server := rpc2.NewDefaultServer(true)
 	server.IP().Allow("127.0.0.1")
 	group := server.Group("test", new(testPlugin))
 	err := group.RegisterName("1.0.work", NewWorker())

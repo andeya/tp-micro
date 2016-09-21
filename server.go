@@ -2,6 +2,7 @@ package rpc2
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"log"
 	"net"
@@ -9,6 +10,7 @@ import (
 	"net/rpc"
 	"path"
 	"reflect"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -27,6 +29,8 @@ type (
 		writeTimeout    time.Duration
 		serverCodecFunc ServerCodecFunc
 		ipWhitelist     *IPWhitelist
+		routers         []string
+		printRouters    bool
 
 		mu         sync.RWMutex // protects the serviceMap
 		serviceMap map[string]*service
@@ -89,15 +93,21 @@ type (
 
 // NewServer returns a new Server.
 func NewServer(
-	timeout,
-	readTimeout,
+	timeout time.Duration,
+	readTimeout time.Duration,
 	writeTimeout time.Duration,
 	serverCodecFunc ServerCodecFunc,
+	printRouters ...bool,
 ) *Server {
 	if serverCodecFunc == nil {
 		serverCodecFunc = NewGobServerCodec
 	}
+	if len(printRouters) == 0 {
+		printRouters = append(printRouters, false)
+	}
 	return &Server{
+		routers:         []string{},
+		printRouters:    printRouters[0],
 		serviceMap:      make(map[string]*service),
 		plugins:         []Plugin{},
 		timeout:         timeout,
@@ -110,8 +120,8 @@ func NewServer(
 }
 
 // NewDefaultServer returns a new default Server.
-func NewDefaultServer() *Server {
-	return NewServer(time.Minute, 0, 0, nil)
+func NewDefaultServer(printRouters ...bool) *Server {
+	return NewServer(time.Minute, 0, 0, nil, printRouters...)
 }
 
 func (server *Server) Plugin(plugins ...Plugin) {
@@ -120,7 +130,7 @@ func (server *Server) Plugin(plugins ...Plugin) {
 
 func (server *Server) Group(typePrefix string, plugins ...Plugin) *Group {
 	if !nameRegexp.MatchString(typePrefix) {
-		log.Fatal("Group's prefix ('" + typePrefix + "') must conform to the regular expression '/^[a-zA-Z0-9_\\.]+$/'.")
+		log.Fatal("[RPC] group's prefix ('" + typePrefix + "') must conform to the regular expression '/^[a-zA-Z0-9_\\.]+$/'.")
 		return nil
 	}
 	return (&Group{
@@ -131,7 +141,7 @@ func (server *Server) Group(typePrefix string, plugins ...Plugin) *Group {
 
 func (group *Group) Group(typePrefix string, plugins ...Plugin) *Group {
 	if !nameRegexp.MatchString(typePrefix) {
-		log.Fatal("Group's prefix ('" + typePrefix + "') must conform to the regular expression '/^[a-zA-Z0-9_\\.]+$/'.")
+		log.Fatal("[RPC] group's prefix ('" + typePrefix + "') must conform to the regular expression '/^[a-zA-Z0-9_\\.]+$/'.")
 		return nil
 	}
 	g := &Group{
@@ -161,7 +171,7 @@ func (server *Server) Register(rcvr interface{}) error {
 // instead of the receiver's concrete type.
 func (server *Server) RegisterName(name string, rcvr interface{}) error {
 	if !nameRegexp.MatchString(name) {
-		log.Fatal("RegisterName ('" + name + "') must conform to the regular expression '/^[a-zA-Z0-9_\\.]+$/'.")
+		log.Fatal("[RPC] register name ('" + name + "') must conform to the regular expression '/^[a-zA-Z0-9_\\.]+$/'.")
 		return nil
 	}
 	return server.register(rcvr, name, true)
@@ -174,7 +184,7 @@ func (group *Group) Register(rcvr interface{}) error {
 
 func (group *Group) RegisterName(name string, rcvr interface{}) error {
 	if !nameRegexp.MatchString(name) {
-		log.Fatal("RegisterName ('" + name + "') must conform to the regular expression '/^[a-zA-Z0-9_\\.]+$/'.")
+		log.Fatal("[RPC] register name ('" + name + "') must conform to the regular expression '/^[a-zA-Z0-9_\\.]+$/'.")
 		return nil
 	}
 	return group.Server.register(rcvr, path.Join(group.prefix, name), true)
@@ -185,11 +195,19 @@ func (server *Server) IP() *IPWhitelist {
 	return server.ipWhitelist
 }
 
+// Routers return registered routers.
+func (server *Server) Routers() []string {
+	return server.routers
+}
+
 // ListenAndServe open RPC service at the specified network address.
 func (server *Server) ListenAndServe(network, address string) {
 	lis, err := net.Listen(network, address)
 	if err != nil {
-		log.Fatal("rpc.Serve: listen %s error:", address, err)
+		log.Fatal("[RPC] listen %s error:", address, err)
+	}
+	if server.printRouters {
+		fmt.Printf("[RPC] listening and serving %s on %s\n", strings.ToUpper(network), address)
 	}
 	server.Accept(lis)
 }
@@ -202,14 +220,14 @@ func (server *Server) Accept(lis net.Listener) {
 	for {
 		conn, err := lis.Accept()
 		if err != nil {
-			log.Print("rpc.Serve: accept:", err.Error())
+			log.Println("[RPC] accept:", err.Error())
 			return
 		}
 
 		// filter ip
 		ip, _, _ := net.SplitHostPort(conn.RemoteAddr().String())
 		if !server.ipWhitelist.IsAllowed(ip) {
-			log.Print("rpc.Serve: not allowed client IP: ", ip)
+			log.Println("[RPC] not allowed client ip:", ip)
 			conn.Close()
 			continue
 		}
@@ -234,13 +252,13 @@ func (server *Server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 	conn, _, err := w.(http.Hijacker).Hijack()
 	if err != nil {
-		log.Print("rpc hijacking ", ip, ": ", err.Error())
+		log.Print("[RPC] hijacking ", ip, ": ", err.Error())
 		return
 	}
 
 	// filter ip
 	if !server.ipWhitelist.IsAllowed(ip) {
-		log.Print("Not allowed client IP: ", ip)
+		log.Println("[RPC] not allowed client ip:", ip)
 		conn.Close()
 		return
 	}
@@ -269,7 +287,7 @@ func (server *Server) ServeConn(conn io.ReadWriteCloser) {
 		service, mtype, req, argv, replyv, keepReading, err := server.readRequest(codec)
 		if err != nil {
 			if debugLog && err != io.EOF {
-				log.Println("rpc:", err)
+				log.Println("[RPC]", err.Error())
 			}
 			if !keepReading {
 				break
@@ -331,12 +349,12 @@ func (server *Server) register(rcvr interface{}, name string, useName bool) erro
 	}
 	if sname == "" {
 		s := "rpc.Register: no service name for type " + s.typ.String()
-		log.Print(s)
+		log.Println("[RPC]", s)
 		return errors.New(s)
 	}
 	if !isExported(sname) && !useName {
 		s := "rpc.Register: type " + sname + " is not exported"
-		log.Print(s)
+		log.Println("[RPC]", s)
 		return errors.New(s)
 	}
 	if _, present := server.serviceMap[sname]; present {
@@ -357,10 +375,20 @@ func (server *Server) register(rcvr interface{}, name string, useName bool) erro
 		} else {
 			str = "rpc.Register: type " + sname + " has no exported methods of suitable type"
 		}
-		log.Print(str)
+		log.Println("[RPC]", str)
 		return errors.New(str)
 	}
 	server.serviceMap[s.name] = s
+
+	// record routers and sort it.
+	for m := range s.method {
+		router := s.name + "." + m
+		server.routers = append(server.routers, router)
+		if server.printRouters {
+			fmt.Printf("[RPC ROUTER] %s\n", router)
+		}
+	}
+	sort.Strings(server.routers)
 	return nil
 }
 
@@ -501,7 +529,7 @@ func (server *Server) sendResponse(sending *sync.Mutex, req *Request, reply inte
 	sending.Lock()
 	err := codec.WriteResponse((*rpc.Response)(unsafe.Pointer(resp)), reply)
 	if debugLog && err != nil {
-		log.Println("rpc: writing response:", err)
+		log.Println("[RPC] writing response:", err.Error())
 	}
 	sending.Unlock()
 	server.freeResponse(resp)
@@ -566,7 +594,7 @@ func suitableMethods(typ reflect.Type, reportErr bool) map[string]*methodType {
 		// Method needs three ins: receiver, *args, *reply.
 		if mtype.NumIn() != 3 {
 			if reportErr {
-				log.Println("method", mname, "has wrong number of ins:", mtype.NumIn())
+				log.Println("[RPC] method", mname, "has wrong number of ins:", mtype.NumIn())
 			}
 			continue
 		}
@@ -574,7 +602,7 @@ func suitableMethods(typ reflect.Type, reportErr bool) map[string]*methodType {
 		argType := mtype.In(1)
 		if !isExportedOrBuiltinType(argType) {
 			if reportErr {
-				log.Println(mname, "argument type not exported:", argType)
+				log.Println("[RPC]", mname, "argument type not exported:", argType)
 			}
 			continue
 		}
@@ -582,28 +610,28 @@ func suitableMethods(typ reflect.Type, reportErr bool) map[string]*methodType {
 		replyType := mtype.In(2)
 		if replyType.Kind() != reflect.Ptr {
 			if reportErr {
-				log.Println("method", mname, "reply type not a pointer:", replyType)
+				log.Println("[RPC] method", mname, "reply type not a pointer:", replyType)
 			}
 			continue
 		}
 		// Reply type must be exported.
 		if !isExportedOrBuiltinType(replyType) {
 			if reportErr {
-				log.Println("method", mname, "reply type not exported:", replyType)
+				log.Println("[RPC] method", mname, "reply type not exported:", replyType)
 			}
 			continue
 		}
 		// Method needs one out.
 		if mtype.NumOut() != 1 {
 			if reportErr {
-				log.Println("method", mname, "has wrong number of outs:", mtype.NumOut())
+				log.Println("[RPC] method", mname, "has wrong number of outs:", mtype.NumOut())
 			}
 			continue
 		}
 		// The return type of the method must be error.
 		if returnType := mtype.Out(0); returnType != typeOfError {
 			if reportErr {
-				log.Println("method", mname, "returns", returnType.String(), "not error")
+				log.Println("[RPC] method", mname, "returns", returnType.String(), "not error")
 			}
 			continue
 		}
