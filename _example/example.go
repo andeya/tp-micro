@@ -54,11 +54,12 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	go server.ListenTCP("0.0.0.0:8080")
+	go server.ListenAndServe("tcp", "0.0.0.0:8080")
 	time.Sleep(2e9)
 
 	// client
-	client := rpc2.NewClient("127.0.0.1:8080", nil)
+	dialer := rpc2.NewDefaultDialer("tcp", "127.0.0.1:8080")
+	client, _ := dialer.Dial()
 
 	N := 1000
 	bad := 0

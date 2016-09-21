@@ -18,13 +18,16 @@ func TestColferCodec(t *testing.T) {
 	group := server.Group(codecpkg.ServiceGroup)
 	err := group.RegisterName(codecpkg.ServiceName, new(ColfArith))
 	if err != nil {
-		panic(err)
+		t.Fatal(err)
 	}
-	go server.ListenTCP(codecpkg.ServerAddr)
+	go server.ListenAndServe(codecpkg.Network, codecpkg.ServerAddr)
 	time.Sleep(2e9)
 
 	// client
-	client := rpc2.NewClient(codecpkg.ServerAddr, NewColferClientCodec)
+	client, err := rpc2.NewDialer(codecpkg.Network, codecpkg.ServerAddr, NewColferClientCodec).Dial()
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	args := &ColfArgs{7, 8}
 	var reply ColfReply
@@ -36,6 +39,35 @@ func TestColferCodec(t *testing.T) {
 	}
 
 	client.Close()
+}
+
+func TestColferCodec2(t *testing.T) {
+	// server
+	server := rpc2.NewServer(60e9, 0, 0, NewColferServerCodec)
+	group := server.Group(codecpkg.ServiceGroup)
+	err := group.RegisterName(codecpkg.ServiceName, new(ColfArith))
+	if err != nil {
+		t.Fatal(err)
+	}
+	serverAddr := codecpkg.ServerAddr[:len(codecpkg.ServerAddr)-1] + "1"
+	go server.ListenAndServe(codecpkg.Network, serverAddr)
+	time.Sleep(2e9)
+
+	// client
+	var args = &ColfArgs{7, 8}
+	var reply ColfReply
+
+	err = rpc2.
+		NewDialer(codecpkg.Network, serverAddr, NewColferClientCodec).
+		Remote(func(client rpc2.IClient) error {
+			return client.Call(codecpkg.ServiceMethodName, args, &reply)
+		})
+
+	if err != nil {
+		t.Errorf("error for Arith: %d*%d, %v \n", args.A, args.B, err)
+	} else {
+		t.Logf("Arith: %d*%d=%d \n", args.A, args.B, reply.C)
+	}
 }
 
 type ColfArith int

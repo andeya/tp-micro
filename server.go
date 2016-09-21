@@ -17,53 +17,7 @@ import (
 	"unsafe"
 )
 
-const (
-	// Defaults used by HandleHTTP
-	DefaultRPCPath   = "/_goRPC_"
-	DefaultDebugPath = "/debug/rpc"
-)
-
-// Precompute the reflect type for error. Can't use error directly
-// because Typeof takes an empty interface value. This is annoying.
-var typeOfError = reflect.TypeOf((*error)(nil)).Elem()
-
 type (
-	methodType struct {
-		sync.Mutex // protects counters
-		method     reflect.Method
-		ArgType    reflect.Type
-		ReplyType  reflect.Type
-		numCalls   uint
-	}
-
-	service struct {
-		name   string                 // name of service
-		rcvr   reflect.Value          // receiver of methods for the service
-		typ    reflect.Type           // type of the receiver
-		method map[string]*methodType // registered methods
-	}
-
-	// WARN:Request must be consistent with the standard package, can not be changed!
-	// Request is a header written before every RPC call. It is used internally
-	// but documented here as an aid to debugging, such as when analyzing
-	// network traffic.
-	Request struct {
-		ServiceMethod string   // format: "Service.Method"
-		Seq           uint64   // sequence number chosen by client
-		next          *Request // for free list in Server
-	}
-
-	// WARN:Response must be consistent with the standard package, can not be changed!
-	// Response is a header written before every RPC return. It is used internally
-	// but documented here as an aid to debugging, such as when analyzing
-	// network traffic.
-	Response struct {
-		ServiceMethod string    // echoes that of the Request
-		Seq           uint64    // echoes that of the request
-		Error         string    // error, if any.
-		next          *Response // for free list in Server
-	}
-
 	// Server represents an RPC Server.
 	Server struct {
 		plugins         []Plugin
@@ -95,6 +49,42 @@ type (
 
 	// ServerCodecFunc is used to create a rpc.ServerCodec from io.ReadWriteCloser.
 	ServerCodecFunc func(io.ReadWriteCloser) rpc.ServerCodec
+
+	// WARN:Request must be consistent with the standard package, can not be changed!
+	// Request is a header written before every RPC call. It is used internally
+	// but documented here as an aid to debugging, such as when analyzing
+	// network traffic.
+	Request struct {
+		ServiceMethod string   // format: "Service.Method"
+		Seq           uint64   // sequence number chosen by client
+		next          *Request // for free list in Server
+	}
+
+	// WARN:Response must be consistent with the standard package, can not be changed!
+	// Response is a header written before every RPC return. It is used internally
+	// but documented here as an aid to debugging, such as when analyzing
+	// network traffic.
+	Response struct {
+		ServiceMethod string    // echoes that of the Request
+		Seq           uint64    // echoes that of the request
+		Error         string    // error, if any.
+		next          *Response // for free list in Server
+	}
+
+	methodType struct {
+		sync.Mutex // protects counters
+		method     reflect.Method
+		ArgType    reflect.Type
+		ReplyType  reflect.Type
+		numCalls   uint
+	}
+
+	service struct {
+		name   string                 // name of service
+		rcvr   reflect.Value          // receiver of methods for the service
+		typ    reflect.Type           // type of the receiver
+		method map[string]*methodType // registered methods
+	}
 )
 
 // NewServer returns a new Server.
@@ -124,23 +114,8 @@ func NewDefaultServer() *Server {
 	return NewServer(time.Minute, 0, 0, nil)
 }
 
-// DefaultServer is the default instance of *Server.
-var DefaultServer = NewDefaultServer()
-
-// Is this an exported - upper case - name?
-func isExported(name string) bool {
-	rune, _ := utf8.DecodeRuneInString(name)
-	return unicode.IsUpper(rune)
-}
-
-// Is this type exported or a builtin?
-func isExportedOrBuiltinType(t reflect.Type) bool {
-	for t.Kind() == reflect.Ptr {
-		t = t.Elem()
-	}
-	// PkgPath will be non-empty even for an exported type,
-	// so we need to check the type name as well.
-	return isExported(t.Name()) || t.PkgPath() == ""
+func (server *Server) Plugin(plugins ...Plugin) {
+	server.plugins = append(server.plugins, plugins...)
 }
 
 func (server *Server) Group(typePrefix string, plugins ...Plugin) *Group {
@@ -152,10 +127,6 @@ func (server *Server) Group(typePrefix string, plugins ...Plugin) *Group {
 		plugins: []Plugin{},
 		Server:  server,
 	}).Group(typePrefix, plugins...)
-}
-
-func (server *Server) Plugin(plugins ...Plugin) {
-	server.plugins = append(server.plugins, plugins...)
 }
 
 func (group *Group) Group(typePrefix string, plugins ...Plugin) *Group {
@@ -196,6 +167,11 @@ func (server *Server) RegisterName(name string, rcvr interface{}) error {
 	return server.register(rcvr, name, true)
 }
 
+func (group *Group) Register(rcvr interface{}) error {
+	name := reflect.Indirect(reflect.ValueOf(rcvr)).Type().Name()
+	return group.Server.register(rcvr, path.Join(group.prefix, name), true)
+}
+
 func (group *Group) RegisterName(name string, rcvr interface{}) error {
 	if !nameRegexp.MatchString(name) {
 		log.Fatal("RegisterName ('" + name + "') must conform to the regular expression '/^[a-zA-Z0-9_\\.]+$/'.")
@@ -204,165 +180,81 @@ func (group *Group) RegisterName(name string, rcvr interface{}) error {
 	return group.Server.register(rcvr, path.Join(group.prefix, name), true)
 }
 
-func (group *Group) Register(rcvr interface{}) error {
-	name := reflect.Indirect(reflect.ValueOf(rcvr)).Type().Name()
-	return group.Server.register(rcvr, path.Join(group.prefix, name), true)
+// IP return ip whitelist object.
+func (server *Server) IP() *IPWhitelist {
+	return server.ipWhitelist
 }
 
-func (server *Server) register(rcvr interface{}, name string, useName bool) error {
-	server.mu.Lock()
-	defer server.mu.Unlock()
-	if server.serviceMap == nil {
-		server.serviceMap = make(map[string]*service)
+// ListenAndServe open RPC service at the specified network address.
+func (server *Server) ListenAndServe(network, address string) {
+	lis, err := net.Listen(network, address)
+	if err != nil {
+		log.Fatal("rpc.Serve: listen %s error:", address, err)
 	}
-	s := new(service)
-	s.typ = reflect.TypeOf(rcvr)
-	s.rcvr = reflect.ValueOf(rcvr)
-	sname := reflect.Indirect(s.rcvr).Type().Name()
-	if useName {
-		sname = name
-	}
-	if sname == "" {
-		s := "rpc.Register: no service name for type " + s.typ.String()
-		log.Print(s)
-		return errors.New(s)
-	}
-	if !isExported(sname) && !useName {
-		s := "rpc.Register: type " + sname + " is not exported"
-		log.Print(s)
-		return errors.New(s)
-	}
-	if _, present := server.serviceMap[sname]; present {
-		return errors.New("rpc: service already defined: " + sname)
-	}
-	s.name = sname
-
-	// Install the methods
-	s.method = suitableMethods(s.typ, true)
-
-	if len(s.method) == 0 {
-		str := ""
-
-		// To help the user, see if a pointer receiver would work.
-		method := suitableMethods(reflect.PtrTo(s.typ), false)
-		if len(method) != 0 {
-			str = "rpc.Register: type " + sname + " has no exported methods of suitable type (hint: pass a pointer to value of that type)"
-		} else {
-			str = "rpc.Register: type " + sname + " has no exported methods of suitable type"
-		}
-		log.Print(str)
-		return errors.New(str)
-	}
-	server.serviceMap[s.name] = s
-	return nil
+	server.Accept(lis)
 }
 
-// suitableMethods returns suitable Rpc methods of typ, it will report
-// error using log if reportErr is true.
-func suitableMethods(typ reflect.Type, reportErr bool) map[string]*methodType {
-	methods := make(map[string]*methodType)
-	for m := 0; m < typ.NumMethod(); m++ {
-		method := typ.Method(m)
-		mtype := method.Type
-		mname := method.Name
-		// Method must be exported.
-		if method.PkgPath != "" {
+// Accept accepts connections on the listener and serves requests
+// for each incoming connection. Accept blocks until the listener
+// returns a non-nil error. The caller typically invokes Accept in a
+// go statement.
+func (server *Server) Accept(lis net.Listener) {
+	for {
+		conn, err := lis.Accept()
+		if err != nil {
+			log.Print("rpc.Serve: accept:", err.Error())
+			return
+		}
+
+		// filter ip
+		ip, _, _ := net.SplitHostPort(conn.RemoteAddr().String())
+		if !server.ipWhitelist.IsAllowed(ip) {
+			log.Print("rpc.Serve: not allowed client IP: ", ip)
+			conn.Close()
 			continue
 		}
-		// Method needs three ins: receiver, *args, *reply.
-		if mtype.NumIn() != 3 {
-			if reportErr {
-				log.Println("method", mname, "has wrong number of ins:", mtype.NumIn())
-			}
-			continue
-		}
-		// First arg need not be a pointer.
-		argType := mtype.In(1)
-		if !isExportedOrBuiltinType(argType) {
-			if reportErr {
-				log.Println(mname, "argument type not exported:", argType)
-			}
-			continue
-		}
-		// Second arg must be a pointer.
-		replyType := mtype.In(2)
-		if replyType.Kind() != reflect.Ptr {
-			if reportErr {
-				log.Println("method", mname, "reply type not a pointer:", replyType)
-			}
-			continue
-		}
-		// Reply type must be exported.
-		if !isExportedOrBuiltinType(replyType) {
-			if reportErr {
-				log.Println("method", mname, "reply type not exported:", replyType)
-			}
-			continue
-		}
-		// Method needs one out.
-		if mtype.NumOut() != 1 {
-			if reportErr {
-				log.Println("method", mname, "has wrong number of outs:", mtype.NumOut())
-			}
-			continue
-		}
-		// The return type of the method must be error.
-		if returnType := mtype.Out(0); returnType != typeOfError {
-			if reportErr {
-				log.Println("method", mname, "returns", returnType.String(), "not error")
-			}
-			continue
-		}
-		methods[mname] = &methodType{method: method, ArgType: argType, ReplyType: replyType}
+
+		go server.ServeConn(conn)
 	}
-	return methods
 }
 
-// A value sent as a placeholder for the server's response value when the server
-// receives an invalid request. It is never decoded by the client since the Response
-// contains an error when it is used.
-var invalidRequest = struct{}{}
+// Can connect to RPC service using HTTP CONNECT to rpcPath.
+var connected = "200 Connected to Go RPC"
 
-func (server *Server) sendResponse(sending *sync.Mutex, req *Request, reply interface{}, codec rpc.ServerCodec, errmsg string) {
-	resp := server.getResponse()
-	// Encode the response header
-	resp.ServiceMethod = req.ServiceMethod
-	if errmsg != "" {
-		resp.Error = errmsg
-		reply = invalidRequest
+// ServeHTTP implements an http.Handler that answers RPC requests.
+func (server *Server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+	if req.Method != "CONNECT" {
+		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		io.WriteString(w, "405 must CONNECT\n")
+		return
 	}
-	resp.Seq = req.Seq
-	sending.Lock()
-	err := codec.WriteResponse((*rpc.Response)(unsafe.Pointer(resp)), reply)
-	if debugLog && err != nil {
-		log.Println("rpc: writing response:", err)
+
+	var ip = RealRemoteAddr(req)
+
+	conn, _, err := w.(http.Hijacker).Hijack()
+	if err != nil {
+		log.Print("rpc hijacking ", ip, ": ", err.Error())
+		return
 	}
-	sending.Unlock()
-	server.freeResponse(resp)
+
+	// filter ip
+	if !server.ipWhitelist.IsAllowed(ip) {
+		log.Print("Not allowed client IP: ", ip)
+		conn.Close()
+		return
+	}
+
+	io.WriteString(conn, "HTTP/1.0 "+connected+"\n\n")
+	server.ServeConn(conn)
 }
 
-func (m *methodType) NumCalls() (n uint) {
-	m.Lock()
-	n = m.numCalls
-	m.Unlock()
-	return n
-}
-
-func (s *service) call(server *Server, sending *sync.Mutex, mtype *methodType, req *Request, argv, replyv reflect.Value, codec rpc.ServerCodec) {
-	mtype.Lock()
-	mtype.numCalls++
-	mtype.Unlock()
-	function := mtype.method.Func
-	// Invoke the method, providing a new value for the reply.
-	returnValues := function.Call([]reflect.Value{s.rcvr, argv, replyv})
-	// The return value for the method is an error.
-	errInter := returnValues[0].Interface()
-	errmsg := ""
-	if errInter != nil {
-		errmsg = errInter.(error).Error()
-	}
-	server.sendResponse(sending, req, replyv.Interface(), codec, errmsg)
-	server.freeRequest(req)
+// HandleHTTP registers an HTTP handler for RPC messages on rpcPath,
+// and a debugging handler on debugPath.
+// It is still necessary to invoke http.Serve(), typically in a go statement.
+func (server *Server) HandleHTTP(rpcPath, debugPath string) {
+	http.Handle(rpcPath, server)
+	http.Handle(debugPath, debugHTTP{server})
 }
 
 // ServeConn runs the server on a single connection.
@@ -422,6 +314,54 @@ func (server *Server) wrapServerCodec(conn io.ReadWriteCloser) rpc.ServerCodec {
 		Server:       server,
 		groupPlugins: make([]Plugin, 0, 10),
 	}
+}
+
+func (server *Server) register(rcvr interface{}, name string, useName bool) error {
+	server.mu.Lock()
+	defer server.mu.Unlock()
+	if server.serviceMap == nil {
+		server.serviceMap = make(map[string]*service)
+	}
+	s := new(service)
+	s.typ = reflect.TypeOf(rcvr)
+	s.rcvr = reflect.ValueOf(rcvr)
+	sname := reflect.Indirect(s.rcvr).Type().Name()
+	if useName {
+		sname = name
+	}
+	if sname == "" {
+		s := "rpc.Register: no service name for type " + s.typ.String()
+		log.Print(s)
+		return errors.New(s)
+	}
+	if !isExported(sname) && !useName {
+		s := "rpc.Register: type " + sname + " is not exported"
+		log.Print(s)
+		return errors.New(s)
+	}
+	if _, present := server.serviceMap[sname]; present {
+		return errors.New("rpc: service already defined: " + sname)
+	}
+	s.name = sname
+
+	// Install the methods
+	s.method = suitableMethods(s.typ, true)
+
+	if len(s.method) == 0 {
+		str := ""
+
+		// To help the user, see if a pointer receiver would work.
+		method := suitableMethods(reflect.PtrTo(s.typ), false)
+		if len(method) != 0 {
+			str = "rpc.Register: type " + sname + " has no exported methods of suitable type (hint: pass a pointer to value of that type)"
+		} else {
+			str = "rpc.Register: type " + sname + " has no exported methods of suitable type"
+		}
+		log.Print(str)
+		return errors.New(str)
+	}
+	server.serviceMap[s.name] = s
+	return nil
 }
 
 func (server *Server) getRequest() *Request {
@@ -499,6 +439,14 @@ func (server *Server) readRequestHeader(codec rpc.ServerCodec) (service *service
 	// Grab the request header.
 	req = server.getRequest()
 	err = codec.ReadRequestHeader((*rpc.Request)(unsafe.Pointer(req)))
+	// if err != nil {
+	// 	req = nil
+	// 	if err == io.EOF || err == io.ErrUnexpectedEOF {
+	// 		return
+	// 	}
+	// 	err = errors.New("rpc: server cannot decode request: " + err.Error())
+	// 	return
+	// }
 	if err != nil {
 		if err == io.EOF || err == io.ErrUnexpectedEOF {
 			req = nil
@@ -536,43 +484,136 @@ func (server *Server) readRequestHeader(codec rpc.ServerCodec) (service *service
 	return
 }
 
-// IP return ip whitelist object.
-func (server *Server) IP() *IPWhitelist {
-	return server.ipWhitelist
-}
+// A value sent as a placeholder for the server's response value when the server
+// receives an invalid request. It is never decoded by the client since the Response
+// contains an error when it is used.
+var invalidRequest = struct{}{}
 
-// ListenTCP open tcp service.
-func (server *Server) ListenTCP(addr string) {
-	lis, err := net.Listen("tcp", addr)
-	if err != nil {
-		log.Fatal("Error: listen %s error:", addr, err)
+func (server *Server) sendResponse(sending *sync.Mutex, req *Request, reply interface{}, codec rpc.ServerCodec, errmsg string) {
+	resp := server.getResponse()
+	// Encode the response header
+	resp.ServiceMethod = req.ServiceMethod
+	if errmsg != "" {
+		resp.Error = errmsg
+		reply = invalidRequest
 	}
-	server.Accept(lis)
+	resp.Seq = req.Seq
+	sending.Lock()
+	err := codec.WriteResponse((*rpc.Response)(unsafe.Pointer(resp)), reply)
+	if debugLog && err != nil {
+		log.Println("rpc: writing response:", err)
+	}
+	sending.Unlock()
+	server.freeResponse(resp)
 }
 
-// Accept accepts connections on the listener and serves requests
-// for each incoming connection. Accept blocks until the listener
-// returns a non-nil error. The caller typically invokes Accept in a
-// go statement.
-func (server *Server) Accept(lis net.Listener) {
-	for {
-		conn, err := lis.Accept()
-		if err != nil {
-			log.Print("rpc.Serve: accept:", err.Error())
-			return
-		}
+func (m *methodType) NumCalls() (n uint) {
+	m.Lock()
+	n = m.numCalls
+	m.Unlock()
+	return n
+}
 
-		// filter ip
-		ip, _, _ := net.SplitHostPort(conn.RemoteAddr().String())
-		if !server.ipWhitelist.IsAllowed(ip) {
-			log.Print("Not allowed client IP: ", ip)
-			conn.Close()
+func (s *service) call(server *Server, sending *sync.Mutex, mtype *methodType, req *Request, argv, replyv reflect.Value, codec rpc.ServerCodec) {
+	mtype.Lock()
+	mtype.numCalls++
+	mtype.Unlock()
+	function := mtype.method.Func
+	// Invoke the method, providing a new value for the reply.
+	returnValues := function.Call([]reflect.Value{s.rcvr, argv, replyv})
+	// The return value for the method is an error.
+	errInter := returnValues[0].Interface()
+	errmsg := ""
+	if errInter != nil {
+		errmsg = errInter.(error).Error()
+	}
+	server.sendResponse(sending, req, replyv.Interface(), codec, errmsg)
+	server.freeRequest(req)
+}
+
+// Is this an exported - upper case - name?
+func isExported(name string) bool {
+	rune, _ := utf8.DecodeRuneInString(name)
+	return unicode.IsUpper(rune)
+}
+
+// Is this type exported or a builtin?
+func isExportedOrBuiltinType(t reflect.Type) bool {
+	for t.Kind() == reflect.Ptr {
+		t = t.Elem()
+	}
+	// PkgPath will be non-empty even for an exported type,
+	// so we need to check the type name as well.
+	return isExported(t.Name()) || t.PkgPath() == ""
+}
+
+// Precompute the reflect type for error. Can't use error directly
+// because Typeof takes an empty interface value. This is annoying.
+var typeOfError = reflect.TypeOf((*error)(nil)).Elem()
+
+// suitableMethods returns suitable Rpc methods of typ, it will report
+// error using log if reportErr is true.
+func suitableMethods(typ reflect.Type, reportErr bool) map[string]*methodType {
+	methods := make(map[string]*methodType)
+	for m := 0; m < typ.NumMethod(); m++ {
+		method := typ.Method(m)
+		mtype := method.Type
+		mname := method.Name
+		// Method must be exported.
+		if method.PkgPath != "" {
 			continue
 		}
-
-		go server.ServeConn(conn)
+		// Method needs three ins: receiver, *args, *reply.
+		if mtype.NumIn() != 3 {
+			if reportErr {
+				log.Println("method", mname, "has wrong number of ins:", mtype.NumIn())
+			}
+			continue
+		}
+		// First arg need not be a pointer.
+		argType := mtype.In(1)
+		if !isExportedOrBuiltinType(argType) {
+			if reportErr {
+				log.Println(mname, "argument type not exported:", argType)
+			}
+			continue
+		}
+		// Second arg must be a pointer.
+		replyType := mtype.In(2)
+		if replyType.Kind() != reflect.Ptr {
+			if reportErr {
+				log.Println("method", mname, "reply type not a pointer:", replyType)
+			}
+			continue
+		}
+		// Reply type must be exported.
+		if !isExportedOrBuiltinType(replyType) {
+			if reportErr {
+				log.Println("method", mname, "reply type not exported:", replyType)
+			}
+			continue
+		}
+		// Method needs one out.
+		if mtype.NumOut() != 1 {
+			if reportErr {
+				log.Println("method", mname, "has wrong number of outs:", mtype.NumOut())
+			}
+			continue
+		}
+		// The return type of the method must be error.
+		if returnType := mtype.Out(0); returnType != typeOfError {
+			if reportErr {
+				log.Println("method", mname, "returns", returnType.String(), "not error")
+			}
+			continue
+		}
+		methods[mname] = &methodType{method: method, ArgType: argType, ReplyType: replyType}
 	}
+	return methods
 }
+
+// DefaultServer is the default instance of *Server.
+var DefaultServer = NewDefaultServer()
 
 // Register publishes the receiver's methods in the DefaultServer.
 func Register(rcvr interface{}) error { return DefaultServer.Register(rcvr) }
@@ -603,50 +644,11 @@ func ServeRequest(conn io.ReadWriteCloser) error {
 // Accept blocks; the caller typically invokes it in a go statement.
 func Accept(lis net.Listener) { DefaultServer.Accept(lis) }
 
-// Can connect to RPC service using HTTP CONNECT to rpcPath.
-var connected = "200 Connected to Go RPC"
-
-// ServeHTTP implements an http.Handler that answers RPC requests.
-func (server *Server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	if req.Method != "CONNECT" {
-		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-		w.WriteHeader(http.StatusMethodNotAllowed)
-		io.WriteString(w, "405 must CONNECT\n")
-		return
-	}
-
-	var ip = RealRemoteAddr(req)
-
-	conn, _, err := w.(http.Hijacker).Hijack()
-	if err != nil {
-		log.Print("rpc hijacking ", ip, ": ", err.Error())
-		return
-	}
-
-	// filter ip
-	if !server.ipWhitelist.IsAllowed(ip) {
-		log.Print("Not allowed client IP: ", ip)
-		conn.Close()
-		return
-	}
-
-	io.WriteString(conn, "HTTP/1.0 "+connected+"\n\n")
-	server.ServeConn(conn)
-}
-
-// HandleHTTP registers an HTTP handler for RPC messages on rpcPath,
-// and a debugging handler on debugPath.
-// It is still necessary to invoke http.Serve(), typically in a go statement.
-func (server *Server) HandleHTTP(rpcPath, debugPath string) {
-	http.Handle(rpcPath, server)
-	http.Handle(debugPath, debugHTTP{server})
-}
-
 // HandleHTTP registers an HTTP handler for RPC messages to DefaultServer
-// on DefaultRPCPath and a debugging handler on DefaultDebugPath.
+// on rpc.DefaultRPCPath and a debugging handler on rpc.DefaultDebugPath.
 // It is still necessary to invoke http.Serve(), typically in a go statement.
 func HandleHTTP() {
-	DefaultServer.HandleHTTP(DefaultRPCPath, DefaultDebugPath)
+	DefaultServer.HandleHTTP(rpc.DefaultRPCPath, rpc.DefaultDebugPath)
 }
 
 func RealRemoteAddr(req *http.Request) string {

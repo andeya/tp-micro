@@ -5,6 +5,7 @@ import (
 )
 
 var (
+	Network           = "tcp"
 	ServerAddr        = "127.0.0.1:8080"
 	ServiceGroup      = "Arith"
 	ServiceName       = "1.0"
