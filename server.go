@@ -2,7 +2,6 @@ package rpc2
 
 import (
 	"errors"
-	"fmt"
 	"io"
 	"log"
 	"net"
@@ -207,7 +206,7 @@ func (server *Server) ListenAndServe(network, address string) {
 		log.Fatal("[RPC] listen %s error:", address, err)
 	}
 	if server.printRouters {
-		fmt.Printf("[RPC] listening and serving %s on %s\n", strings.ToUpper(network), address)
+		log.Printf("[RPC] listening and serving %s on %s", strings.ToUpper(network), address)
 	}
 	server.Accept(lis)
 }
@@ -385,7 +384,7 @@ func (server *Server) register(rcvr interface{}, name string, useName bool) erro
 		router := s.name + "." + m
 		server.routers = append(server.routers, router)
 		if server.printRouters {
-			fmt.Printf("[RPC ROUTER] %s\n", router)
+			log.Printf("[RPC ROUTER] %s", router)
 		}
 	}
 	sort.Strings(server.routers)

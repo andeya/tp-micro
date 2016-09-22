@@ -4,6 +4,8 @@ RPC2 is modified version that based on the standard package, 42% performance inc
 
 Added router group, middleware and header information in an form of 'URL Query'. 
 
+![rpc2_server](https://github.com/henrylee2cn/rpc2/raw/master/doc/rpc2_server.png)
+
 # usage
 
 ```
