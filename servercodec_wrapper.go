@@ -5,6 +5,7 @@ import (
 	"io"
 	"net"
 	"net/rpc"
+	"strings"
 	"time"
 )
 
@@ -46,6 +47,9 @@ func (w *serverCodecWrapper) ReadRequestHeader(r *rpc.Request) error {
 	for _, groupPrefix := range serviceMethod.Groups() {
 		group, ok := w.groupMap[groupPrefix]
 		if !ok {
+			if !strings.HasSuffix(groupPrefix, "/") {
+				continue
+			}
 			return errors.New("rpc: can't find group " + groupPrefix)
 		}
 		for _, plugin := range group.plugins {
