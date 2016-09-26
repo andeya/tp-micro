@@ -61,11 +61,11 @@ func (s *ServiceMethod) Groups() []string {
 	var prefixes []string
 	for k, v := range s.Path {
 		if v == '/' {
-			prefixes = append(prefixes, s.Path[:k])
+			prefixes = append(prefixes, s.Path[:k+1])
 		}
 	}
 	service, _ := s.Split()
-	return append(prefixes, service+".")
+	return append(prefixes, service)
 }
 
 var nameRegexp = regexp.MustCompile(`^[a-zA-Z0-9_\.]+$`)

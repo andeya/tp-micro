@@ -150,7 +150,7 @@ func (group *Group) Group(typePrefix string, plugins ...Plugin) (*Group, error) 
 		}
 	}
 	g := &Group{
-		prefix:  path.Join(group.prefix, typePrefix),
+		prefix:  path.Join(group.prefix, typePrefix) + "/",
 		plugins: plugins,
 		Server:  group.Server,
 	}
@@ -341,7 +341,7 @@ func (server *Server) register(rcvr interface{}, name string, useName bool, plug
 	for _, plugin := range plugins {
 		if plugin == nil {
 			str := "rpc.Register: plugins can not contain nil"
-			log.Println("[RPC]", str)
+			// log.Println("[RPC]", str)
 			return errors.New(str)
 		}
 	}
@@ -359,12 +359,12 @@ func (server *Server) register(rcvr interface{}, name string, useName bool, plug
 	}
 	if sname == "" {
 		s := "rpc.Register: no service name for type " + s.typ.String()
-		log.Println("[RPC]", s)
+		// log.Println("[RPC]", s)
 		return errors.New(s)
 	}
 	if !isExported(sname) && !useName {
 		s := "rpc.Register: type " + sname + " is not exported"
-		log.Println("[RPC]", s)
+		// log.Println("[RPC]", s)
 		return errors.New(s)
 	}
 	if _, present := server.serviceMap[sname]; present {
@@ -385,14 +385,14 @@ func (server *Server) register(rcvr interface{}, name string, useName bool, plug
 		} else {
 			str = "rpc.Register: type " + sname + " has no exported methods of suitable type"
 		}
-		log.Println("[RPC]", str)
+		// log.Println("[RPC]", str)
 		return errors.New(str)
 	}
 	server.serviceMap[s.name] = s
 
 	// register Plugin.
 	g := &Group{
-		prefix:  s.name + ".",
+		prefix:  s.name,
 		plugins: plugins,
 		Server:  server,
 	}
