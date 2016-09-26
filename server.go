@@ -207,7 +207,7 @@ func (server *Server) Routers() []string {
 func (server *Server) ListenAndServe(network, address string) {
 	lis, err := net.Listen(network, address)
 	if err != nil {
-		log.Fatal("[RPC] listen %s error:", address, err)
+		log.Fatal("[RPC] ", err.Error())
 	}
 	if server.printRouters {
 		log.Printf("[RPC] listening and serving %s on %s", strings.ToUpper(network), address)
