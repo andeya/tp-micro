@@ -11,7 +11,7 @@ import (
 func TestGencodeCodec(t *testing.T) {
 	// server
 	server := rpc2.NewServer(60e9, 0, 0, NewGencodeServerCodec)
-	group := server.Group(codec.ServiceGroup)
+	group, _ := server.Group(codec.ServiceGroup)
 	err := group.RegisterName(codec.ServiceName, new(GencodeArith))
 	if err != nil {
 		t.Fatal(err)

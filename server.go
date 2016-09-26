@@ -123,25 +123,31 @@ func NewDefaultServer(printRouters ...bool) *Server {
 	return NewServer(time.Minute, 0, 0, nil, printRouters...)
 }
 
-func (server *Server) Plugin(plugins ...Plugin) {
+func (server *Server) Plugin(plugins ...Plugin) error {
+	for _, plugin := range plugins {
+		if plugin == nil {
+			return errors.New("rpc.Plugin: plugins can not contain nil")
+		}
+	}
 	server.plugins = append(server.plugins, plugins...)
+	return nil
 }
 
-func (server *Server) Group(typePrefix string, plugins ...Plugin) *Group {
-	if !nameRegexp.MatchString(typePrefix) {
-		log.Fatal("[RPC] group's prefix ('" + typePrefix + "') must conform to the regular expression '/^[a-zA-Z0-9_\\.]+$/'.")
-		return nil
-	}
+func (server *Server) Group(typePrefix string, plugins ...Plugin) (*Group, error) {
 	return (&Group{
 		plugins: []Plugin{},
 		Server:  server,
 	}).Group(typePrefix, plugins...)
 }
 
-func (group *Group) Group(typePrefix string, plugins ...Plugin) *Group {
+func (group *Group) Group(typePrefix string, plugins ...Plugin) (*Group, error) {
 	if !nameRegexp.MatchString(typePrefix) {
-		log.Fatal("[RPC] group's prefix ('" + typePrefix + "') must conform to the regular expression '/^[a-zA-Z0-9_\\.]+$/'.")
-		return nil
+		return nil, errors.New("rpc.Group: group's prefix ('" + typePrefix + "') must conform to the regular expression '/^[a-zA-Z0-9_\\.]+$/'.")
+	}
+	for _, plugin := range plugins {
+		if plugin == nil {
+			return nil, errors.New("rpc.Group: plugins can not contain nil")
+		}
 	}
 	g := &Group{
 		prefix:  path.Join(group.prefix, typePrefix),
@@ -149,7 +155,7 @@ func (group *Group) Group(typePrefix string, plugins ...Plugin) *Group {
 		Server:  group.Server,
 	}
 	g.Server.groupMap[g.prefix] = g
-	return g
+	return g, nil
 }
 
 // Register publishes in the server the set of methods of the
@@ -162,31 +168,29 @@ func (group *Group) Group(typePrefix string, plugins ...Plugin) *Group {
 // no suitable methods. It also logs the error using package log.
 // The client accesses each method using a string of the form "Type.Method",
 // where Type is the receiver's concrete type.
-func (server *Server) Register(rcvr interface{}) error {
-	return server.register(rcvr, "", false)
+func (server *Server) Register(rcvr interface{}, plugins ...Plugin) error {
+	return server.register(rcvr, "", false, plugins...)
 }
 
 // RegisterName is like Register but uses the provided name for the type
 // instead of the receiver's concrete type.
-func (server *Server) RegisterName(name string, rcvr interface{}) error {
+func (server *Server) RegisterName(name string, rcvr interface{}, plugins ...Plugin) error {
 	if !nameRegexp.MatchString(name) {
-		log.Fatal("[RPC] register name ('" + name + "') must conform to the regular expression '/^[a-zA-Z0-9_\\.]+$/'.")
-		return nil
+		return errors.New("rpc.RegisterName name ('" + name + "') must conform to the regular expression '/^[a-zA-Z0-9_\\.]+$/'.")
 	}
-	return server.register(rcvr, name, true)
+	return server.register(rcvr, name, true, plugins...)
 }
 
-func (group *Group) Register(rcvr interface{}) error {
+func (group *Group) Register(rcvr interface{}, plugins ...Plugin) error {
 	name := reflect.Indirect(reflect.ValueOf(rcvr)).Type().Name()
-	return group.Server.register(rcvr, path.Join(group.prefix, name), true)
+	return group.Server.register(rcvr, path.Join(group.prefix, name), true, plugins...)
 }
 
-func (group *Group) RegisterName(name string, rcvr interface{}) error {
+func (group *Group) RegisterName(name string, rcvr interface{}, plugins ...Plugin) error {
 	if !nameRegexp.MatchString(name) {
-		log.Fatal("[RPC] register name ('" + name + "') must conform to the regular expression '/^[a-zA-Z0-9_\\.]+$/'.")
-		return nil
+		return errors.New("rpc.Group.RegisterName name ('" + name + "') must conform to the regular expression '/^[a-zA-Z0-9_\\.]+$/'.")
 	}
-	return group.Server.register(rcvr, path.Join(group.prefix, name), true)
+	return group.Server.register(rcvr, path.Join(group.prefix, name), true, plugins...)
 }
 
 // IP return ip whitelist object.
@@ -333,7 +337,14 @@ func (server *Server) wrapServerCodec(conn io.ReadWriteCloser) rpc.ServerCodec {
 	}
 }
 
-func (server *Server) register(rcvr interface{}, name string, useName bool) error {
+func (server *Server) register(rcvr interface{}, name string, useName bool, plugins ...Plugin) error {
+	for _, plugin := range plugins {
+		if plugin == nil {
+			str := "rpc.Register: plugins can not contain nil"
+			log.Println("[RPC]", str)
+			return errors.New(str)
+		}
+	}
 	server.mu.Lock()
 	defer server.mu.Unlock()
 	if server.serviceMap == nil {
@@ -378,6 +389,18 @@ func (server *Server) register(rcvr interface{}, name string, useName bool) erro
 		return errors.New(str)
 	}
 	server.serviceMap[s.name] = s
+
+	// register Plugin.
+	g := &Group{
+		prefix:  s.name + ".",
+		plugins: plugins,
+		Server:  server,
+	}
+	// register itself as Plugin.
+	if plugin, ok := rcvr.(Plugin); ok {
+		g.plugins = append(g.plugins, plugin)
+	}
+	server.groupMap[g.prefix] = g
 
 	// record routers and sort it.
 	for m := range s.method {
@@ -593,7 +616,7 @@ func suitableMethods(typ reflect.Type, reportErr bool) map[string]*methodType {
 		// Method needs three ins: receiver, *args, *reply.
 		if mtype.NumIn() != 3 {
 			if reportErr {
-				log.Println("[RPC] method", mname, "has wrong number of ins:", mtype.NumIn())
+				// log.Println("[RPC] method", mname, "has wrong number of ins:", mtype.NumIn())
 			}
 			continue
 		}
@@ -601,7 +624,7 @@ func suitableMethods(typ reflect.Type, reportErr bool) map[string]*methodType {
 		argType := mtype.In(1)
 		if !isExportedOrBuiltinType(argType) {
 			if reportErr {
-				log.Println("[RPC]", mname, "argument type not exported:", argType)
+				// log.Println("[RPC]", mname, "argument type not exported:", argType)
 			}
 			continue
 		}
@@ -609,28 +632,28 @@ func suitableMethods(typ reflect.Type, reportErr bool) map[string]*methodType {
 		replyType := mtype.In(2)
 		if replyType.Kind() != reflect.Ptr {
 			if reportErr {
-				log.Println("[RPC] method", mname, "reply type not a pointer:", replyType)
+				// log.Println("[RPC] method", mname, "reply type not a pointer:", replyType)
 			}
 			continue
 		}
 		// Reply type must be exported.
 		if !isExportedOrBuiltinType(replyType) {
 			if reportErr {
-				log.Println("[RPC] method", mname, "reply type not exported:", replyType)
+				// log.Println("[RPC] method", mname, "reply type not exported:", replyType)
 			}
 			continue
 		}
 		// Method needs one out.
 		if mtype.NumOut() != 1 {
 			if reportErr {
-				log.Println("[RPC] method", mname, "has wrong number of outs:", mtype.NumOut())
+				// log.Println("[RPC] method", mname, "has wrong number of outs:", mtype.NumOut())
 			}
 			continue
 		}
 		// The return type of the method must be error.
 		if returnType := mtype.Out(0); returnType != typeOfError {
 			if reportErr {
-				log.Println("[RPC] method", mname, "returns", returnType.String(), "not error")
+				// log.Println("[RPC] method", mname, "returns", returnType.String(), "not error")
 			}
 			continue
 		}

@@ -41,6 +41,17 @@ func (w *Worker) Todo2(task string, reply *string) error {
 	return nil
 }
 
+// register itself as Plugin.
+func (t *Worker) PostReadRequestHeader(req *rpc.Request) error {
+	fmt.Printf("Worker4444.PostReadRequestHeader\n")
+	return nil
+}
+
+func (t *Worker) PostReadRequestBody(_ interface{}) error {
+	fmt.Printf("Worker4444.PostReadRequestBody\n")
+	return nil
+}
+
 type testPlugin struct{}
 
 func (t *testPlugin) PostReadRequestHeader(req *rpc.Request) error {
@@ -49,12 +60,36 @@ func (t *testPlugin) PostReadRequestHeader(req *rpc.Request) error {
 	if err != nil {
 		return err
 	}
-	fmt.Printf("PostReadRequestHeader -> key[%d]: %#v\n", req.Seq, v.Get("key"))
+	fmt.Printf("testPlugin1111.PostReadRequestHeader -> key[%d]: %#v\n", req.Seq, v.Get("key"))
 	return nil
 }
 
 func (t *testPlugin) PostReadRequestBody(body interface{}) error {
-	fmt.Printf("PostReadRequestBody -> %#v\n", body)
+	fmt.Printf("testPlugin1111.PostReadRequestBody -> %#v\n", body)
+	return nil
+}
+
+type testPlugin2 struct{}
+
+func (t *testPlugin2) PostReadRequestHeader(req *rpc.Request) error {
+	fmt.Printf("testPlugin2222.PostReadRequestHeader\n")
+	return nil
+}
+
+func (t *testPlugin2) PostReadRequestBody(body interface{}) error {
+	fmt.Printf("testPlugin2222.PostReadRequestBody\n")
+	return nil
+}
+
+type testPlugin3 struct{}
+
+func (t *testPlugin3) PostReadRequestHeader(req *rpc.Request) error {
+	fmt.Printf("testPlugin3333.PostReadRequestHeader\n")
+	return nil
+}
+
+func (t *testPlugin3) PostReadRequestBody(body interface{}) error {
+	fmt.Printf("testPlugin3333.PostReadRequestBody\n")
 	return nil
 }
 
@@ -63,8 +98,11 @@ func main() {
 	// server
 	server := rpc2.NewDefaultServer(true)
 	server.IP().Allow("127.0.0.1")
-	group := server.Group("test", new(testPlugin))
-	err := group.RegisterName("1.0.work", NewWorker())
+	group, err := server.Group("test", new(testPlugin), new(testPlugin2))
+	if err != nil {
+		panic(err)
+	}
+	err = group.RegisterName("1.0.work", NewWorker(), new(testPlugin3))
 	if err != nil {
 		panic(err)
 	}

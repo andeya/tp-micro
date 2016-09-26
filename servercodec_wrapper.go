@@ -43,7 +43,6 @@ func (w *serverCodecWrapper) ReadRequestHeader(r *rpc.Request) error {
 	}
 
 	serviceMethod := ParseServiceMethod(r.ServiceMethod)
-
 	for _, groupPrefix := range serviceMethod.Groups() {
 		group, ok := w.groupMap[groupPrefix]
 		if !ok {
@@ -54,7 +53,7 @@ func (w *serverCodecWrapper) ReadRequestHeader(r *rpc.Request) error {
 			if err != nil {
 				return err
 			}
-			w.groupPlugins = append(w.plugins, plugin)
+			w.groupPlugins = append(w.groupPlugins, plugin)
 		}
 	}
 
