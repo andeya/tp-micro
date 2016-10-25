@@ -226,15 +226,6 @@ func (server *Server) Accept(lis net.Listener) {
 			log.Println("[RPC] accept:", err.Error())
 			return
 		}
-
-		// filter ip
-		ip, _, _ := net.SplitHostPort(conn.RemoteAddr().String())
-		if !server.ipWhitelist.IsAllowed(ip) {
-			log.Println("[RPC] not allowed client ip:", ip)
-			conn.Close()
-			continue
-		}
-
 		go server.ServeConn(conn)
 	}
 }
@@ -251,18 +242,9 @@ func (server *Server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	var ip = RealRemoteAddr(req)
-
 	conn, _, err := w.(http.Hijacker).Hijack()
 	if err != nil {
-		log.Print("[RPC] hijacking ", ip, ": ", err.Error())
-		return
-	}
-
-	// filter ip
-	if !server.ipWhitelist.IsAllowed(ip) {
-		log.Println("[RPC] not allowed client ip:", ip)
-		conn.Close()
+		log.Print("[RPC] hijacking ", req.RemoteAddr, ": ", err.Error())
 		return
 	}
 
@@ -503,7 +485,7 @@ func (server *Server) readRequestHeader(codec rpc.ServerCodec) (service *service
 			return
 		}
 		keepReading = true
-		err = errors.New("rpc: server cannot decode request: " + err.Error())
+		err = errors.New("rpc: " + err.Error())
 		return
 	}
 

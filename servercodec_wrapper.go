@@ -16,24 +16,34 @@ type serverCodecWrapper struct {
 	*Server
 }
 
+var ErrAccessDenied = errors.New("access denied")
+
 func (w *serverCodecWrapper) ReadRequestHeader(r *rpc.Request) error {
-	var (
-		conn net.Conn
-		ok   bool
-	)
-	if w.Server.timeout > 0 {
-		if conn, ok = w.conn.(net.Conn); ok {
+	var conn, ok = w.conn.(net.Conn)
+
+	// set timeout
+	if ok {
+		if w.Server.timeout > 0 {
 			conn.SetDeadline(time.Now().Add(w.Server.timeout))
 		}
-	}
-	if ok && w.Server.readTimeout > 0 {
-		conn.SetReadDeadline(time.Now().Add(w.Server.readTimeout))
+		if w.Server.readTimeout > 0 {
+			conn.SetReadDeadline(time.Now().Add(w.Server.readTimeout))
+		}
 	}
 
 	// decode
 	err := w.ServerCodec.ReadRequestHeader(r)
 	if err != nil {
 		return err
+	}
+
+	// filter ip
+	if ok {
+		ip, _, _ := net.SplitHostPort(conn.RemoteAddr().String())
+		if !w.Server.ipWhitelist.IsAllowed(ip) {
+			// log.Println("[RPC] not allowed client ip:", ip)
+			return ErrAccessDenied
+		}
 	}
 
 	for _, plugin := range w.Server.plugins {

@@ -30,6 +30,34 @@ func (this *IPWhitelist) IsAllowed(addr string) bool {
 	return false
 }
 
+func (this *IPWhitelist) CancelAllow(pattern ...string) {
+	if len(pattern) == 0 {
+		return
+	}
+
+	this.Lock()
+	defer this.Unlock()
+
+	this.enable = true
+
+	for _, ip := range pattern {
+		ip = strings.TrimSpace(ip)
+		length := len(ip)
+		if length == 0 {
+			continue
+		}
+		if !strings.HasSuffix(ip, "*") {
+			delete(this.match, ip)
+			continue
+		}
+		if length == 1 {
+			go this.Clean()
+			return
+		}
+		delete(this.prefix, ip[:length-1])
+	}
+}
+
 func (this *IPWhitelist) Allow(pattern ...string) *IPWhitelist {
 	if len(pattern) == 0 {
 		return this
