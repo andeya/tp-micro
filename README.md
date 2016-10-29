@@ -50,6 +50,7 @@ func main() {
     e := client.Call("Worker.DoJob", "henrylee2cn--rpc2", reply)
     log.Println(*reply, e)
     client.Close()
+    server.Stop()
 }
 
 ```

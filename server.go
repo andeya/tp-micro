@@ -37,6 +37,7 @@ type (
 		freeReq    *Request
 		respLock   sync.Mutex // protects freeResp
 		freeResp   *Response
+		listeners  []net.Listener
 	}
 
 	Group struct {
@@ -115,6 +116,7 @@ func NewServer(
 		serverCodecFunc: serverCodecFunc,
 		ipWhitelist:     NewIPWhitelist(),
 		groupMap:        map[string]*Group{},
+		listeners:       []net.Listener{},
 	}
 }
 
@@ -220,14 +222,30 @@ func (server *Server) ListenAndServe(network, address string) {
 // returns a non-nil error. The caller typically invokes Accept in a
 // go statement.
 func (server *Server) Accept(lis net.Listener) {
+	server.mu.Lock()
+	server.listeners = append(server.listeners, lis)
+	server.mu.Unlock()
 	for {
 		conn, err := lis.Accept()
 		if err != nil {
-			log.Println("[RPC] accept:", err.Error())
+			if !strings.Contains(err.Error(), "use of closed network connection") {
+				log.Println("[RPC] accept:", err.Error())
+			}
 			return
 		}
 		go server.ServeConn(conn)
 	}
+}
+
+// Stop listening and serveing.
+func (server *Server) Stop() {
+	server.mu.Lock()
+	defer server.mu.Unlock()
+	for _, lis := range server.listeners {
+		lis.Close()
+		log.Println("[RPC] stopped listening and serveing", lis.Addr())
+	}
+	server.listeners = server.listeners[:0]
 }
 
 // Can connect to RPC service using HTTP CONNECT to rpcPath.

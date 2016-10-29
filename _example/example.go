@@ -141,6 +141,7 @@ func main() {
 		}
 	}
 	client.Close()
+	server.Stop()
 	log.Println("cost time:", time.Now().Sub(t1))
 	log.Println("failure rate:", float64(bad)/float64(good)*100, "%")
 }
