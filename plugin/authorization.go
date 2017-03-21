@@ -1,8 +1,10 @@
 package plugin
 
 import (
+	"errors"
 	"net/rpc"
 	"net/url"
+	"strings"
 
 	"github.com/henrylee2cn/rpc2"
 )
@@ -18,8 +20,6 @@ type (
 	AuthorizationFunc func(token string, tag string, serviceMethod string) error
 )
 
-var _ rpc2.Plugin = new(AuthorizationPlugin)
-
 func NewServerAuthorization(fn AuthorizationFunc) *AuthorizationPlugin {
 	return &AuthorizationPlugin{
 		authorizationFunc: fn,
@@ -33,28 +33,30 @@ func NewClientAuthorization(token string, tag string) *AuthorizationPlugin {
 	}
 }
 
-func (auth *AuthorizationPlugin) String() string {
-	return url.Values{
-		"auth_token": []string{auth.token},
-		"auth_tag":   []string{auth.tag},
-	}.Encode()
+// Name returns plugin name.
+func (auth *AuthorizationPlugin) Name() string {
+	return "Authorization Plugin"
 }
 
-func (auth *AuthorizationPlugin) PostReadRequestHeader(req *rpc.Request) error {
+func (auth *AuthorizationPlugin) PreWriteRequest(r *rpc.Request, body interface{}) error {
+	s := url.Values{"auth": []string{auth.token + "\x1f" + auth.tag}}.Encode()
+	idx := strings.Index(r.ServiceMethod, "?")
+	if idx < 0 {
+		r.ServiceMethod += "?" + s
+	} else {
+		r.ServiceMethod += "&" + s
+	}
+	return nil
+}
+
+func (auth *AuthorizationPlugin) PostReadRequestHeader(ctx *rpc2.Context) error {
 	if auth.authorizationFunc == nil {
 		return nil
 	}
-
-	s := rpc2.ParseServiceMethod(req.ServiceMethod)
-
-	v, err := s.ParseQuery()
-	if err != nil {
-		return err
+	s := ctx.Query.Get("auth")
+	a := strings.Split(s, "\x1f")
+	if len(a) != 2 {
+		return errors.New("The authorization is not formatted correctly: " + s)
 	}
-
-	return auth.authorizationFunc(v.Get("auth_token"), v.Get("auth_tag"), s.Path)
-}
-
-func (*AuthorizationPlugin) PostReadRequestBody(_ interface{}) error {
-	return nil
+	return auth.authorizationFunc(a[0], a[1], ctx.Path)
 }

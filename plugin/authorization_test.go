@@ -1,14 +1,73 @@
 package plugin
 
 import (
+	"errors"
+	"github.com/henrylee2cn/rpc2"
+	"log"
 	"testing"
+	"time"
 )
 
-func TestClientAuthorization(t *testing.T) {
-	var auth = NewClientAuthorization(
-		"adflj记录；；接啊地方&ljf东方巨龙== 啊两地分居",
-		"ljqr3456l&&asdlj就啦看电视感觉%=",
+type worker struct{}
+
+func (*worker) Todo1(task string, reply *string) error {
+	log.Println("Worker.Todo1: do job", task)
+	// time.Sleep(time.Second * 3)
+	*reply = "OK"
+	return nil
+}
+
+func (*worker) Todo2(task string, reply *string) error {
+	log.Println("Worker.Todo2: do job", task)
+	// time.Sleep(time.Second * 3)
+	*reply = "OK"
+	return nil
+}
+
+func TestAuthorization(t *testing.T) {
+	const (
+		__token__ = "1234567890"
+		__tag__   = "basic"
 	)
 
-	t.Logf("String(): %v\n", auth)
+	var checkAuthorization = func(token string, tag string, serviceMethod string) error {
+		if serviceMethod != "test/1.0.work.Todo1" {
+			return nil
+		}
+		if __token__ == token && __tag__ == tag {
+			return nil
+		}
+		return errors.New("Illegal request!")
+	}
+
+	// server
+	server := rpc2.NewDefaultServer(true)
+
+	// authorization
+	group, err := server.Group("test", NewServerAuthorization(checkAuthorization))
+	if err != nil {
+		panic(err)
+	}
+	err = group.RegisterName("1.0.work", new(worker))
+	if err != nil {
+		panic(err)
+	}
+	go server.Serve("tcp", "0.0.0.0:8080")
+	time.Sleep(2e9)
+
+	// client
+	dialer := &rpc2.Dialer{
+		Network:         "tcp",
+		Address:         "127.0.0.1:8080",
+		PluginContainer: new(rpc2.ClientPluginContainer),
+	}
+	dialer.PluginContainer.Add(NewClientAuthorization(__token__, __tag__))
+	client, _ := dialer.Dial()
+	var reply = new(string)
+	e := client.Call("test/1.0.work.Todo1", "test_request1", reply)
+	t.Log(*reply, e)
+	e = client.Call("test/1.0.work.Todo2", "test_request2", reply)
+	t.Log(*reply, e)
+	client.Close()
+	server.Close()
 }
