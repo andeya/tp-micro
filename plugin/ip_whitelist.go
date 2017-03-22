@@ -9,23 +9,25 @@ import (
 	"github.com/henrylee2cn/rpc2"
 )
 
-type IPWhitelist struct {
+type IPWhitelistPlugin struct {
 	match  map[string]bool
 	prefix map[string]bool
 	enable bool
 	sync.RWMutex
 }
 
-func NewIPWhitelist() *IPWhitelist {
-	return new(IPWhitelist).FreeAccess()
+func NewIPWhitelistPlugin() *IPWhitelistPlugin {
+	return new(IPWhitelistPlugin).FreeAccess()
 }
 
 // Name returns plugin name.
-func (ipWhitelist *IPWhitelist) Name() string {
-	return "IP Whitelist"
+func (ipWhitelist *IPWhitelistPlugin) Name() string {
+	return "IPWhitelistPlugin"
 }
 
-func (ipWhitelist *IPWhitelist) PostConnAccept(codecConn rpc2.ServerCodecConn) error {
+var _ rpc2.IPostConnAcceptPlugin = new(IPWhitelistPlugin)
+
+func (ipWhitelist *IPWhitelistPlugin) PostConnAccept(codecConn rpc2.ServerCodecConn) error {
 	ip, _, _ := net.SplitHostPort(codecConn.RemoteAddr().String())
 	if !ipWhitelist.IsAllowed(ip) {
 		return errors.New("not allowed client ip: " + ip)
@@ -33,7 +35,7 @@ func (ipWhitelist *IPWhitelist) PostConnAccept(codecConn rpc2.ServerCodecConn) e
 	return nil
 }
 
-func (ipWhitelist *IPWhitelist) IsAllowed(addr string) bool {
+func (ipWhitelist *IPWhitelistPlugin) IsAllowed(addr string) bool {
 	ipWhitelist.RLock()
 	defer ipWhitelist.RUnlock()
 	if !ipWhitelist.enable || ipWhitelist.match[addr] {
@@ -47,7 +49,7 @@ func (ipWhitelist *IPWhitelist) IsAllowed(addr string) bool {
 	return false
 }
 
-func (ipWhitelist *IPWhitelist) CancelAllow(pattern ...string) {
+func (ipWhitelist *IPWhitelistPlugin) CancelAllow(pattern ...string) {
 	if len(pattern) == 0 {
 		return
 	}
@@ -75,7 +77,7 @@ func (ipWhitelist *IPWhitelist) CancelAllow(pattern ...string) {
 	}
 }
 
-func (ipWhitelist *IPWhitelist) Allow(pattern ...string) *IPWhitelist {
+func (ipWhitelist *IPWhitelistPlugin) Allow(pattern ...string) *IPWhitelistPlugin {
 	if len(pattern) == 0 {
 		return ipWhitelist
 	}
@@ -104,7 +106,7 @@ func (ipWhitelist *IPWhitelist) Allow(pattern ...string) *IPWhitelist {
 	return ipWhitelist
 }
 
-func (ipWhitelist *IPWhitelist) OnlyLAN() *IPWhitelist {
+func (ipWhitelist *IPWhitelistPlugin) OnlyLAN() *IPWhitelistPlugin {
 	ipWhitelist.NoAccess()
 	return ipWhitelist.Allow(
 		"[*",
@@ -114,7 +116,7 @@ func (ipWhitelist *IPWhitelist) OnlyLAN() *IPWhitelist {
 	)
 }
 
-func (ipWhitelist *IPWhitelist) FreeAccess() *IPWhitelist {
+func (ipWhitelist *IPWhitelistPlugin) FreeAccess() *IPWhitelistPlugin {
 	ipWhitelist.Lock()
 	defer ipWhitelist.Unlock()
 	ipWhitelist.prefix = map[string]bool{}
@@ -123,11 +125,11 @@ func (ipWhitelist *IPWhitelist) FreeAccess() *IPWhitelist {
 	return ipWhitelist
 }
 
-func (ipWhitelist *IPWhitelist) NoAccess() *IPWhitelist {
+func (ipWhitelist *IPWhitelistPlugin) NoAccess() *IPWhitelistPlugin {
 	return ipWhitelist.Clean()
 }
 
-func (ipWhitelist *IPWhitelist) Clean() *IPWhitelist {
+func (ipWhitelist *IPWhitelistPlugin) Clean() *IPWhitelistPlugin {
 	ipWhitelist.Lock()
 	defer ipWhitelist.Unlock()
 	ipWhitelist.prefix = map[string]bool{}

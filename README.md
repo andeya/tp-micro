@@ -62,7 +62,7 @@ const (
 )
 
 func checkAuthorization(token string, tag string, serviceMethod string) error {
-    if serviceMethod != "test/1.0.work.Todo1" {
+    if serviceMethod != "/test/1.0.work/todo1" {
         return nil
     }
     if __token__ == token && __tag__ == tag {
@@ -74,15 +74,18 @@ func checkAuthorization(token string, tag string, serviceMethod string) error {
 // rpc2
 func main() {
     // server
-    server := rpc2.NewDefaultServer(true)
+    server := rpc2.NewServer(rpc2.Server{
+        RouterPrintable:   true,
+        ServiceMethodFunc: rpc2.NewURLServiceMethod,
+    })
 
     // ip filter
-    ipwl := plugin.NewIPWhitelist()
+    ipwl := plugin.NewIPWhitelistPlugin()
     ipwl.Allow("127.0.0.1")
     server.PluginContainer.Add(ipwl)
 
     // authorization
-    group, err := server.Group("test", plugin.NewServerAuthorization(checkAuthorization), new(serverPlugin))
+    group, err := server.Group("test", plugin.NewServerAuthorizationPlugin(checkAuthorization), new(serverPlugin))
     if err != nil {
         panic(err)
     }
@@ -96,19 +99,18 @@ func main() {
     time.Sleep(2e9)
 
     // client
-    factory := &rpc2.ClientFactory{
-        Network:         "tcp",
-        Address:         "127.0.0.1:8080",
-        PluginContainer: new(rpc2.ClientPluginContainer),
-    }
-    factory.PluginContainer.Add(plugin.NewClientAuthorization(__token__, __tag__), new(clientPlugin))
+    factory := rpc2.NewClientFactory(rpc2.ClientFactory{
+        Network: "tcp",
+        Address: "127.0.0.1:8080",
+    })
+    factory.PluginContainer.Add(plugin.NewClientAuthorizationPlugin(__token__, __tag__), new(clientPlugin))
    
     client, _ := factory.NewClient()
     
     var reply = new(string)
-    e := client.Call("test/1.0.work.Todo1", "test_request1", reply)
+    e := client.Call("/test/1.0.work/todo1", "test_request1", reply)
     log.Println(*reply, e)
-    e = client.Call("test/1.0.work.Todo2", "test_request2", reply)
+    e = client.Call("/test/1.0.work/todo2", "test_request2", reply)
     log.Println(*reply, e)
     client.Close()
     server.Close()

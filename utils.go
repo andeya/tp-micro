@@ -65,17 +65,16 @@ func CamelString(s string) string {
 // ObjectName gets the type name of the object
 func ObjectName(i interface{}) string {
 	v := reflect.ValueOf(i)
-	t := v.Type()
-	if t.Kind() == reflect.Func {
+	if v.Type().Kind() == reflect.Func {
 		return runtime.FuncForPC(v.Pointer()).Name()
 	}
-	return t.String()
+	return reflect.Indirect(v).Type().Name()
 }
 
-var nameRegexp = regexp.MustCompile(`^[a-zA-Z0-9_\./]+$`)
+var nameRegexp = regexp.MustCompile(`^[a-zA-Z0-9_\.\-/]*$`)
 
 func CheckSname(sname string) error {
-	if sname == "" || sname == "/" || !nameRegexp.MatchString(sname) {
+	if !nameRegexp.MatchString(sname) {
 		return ErrInvalidPath.Format(sname)
 	}
 	return nil

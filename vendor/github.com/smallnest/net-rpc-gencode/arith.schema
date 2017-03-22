@@ -1,0 +1,8 @@
+struct Args {
+	A int32
+	B int32
+}
+
+struct Reply {
+	C int32
+}

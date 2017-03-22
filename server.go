@@ -23,18 +23,20 @@ import (
 type (
 	// Server represents an RPC Server.
 	Server struct {
-		Log             Logger
-		serviceMap      map[string]*service
-		mu              sync.RWMutex // protects the serviceMap
-		PluginContainer IServerPluginContainer
-		timeout         time.Duration
-		readTimeout     time.Duration
-		writeTimeout    time.Duration
-		serverCodecFunc ServerCodecFunc
-		routers         []string
-		printRouters    bool
-		listener        net.Listener
-		contextPool     sync.Pool
+		Log               Logger
+		PluginContainer   IServerPluginContainer
+		Timeout           time.Duration
+		ReadTimeout       time.Duration
+		WriteTimeout      time.Duration
+		ServerCodecFunc   ServerCodecFunc
+		ServiceMethodFunc ServiceMethodFunc
+		RouterPrintable   bool
+
+		routers     []string
+		listener    net.Listener
+		serviceMap  map[string]*service
+		mu          sync.RWMutex // protects the serviceMap
+		contextPool sync.Pool
 	}
 
 	// ServiceGroup is the group of service.
@@ -63,46 +65,40 @@ type (
 )
 
 // DefaultServer is the default instance of *Server.
-var DefaultServer = NewDefaultServer()
-
-// NewDefaultServer returns a new default Server.
-func NewDefaultServer(printRouters ...bool) *Server {
-	return NewServer(time.Minute, 0, 0, nil, printRouters...)
-}
+var DefaultServer = NewServer(Server{})
 
 // NewServer returns a new Server.
-func NewServer(
-	timeout time.Duration,
-	readTimeout time.Duration,
-	writeTimeout time.Duration,
-	serverCodecFunc ServerCodecFunc,
-	printRouters ...bool,
-) *Server {
-	if serverCodecFunc == nil {
-		serverCodecFunc = codecGob.NewGobServerCodec
-	}
-	if len(printRouters) == 0 {
-		printRouters = append(printRouters, false)
-	}
-	server := &Server{
-		Log:             newDefaultLogger(),
-		routers:         []string{},
-		printRouters:    printRouters[0],
-		serviceMap:      make(map[string]*service),
-		PluginContainer: new(ServerPluginContainer),
-		timeout:         timeout,
-		readTimeout:     readTimeout,
-		writeTimeout:    writeTimeout,
-		serverCodecFunc: serverCodecFunc,
-	}
+func NewServer(srv Server) *Server {
+	return srv.init()
+}
+
+// init initializes Server.
+func (server *Server) init() *Server {
+	server.routers = []string{}
+	server.serviceMap = make(map[string]*service)
 	server.contextPool.New = func() interface{} {
 		return &Context{
-			server: server,
-			Log:    server.Log,
-			req:    new(rpc.Request),
-			resp:   new(rpc.Response),
+			server:        server,
+			Log:           server.Log,
+			req:           new(rpc.Request),
+			resp:          new(rpc.Response),
+			serviceMethod: server.ServiceMethodFunc(),
 		}
 	}
+
+	if server.Log == nil {
+		server.Log = newDefaultLogger()
+	}
+	if server.PluginContainer == nil {
+		server.PluginContainer = new(ServerPluginContainer)
+	}
+	if server.ServerCodecFunc == nil {
+		server.ServerCodecFunc = codecGob.NewGobServerCodec
+	}
+	if server.ServiceMethodFunc == nil {
+		server.ServiceMethodFunc = NewURLServiceMethod
+	}
+
 	addServers(server)
 	return server
 }
@@ -144,7 +140,7 @@ func (group *ServiceGroup) Group(prefix string, plugins ...IPlugin) (*ServiceGro
 // The client accesses each method using a string of the form "Type.Method",
 // where Type is the receiver's concrete type.
 func (server *Server) Register(rcvr interface{}, metadata ...string) error {
-	name := SnakeString(ObjectName(rcvr))
+	name := ObjectName(rcvr)
 	return server.RegisterName(name, rcvr, metadata...)
 }
 
@@ -160,7 +156,7 @@ func (server *Server) RegisterName(name string, rcvr interface{}, metadata ...st
 
 // Register register service based on group
 func (group *ServiceGroup) Register(rcvr interface{}, metadata ...string) error {
-	name := SnakeString(ObjectName(rcvr))
+	name := ObjectName(rcvr)
 	return group.RegisterName(name, rcvr, metadata...)
 }
 
@@ -215,15 +211,20 @@ func (server *Server) register(spath string, rcvr interface{}, p IServerPluginCo
 
 	s := &service{
 		pluginContainer: p,
-		name:            spath,
 		typ:             reflect.TypeOf(rcvr),
 		rcvr:            reflect.ValueOf(rcvr),
 	}
-	s.method = suitableMethods(s.typ, true)
+
+	var sm = server.ServiceMethodFunc()
+	s.method = make(map[string]*methodType)
+	for k, v := range suitableMethods(s.typ, true) {
+		sm.Reset(spath, k, nil)
+		s.method[sm.Method()] = v
+	}
+	s.name = sm.Service()
 
 	if len(s.method) == 0 {
 		str := ""
-
 		// To help the user, see if a pointer receiver would work.
 		method := suitableMethods(reflect.PtrTo(s.typ), false)
 		if len(method) != 0 {
@@ -237,9 +238,10 @@ func (server *Server) register(spath string, rcvr interface{}, p IServerPluginCo
 
 	// record routers and sort it.
 	for m := range s.method {
-		router := s.name + "." + m
+		sm.Reset(s.name, m, nil)
+		router := sm.Encode()
 		server.routers = append(server.routers, router)
-		if server.printRouters {
+		if server.RouterPrintable {
 			server.Log.Infof("[RPC ROUTER] %s", router)
 		}
 	}
@@ -258,7 +260,7 @@ func (server *Server) Serve(network, address string) {
 	if err != nil {
 		server.Log.Fatalf("[RPC] %v", err)
 	}
-	if server.printRouters {
+	if server.RouterPrintable {
 		server.Log.Infof("[RPC] listening and serving %s on %s", strings.ToUpper(network), address)
 	}
 	server.ServeListener(lis)
@@ -270,7 +272,7 @@ func (server *Server) ServeTLS(network, address string, config *tls.Config) {
 	if err != nil {
 		server.Log.Fatalf("[RPC] %v", err)
 	}
-	if server.printRouters {
+	if server.RouterPrintable {
 		server.Log.Infof("[RPC] listening and serving %s on %s", strings.ToUpper(network), address)
 	}
 	server.ServeListener(lis)
@@ -310,15 +312,23 @@ func (server *Server) ServeListener(lis net.Listener) {
 }
 
 // ServeByHTTP serves
-func (server *Server) ServeByHTTP(lis net.Listener, rpcPath string) {
-	http.Handle(rpcPath, server)
+func (server *Server) ServeByHTTP(lis net.Listener, rpcPath ...string) {
+	var p = rpc.DefaultRPCPath
+	if len(rpcPath) > 0 && len(rpcPath[0]) > 0 {
+		p = rpcPath[0]
+	}
+	http.Handle(p, server)
 	srv := &http.Server{Handler: nil}
 	srv.Serve(lis)
 }
 
 // ServeByMux serves
-func (server *Server) ServeByMux(lis net.Listener, rpcPath string, mux *http.ServeMux) {
-	mux.Handle(rpcPath, server)
+func (server *Server) ServeByMux(lis net.Listener, mux *http.ServeMux, rpcPath ...string) {
+	var p = rpc.DefaultRPCPath
+	if len(rpcPath) > 0 && len(rpcPath[0]) > 0 {
+		p = rpcPath[0]
+	}
+	mux.Handle(p, server)
 	srv := &http.Server{Handler: mux}
 	srv.Serve(lis)
 }
@@ -379,7 +389,7 @@ func (server *Server) Close() {
 // connection. To use an alternate codec, use ServeCodec.
 func (server *Server) ServeConn(conn ServerCodecConn) {
 	if conn.GetServerCodec() == nil {
-		conn.SetServerCodec(server.serverCodecFunc)
+		conn.SetServerCodec(server.ServerCodecFunc)
 	}
 	sending := new(sync.Mutex)
 	for {
@@ -410,7 +420,7 @@ func (server *Server) ServeConn(conn ServerCodecConn) {
 // It does not close the codec upon completion.
 func (server *Server) ServeRequest(conn ServerCodecConn) error {
 	if conn.GetServerCodec() == nil {
-		conn.SetServerCodec(server.serverCodecFunc)
+		conn.SetServerCodec(server.ServerCodecFunc)
 	}
 	sending := new(sync.Mutex)
 	ctx := server.getContext(conn)
@@ -601,8 +611,7 @@ func (server *Server) getContext(conn ServerCodecConn) *Context {
 	ctx.resp.Seq = 0
 	ctx.resp.ServiceMethod = ""
 	ctx.data = make(map[interface{}]interface{})
-	ctx.Path = ""
-	ctx.Query = nil
+	ctx.serviceMethod.Reset("", "", nil)
 	ctx.codecConn = conn
 	ctx.service = nil
 	ctx.mtype = nil

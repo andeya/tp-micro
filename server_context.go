@@ -6,7 +6,6 @@ import (
 	"net/rpc"
 	"net/url"
 	"reflect"
-	"strings"
 	"sync"
 	"time"
 )
@@ -73,34 +72,43 @@ func (conn *serverCodecConn) Close() error {
 
 // Context is by name.
 type Context struct {
-	codecConn ServerCodecConn
-	service   *service
-	server    *Server
-	req       *rpc.Request
-	resp      *rpc.Response
-	mtype     *methodType
-	argv      reflect.Value
-	replyv    reflect.Value
-	Path      string
-	Query     url.Values
-	data      map[interface{}]interface{}
-	Log       Logger
+	codecConn     ServerCodecConn
+	service       *service
+	server        *Server
+	req           *rpc.Request
+	resp          *rpc.Response
+	mtype         *methodType
+	argv          reflect.Value
+	replyv        reflect.Value
+	serviceMethod IServiceMethod
+	data          map[interface{}]interface{}
+	Log           Logger
 	sync.RWMutex
 }
 
-// RemoteAddr return remote address
+// RemoteAddr returns remote address
 func (ctx *Context) RemoteAddr() string {
 	addr := ctx.codecConn.RemoteAddr()
 	return addr.String()
 }
 
+// Query returns request query params.
+func (ctx *Context) Query() url.Values {
+	return ctx.serviceMethod.Query()
+}
+
+// Path returns request serviceMethod path.
+func (ctx *Context) Path() string {
+	return ctx.serviceMethod.Path()
+}
+
 func (ctx *Context) readRequestHeader() (keepReading bool, notSend bool, err error) {
 	// set timeout
-	if ctx.server.timeout > 0 {
-		ctx.codecConn.SetDeadline(time.Now().Add(ctx.server.timeout))
+	if ctx.server.Timeout > 0 {
+		ctx.codecConn.SetDeadline(time.Now().Add(ctx.server.Timeout))
 	}
-	if ctx.server.readTimeout > 0 {
-		ctx.codecConn.SetReadDeadline(time.Now().Add(ctx.server.readTimeout))
+	if ctx.server.ReadTimeout > 0 {
+		ctx.codecConn.SetReadDeadline(time.Now().Add(ctx.server.ReadTimeout))
 	}
 
 	// pre
@@ -126,24 +134,22 @@ func (ctx *Context) readRequestHeader() (keepReading bool, notSend bool, err err
 	// we can still recover and move on to the next request.
 	keepReading = true
 
-	var serviceName, methodName string
-	serviceName, methodName, err = ctx.parseServiceMethod()
+	err = ctx.serviceMethod.ParseInto(ctx.req.ServiceMethod)
 	if err != nil {
-		err = NewRPCError("parse ServiceMethod: ", err.Error())
 		return
 	}
 
 	// Look up the request.
 	ctx.server.mu.RLock()
-	ctx.service = ctx.server.serviceMap[serviceName]
+	ctx.service = ctx.server.serviceMap[ctx.serviceMethod.Service()]
 	ctx.server.mu.RUnlock()
 	if ctx.service == nil {
-		err = NewRPCError("can't find service " + ctx.req.ServiceMethod)
+		err = NewRPCError("can't find service " + ctx.serviceMethod.Service())
 		return
 	}
-	ctx.mtype = ctx.service.method[methodName]
+	ctx.mtype = ctx.service.method[ctx.serviceMethod.Method()]
 	if ctx.mtype == nil {
-		err = NewRPCError("can't find method " + ctx.req.ServiceMethod)
+		err = NewRPCError("can't find method " + ctx.serviceMethod.Method())
 	}
 
 	// post
@@ -188,11 +194,11 @@ func (ctx *Context) readRequestBody(body interface{}) error {
 // writeResponse must be safe for concurrent use by multiple goroutines.
 func (ctx *Context) writeResponse(body interface{}) error {
 	// set timeout
-	if ctx.server.timeout > 0 {
-		ctx.codecConn.SetDeadline(time.Now().Add(ctx.server.timeout))
+	if ctx.server.Timeout > 0 {
+		ctx.codecConn.SetDeadline(time.Now().Add(ctx.server.Timeout))
 	}
-	if ctx.server.writeTimeout > 0 {
-		ctx.codecConn.SetWriteDeadline(time.Now().Add(ctx.server.writeTimeout))
+	if ctx.server.WriteTimeout > 0 {
+		ctx.codecConn.SetWriteDeadline(time.Now().Add(ctx.server.WriteTimeout))
 	}
 
 	var err error
@@ -223,31 +229,4 @@ func (ctx *Context) writeResponse(body interface{}) error {
 	}
 	err = ctx.server.PluginContainer.doPostWriteResponse(ctx, body)
 	return err
-}
-
-func (ctx *Context) parseServiceMethod() (service string, method string, err error) {
-	boundary := strings.Index(ctx.req.ServiceMethod, "?")
-	if boundary < 0 {
-		ctx.Path = ctx.req.ServiceMethod
-	} else {
-		ctx.Path = ctx.req.ServiceMethod[:boundary]
-		queryString := ctx.req.ServiceMethod[boundary+1:]
-		ctx.Query, err = url.ParseQuery(queryString)
-		if err != nil {
-			err = ErrServiceMethod.Format(ctx.req.ServiceMethod)
-			return
-		}
-	}
-	return ctx.splitServiceMethod()
-}
-
-func (ctx *Context) splitServiceMethod() (service string, method string, err error) {
-	dot := strings.LastIndex(ctx.Path, ".")
-	if dot <= 0 || dot+1 == len(ctx.Path) {
-		err = ErrServiceMethod.Format(ctx.req.ServiceMethod)
-		return
-	}
-	service = ctx.Path[:dot]
-	method = ctx.Path[dot+1:]
-	return
 }

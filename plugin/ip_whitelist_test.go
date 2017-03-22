@@ -4,8 +4,8 @@ import (
 	"testing"
 )
 
-func TestEmptyIPWhitelist(t *testing.T) {
-	w := NewIPWhitelist()
+func TestEmptyIPWhitelistPlugin(t *testing.T) {
+	w := NewIPWhitelistPlugin()
 	w.Allow([]string{}...)
 	if !w.IsAllowed("202.0.123.12") {
 		t.Log("not allowed")
@@ -14,8 +14,8 @@ func TestEmptyIPWhitelist(t *testing.T) {
 	}
 }
 
-func TestIPWhitelist(t *testing.T) {
-	w := NewIPWhitelist()
+func TestIPWhitelistPlugin(t *testing.T) {
+	w := NewIPWhitelistPlugin()
 	w.Allow("9*")
 	if !w.IsAllowed("202.0.123.12") {
 		t.Log("not allowed")

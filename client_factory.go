@@ -46,21 +46,24 @@ type (
 	ClientCodecFunc func(io.ReadWriteCloser) rpc.ClientCodec
 )
 
-// exponentialBackoff for tial timeout.
-var exponentialBackoff = func() []time.Duration {
-	var ds []time.Duration
-	for i := uint(0); i < 4; i++ {
-		ds = append(ds, time.Duration(0.75e9*2<<i))
-	}
-	return ds
-}()
+// NewClientFactory creates a new ClientFactory
+func NewClientFactory(factory ClientFactory) *ClientFactory {
+	return factory.init()
+}
 
-func (factory *ClientFactory) Init() *ClientFactory {
+func (factory *ClientFactory) init() *ClientFactory {
 	if factory.ClientCodecFunc == nil {
 		factory.ClientCodecFunc = codecGob.NewGobClientCodec
 	}
 	if len(factory.DialTimeouts) == 0 {
-		factory.DialTimeouts = exponentialBackoff
+		// exponentialBackoff for tial timeout.
+		factory.DialTimeouts = func() []time.Duration {
+			var ds []time.Duration
+			for i := uint(0); i < 4; i++ {
+				ds = append(ds, time.Duration(0.75e9*2<<i))
+			}
+			return ds
+		}()
 	}
 	if factory.Log == nil {
 		factory.Log = newDefaultLogger()
@@ -73,12 +76,20 @@ func (factory *ClientFactory) Init() *ClientFactory {
 
 // NewClient connects to an RPC server at the specified network address.
 func NewClient(network, address string) (Client, error) {
-	return new(ClientFactory).NewClient()
+	return (&ClientFactory{
+		Network: network,
+		Address: address,
+	}).NewClient()
 }
 
 // RemoteCall is shortcut method of rpc calling remotely.
-func RemoteCall(callfunc ClientCallFunc) error {
-	return new(ClientFactory).RemoteCall(callfunc)
+func RemoteCall(network, address string, callfunc ClientCallFunc) error {
+	client, err := NewClient(network, address)
+	if err != nil {
+		return err
+	}
+	defer client.Close()
+	return callfunc(client)
 }
 
 // RemoteCall create a client and make remote calls.
@@ -93,7 +104,6 @@ func (factory *ClientFactory) RemoteCall(callfunc ClientCallFunc) error {
 
 // NewClient connects to an RPC server at the setted network address.
 func (factory *ClientFactory) NewClient() (Client, error) {
-	factory.Init()
 	var wrapper = &clientCodecWrapper{
 		pluginContainer: factory.PluginContainer,
 		timeout:         factory.Timeout,

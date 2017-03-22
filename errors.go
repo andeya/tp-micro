@@ -25,8 +25,8 @@ var (
 	ErrPluginRemoveEmptyName = NewRPCError("Plugin with an empty name cannot be removed")
 	// ErrPluginRemoveNotFound returns an error with message: '[RPC] Cannot remove a plugin which doesn't exists'
 	ErrPluginRemoveNotFound = NewRPCError("Cannot remove a plugin which doesn't exists")
-	// ErrInvalidPath  returns an error with message: '[RPC] The service path contains invalid string '+string', need to meet '/^[a-zA-Z0-9_\\.]+$/'
-	ErrInvalidPath = NewRPCError("The service path contains invalid string '%s', need to meet '/^[a-zA-Z0-9_\\./]+$/'")
+	// ErrInvalidPath  returns an error with message: '[RPC] The service name '+name' invalid, need to meet '/^[a-zA-Z0-9_\.\-/]*$/'
+	ErrInvalidPath = NewRPCError("The service name '%s' invalid, need to meet '/^[a-zA-Z0-9_\\.\\-/]*$/'")
 	// ErrServiceAlreadyExists returns an error with message: '[RPC] Cannot activate the same service again, '+service name' is already exists'
 	ErrServiceAlreadyExists = NewRPCError("Cannot use the same service again, '%s' is already exists")
 
