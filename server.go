@@ -189,10 +189,10 @@ func (server *Server) register(spath string, rcvr interface{}, p IServerPluginCo
 
 	for _, plugin := range p.GetAll() {
 		if _, ok := plugin.(IPostConnAcceptPlugin); ok {
-			server.Log.Warningf("The method 'PostConnAccept()' of the plugin '%s' in the service '%s' will not be executed!", plugin.Name(), spath)
+			server.Log.Warnf("The method 'PostConnAccept()' of the plugin '%s' in the service '%s' will not be executed!", plugin.Name(), spath)
 		}
 		if _, ok := plugin.(IPreReadRequestHeaderPlugin); ok {
-			server.Log.Warningf("The method 'PreReadRequestHeader()' of the plugin '%s' in the service '%s' will not be executed!", plugin.Name(), spath)
+			server.Log.Warnf("The method 'PreReadRequestHeader()' of the plugin '%s' in the service '%s' will not be executed!", plugin.Name(), spath)
 		}
 	}
 
