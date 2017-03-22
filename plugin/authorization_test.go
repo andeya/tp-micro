@@ -48,21 +48,23 @@ func TestAuthorization(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
+
 	err = group.RegisterName("1.0.work", new(worker))
 	if err != nil {
 		panic(err)
 	}
+
 	go server.Serve("tcp", "0.0.0.0:8080")
 	time.Sleep(2e9)
 
 	// client
-	dialer := &rpc2.Dialer{
+	factory := &rpc2.ClientFactory{
 		Network:         "tcp",
 		Address:         "127.0.0.1:8080",
 		PluginContainer: new(rpc2.ClientPluginContainer),
 	}
-	dialer.PluginContainer.Add(NewClientAuthorization(__token__, __tag__))
-	client, _ := dialer.Dial()
+	factory.PluginContainer.Add(NewClientAuthorization(__token__, __tag__))
+	client, _ := factory.NewClient()
 	var reply = new(string)
 	e := client.Call("test/1.0.work.Todo1", "test_request1", reply)
 	t.Log(*reply, e)

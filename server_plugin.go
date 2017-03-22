@@ -79,7 +79,7 @@ func (p *ServerPluginContainer) doRegister(nodePath string, rcvr interface{}, me
 		if plugin, ok := p.plugins[i].(IRegisterPlugin); ok {
 			err := plugin.Register(nodePath, rcvr, metadata...)
 			if err != nil {
-				errors = append(errors, err)
+				errors = append(errors, ErrRegisterPlugin.Format(p.plugins[i].Name(), err.Error()))
 			}
 		}
 	}
@@ -98,7 +98,7 @@ func (p *ServerPluginContainer) doPostConnAccept(conn ServerCodecConn) error {
 			err = plugin.PostConnAccept(conn)
 			if err != nil { //interrupt
 				conn.Close()
-				return err
+				return ErrPostConnAccept.Format(p.plugins[i].Name(), err.Error())
 			}
 		}
 	}
@@ -111,7 +111,7 @@ func (p *ServerPluginContainer) doPreReadRequestHeader(ctx *Context) error {
 		if plugin, ok := p.plugins[i].(IPreReadRequestHeaderPlugin); ok {
 			err := plugin.PreReadRequestHeader(ctx)
 			if err != nil {
-				return err
+				return ErrPreReadRequestHeader.Format(p.plugins[i].Name(), err.Error())
 			}
 		}
 	}
@@ -125,7 +125,7 @@ func (p *ServerPluginContainer) doPostReadRequestHeader(ctx *Context) error {
 		if plugin, ok := p.plugins[i].(IPostReadRequestHeaderPlugin); ok {
 			err := plugin.PostReadRequestHeader(ctx)
 			if err != nil {
-				return err
+				return ErrPostReadRequestHeader.Format(p.plugins[i].Name(), err.Error())
 			}
 		}
 	}
@@ -139,7 +139,7 @@ func (p *ServerPluginContainer) doPreReadRequestBody(ctx *Context, body interfac
 		if plugin, ok := p.plugins[i].(IPreReadRequestBodyPlugin); ok {
 			err := plugin.PreReadRequestBody(ctx, body)
 			if err != nil {
-				return err
+				return ErrPreReadRequestBody.Format(p.plugins[i].Name(), err.Error())
 			}
 		}
 	}
@@ -153,7 +153,7 @@ func (p *ServerPluginContainer) doPostReadRequestBody(ctx *Context, body interfa
 		if plugin, ok := p.plugins[i].(IPostReadRequestBodyPlugin); ok {
 			err := plugin.PostReadRequestBody(ctx, body)
 			if err != nil {
-				return err
+				return ErrPostReadRequestBody.Format(p.plugins[i].Name(), err.Error())
 			}
 		}
 	}
@@ -167,7 +167,7 @@ func (p *ServerPluginContainer) doPreWriteResponse(ctx *Context, body interface{
 		if plugin, ok := p.plugins[i].(IPreWriteResponsePlugin); ok {
 			err := plugin.PreWriteResponse(ctx, body)
 			if err != nil {
-				return err
+				return ErrPreWriteResponse.Format(p.plugins[i].Name(), err.Error())
 			}
 		}
 	}
@@ -181,7 +181,7 @@ func (p *ServerPluginContainer) doPostWriteResponse(ctx *Context, body interface
 		if plugin, ok := p.plugins[i].(IPostWriteResponsePlugin); ok {
 			err := plugin.PostWriteResponse(ctx, body)
 			if err != nil {
-				return err
+				return ErrPostWriteResponse.Format(p.plugins[i].Name(), err.Error())
 			}
 		}
 	}

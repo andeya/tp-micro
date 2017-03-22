@@ -7,28 +7,60 @@ import (
 )
 
 var (
-	// ErrShutdown returns an error with message: 'rpc: connection is shut down'
+	// ErrShutdown returns an error with message: '[RPC] connection is shut down'
 	ErrShutdown = NewRPCError("connection is shut down")
-	// ErrPluginIsNil returns an error with message: 'rpc: Taccess denied'
+	// ErrPluginIsNil returns an error with message: '[RPC] Taccess denied'
 	ErrAccessDenied = NewRPCError("Access denied!")
-	// ErrServiceMethod returns an error with message: 'rpc: service/method request ill-formed: '+serviceMethod'
+	// ErrServiceMethod returns an error with message: '[RPC] service/method request ill-formed: '+serviceMethod'
 	ErrServiceMethod = NewRPCError("service/method request ill-formed: '%s'")
-	// ErrPluginIsNil returns an error with message: 'rpc: The plugin cannot be nil'
+	// ErrPluginIsNil returns an error with message: '[RPC] The plugin cannot be nil'
 	ErrPluginIsNil = NewRPCError("The plugin cannot be nil!")
-	// ErrPluginAlreadyExists returns an error with message: 'rpc: Cannot activate the same plugin again,'+plugin name' is already exists'
+	// ErrPluginAlreadyExists returns an error with message: '[RPC] Cannot activate the same plugin again,'+plugin name' is already exists'
 	ErrPluginAlreadyExists = NewRPCError("Cannot use the same plugin again, '%s' is already exists")
-	// ErrPluginActivate returns an error with message: 'rpc: While trying to activate plugin '+plugin name'. Trace: +specific error'
+	// ErrPluginActivate returns an error with message: '[RPC] While trying to activate plugin '+plugin name'. Trace: +specific error'
 	ErrPluginActivate = NewRPCError("While trying to activate plugin '%s'. Trace: %s")
-	// ErrPluginRemoveNoPlugins returns an error with message: 'rpc: No plugins are registed yet, you cannot remove a plugin from an empty list!'
+	// ErrPluginRemoveNoPlugins returns an error with message: '[RPC] No plugins are registed yet, you cannot remove a plugin from an empty list!'
 	ErrPluginRemoveNoPlugins = NewRPCError("No plugins are registed yet, you cannot remove a plugin from an empty list!")
-	// ErrPluginRemoveEmptyName returns an error with message: 'rpc: Plugin with an empty name cannot be removed'
+	// ErrPluginRemoveEmptyName returns an error with message: '[RPC] Plugin with an empty name cannot be removed'
 	ErrPluginRemoveEmptyName = NewRPCError("Plugin with an empty name cannot be removed")
-	// ErrPluginRemoveNotFound returns an error with message: 'rpc: Cannot remove a plugin which doesn't exists'
+	// ErrPluginRemoveNotFound returns an error with message: '[RPC] Cannot remove a plugin which doesn't exists'
 	ErrPluginRemoveNotFound = NewRPCError("Cannot remove a plugin which doesn't exists")
-	// ErrInvalidPath  returns an error with message: 'rpc: The service path contains invalid string '+string', need to meet '/^[a-zA-Z0-9_\\.]+$/'
+	// ErrInvalidPath  returns an error with message: '[RPC] The service path contains invalid string '+string', need to meet '/^[a-zA-Z0-9_\\.]+$/'
 	ErrInvalidPath = NewRPCError("The service path contains invalid string '%s', need to meet '/^[a-zA-Z0-9_\\./]+$/'")
-	// ErrServiceAlreadyExists returns an error with message: 'rpc: Cannot activate the same service again, '+service name' is already exists'
+	// ErrServiceAlreadyExists returns an error with message: '[RPC] Cannot activate the same service again, '+service name' is already exists'
 	ErrServiceAlreadyExists = NewRPCError("Cannot use the same service again, '%s' is already exists")
+
+	// RegisterPlugin returns an error with message: '[RPC] RegisterPlugin(+plugin name): +errMsg'
+	ErrRegisterPlugin = NewRPCError("RegisterPlugin(%s): %s")
+	// PostConnAccept returns an error with message: '[RPC] PostConnAccept(+plugin name): +errMsg'
+	ErrPostConnAccept = NewRPCError("PostConnAccept(%s): %s")
+	// ErrPreReadRequestHeader returns an error with message: '[RPC] PreReadRequestHeader(+plugin name): +errMsg'
+	ErrPreReadRequestHeader = NewRPCError("PreReadRequestHeader(%s): %s")
+	// ErrPostReadRequestHeader returns an error with message: '[RPC] PostReadRequestHeader(+plugin name): +errMsg'
+	ErrPostReadRequestHeader = NewRPCError("PostReadRequestHeader(%s): %s")
+	// ErrPreReadRequestBody returns an error with message: '[RPC] PreReadRequestBody(+plugin name): +errMsg'
+	ErrPreReadRequestBody = NewRPCError("PreReadRequestBody(%s): %s")
+	// ErrPostReadRequestBody returns an error with message: '[RPC] PostReadRequestBody(+plugin name): +errMsg'
+	ErrPostReadRequestBody = NewRPCError("PostReadRequestBody(%s): %s")
+	// ErrPreWriteResponse returns an error with message: '[RPC] PreWriteResponse(+plugin name): +errMsg'
+	ErrPreWriteResponse = NewRPCError("PreWriteResponse(%s): %s")
+	// ErrPostWriteResponse returns an error with message: '[RPC] PostWriteResponse(+plugin name): +errMsg'
+	ErrPostWriteResponse = NewRPCError("PostWriteResponse(%s): %s")
+
+	// ErrPostConnected returns an error with message: '[RPC] PostConnected(+plugin name): +errMsg'
+	ErrPostConnected = NewRPCError("PostConnected(%s): %s")
+	// ErrPreReadResponseHeader returns an error with message: '[RPC] PreReadResponseHeader(+plugin name): +errMsg'
+	ErrPreReadResponseHeader = NewRPCError("PreReadResponseHeader(%s): %s")
+	// ErrPostReadResponseHeader returns an error with message: '[RPC] PostReadResponseHeader(+plugin name): +errMsg'
+	ErrPostReadResponseHeader = NewRPCError("PostReadResponseHeader(%s): %s")
+	// ErrPreReadResponseBody returns an error with message: '[RPC] PreReadResponseBody(+plugin name): +errMsg'
+	ErrPreReadResponseBody = NewRPCError("PreReadResponseBody(%s): %s")
+	// ErrPostReadResponseBody returns an error with message: '[RPC] PostReadResponseBody(+plugin name): +errMsg'
+	ErrPostReadResponseBody = NewRPCError("PostReadResponseBody(%s): %s")
+	// ErrPreWriteRequest returns an error with message: '[RPC] PreWriteRequest(+plugin name): +errMsg'
+	ErrPreWriteRequest = NewRPCError("PreWriteRequest(%s): %s")
+	// ErrPostWriteRequest returns an error with message: '[RPC] PostWriteRequest(+plugin name): +errMsg'
+	ErrPostWriteRequest = NewRPCError("PostWriteRequest(%s): %s")
 )
 
 // RPCError holds the error
@@ -40,7 +72,7 @@ const (
 	errPrefix = "[RPC] "
 )
 
-// NewRPCError creates and returns an Error with a 'rpc: ' prefix.
+// NewRPCError creates and returns an Error with a '[RPC] ' prefix.
 func NewRPCError(errMsg ...string) *RPCError {
 	e := &RPCError{message: errPrefix}
 	for _, msg := range errMsg {

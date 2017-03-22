@@ -107,7 +107,6 @@ func (ctx *Context) readRequestHeader() (keepReading bool, notSend bool, err err
 	err = ctx.server.PluginContainer.doPreReadRequestHeader(ctx)
 	if err != nil {
 		keepReading = true // Added laster by henry
-		err = NewRPCError("PreReadRequestHeader: ", err.Error())
 		return
 	}
 
@@ -150,13 +149,9 @@ func (ctx *Context) readRequestHeader() (keepReading bool, notSend bool, err err
 	// post
 	err = ctx.service.pluginContainer.doPostReadRequestHeader(ctx)
 	if err != nil {
-		err = NewRPCError("PostReadRequestHeader: ", err.Error())
 		return
 	}
 	err = ctx.server.PluginContainer.doPostReadRequestHeader(ctx)
-	if err != nil {
-		err = NewRPCError("PostReadRequestHeader: ", err.Error())
-	}
 	return
 }
 
@@ -165,12 +160,12 @@ func (ctx *Context) readRequestBody(body interface{}) error {
 	// pre
 	err = ctx.server.PluginContainer.doPreReadRequestBody(ctx, body)
 	if err != nil {
-		return NewRPCError("PreReadRequestBody: ", err.Error())
+		return err
 	}
 	if ctx.service != nil {
 		err = ctx.service.pluginContainer.doPreReadRequestBody(ctx, body)
 		if err != nil {
-			return NewRPCError("PreReadRequestBody: ", err.Error())
+			return err
 		}
 	}
 
@@ -183,14 +178,11 @@ func (ctx *Context) readRequestBody(body interface{}) error {
 	if ctx.service != nil {
 		err = ctx.service.pluginContainer.doPostReadRequestBody(ctx, body)
 		if err != nil {
-			return NewRPCError("PostReadRequestBody: ", err.Error())
+			return err
 		}
 	}
 	err = ctx.server.PluginContainer.doPostReadRequestBody(ctx, body)
-	if err != nil {
-		return NewRPCError("PostReadRequestBody: ", err.Error())
-	}
-	return nil
+	return err
 }
 
 // writeResponse must be safe for concurrent use by multiple goroutines.
@@ -207,12 +199,12 @@ func (ctx *Context) writeResponse(body interface{}) error {
 	// pre
 	err = ctx.server.PluginContainer.doPreWriteResponse(ctx, body)
 	if err != nil {
-		return NewRPCError("PreWriteResponse: ", err.Error())
+		return err
 	}
 	if ctx.service != nil {
 		err = ctx.service.pluginContainer.doPreWriteResponse(ctx, body)
 		if err != nil {
-			return NewRPCError("PreWriteResponse: ", err.Error())
+			return err
 		}
 	}
 
@@ -226,14 +218,11 @@ func (ctx *Context) writeResponse(body interface{}) error {
 	if ctx.service != nil {
 		err = ctx.service.pluginContainer.doPostWriteResponse(ctx, body)
 		if err != nil {
-			return NewRPCError("PostWriteResponse: ", err.Error())
+			return err
 		}
 	}
 	err = ctx.server.PluginContainer.doPostWriteResponse(ctx, body)
-	if err != nil {
-		return NewRPCError("PostWriteResponse: ", err.Error())
-	}
-	return nil
+	return err
 }
 
 func (ctx *Context) parseServiceMethod() (service string, method string, err error) {

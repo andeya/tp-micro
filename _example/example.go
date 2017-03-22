@@ -71,26 +71,27 @@ func main() {
 	server.PluginContainer.Add(ipwl)
 
 	// authorization
-
 	group, err := server.Group("test", plugin.NewServerAuthorization(checkAuthorization), new(serverPlugin))
 	if err != nil {
 		panic(err)
 	}
+
 	err = group.RegisterName("1.0.work", new(Worker))
 	if err != nil {
 		panic(err)
 	}
+
 	go server.Serve("tcp", "0.0.0.0:8080")
 	time.Sleep(2e9)
 
 	// client
-	dialer := &rpc2.Dialer{
+	factory := &rpc2.ClientFactory{
 		Network:         "tcp",
 		Address:         "127.0.0.1:8080",
 		PluginContainer: new(rpc2.ClientPluginContainer),
 	}
-	dialer.PluginContainer.Add(plugin.NewClientAuthorization(__token__, __tag__), new(clientPlugin))
-	client, _ := dialer.Dial()
+	factory.PluginContainer.Add(plugin.NewClientAuthorization(__token__, __tag__), new(clientPlugin))
+	client, _ := factory.NewClient()
 
 	N := 1
 	bad := 0
