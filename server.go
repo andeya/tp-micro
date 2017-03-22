@@ -9,6 +9,7 @@ import (
 	"net/rpc"
 	"path"
 	"reflect"
+	"regexp"
 	"sort"
 	"strings"
 	"sync"
@@ -253,7 +254,7 @@ func (server *Server) Routers() []string {
 
 // Serve open RPC service at the specified network address.
 func (server *Server) Serve(network, address string) {
-	lis, err := net.Listen(network, address)
+	lis, err := makeListener(network, address)
 	if err != nil {
 		server.Log.Fatalf("[RPC] %v", err)
 	}
@@ -273,6 +274,15 @@ func (server *Server) ServeTLS(network, address string, config *tls.Config) {
 		server.Log.Infof("[RPC] listening and serving %s on %s", strings.ToUpper(network), address)
 	}
 	server.ServeListener(lis)
+}
+
+func validIP4(ipAddress string) bool {
+	ipAddress = strings.Trim(ipAddress, " ")
+	i := strings.LastIndex(ipAddress, ":")
+	ipAddress = ipAddress[:i] //remove port
+
+	re, _ := regexp.Compile(`^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$`)
+	return re.MatchString(ipAddress)
 }
 
 // ServeListener accepts connection on the listener and serves requests.
