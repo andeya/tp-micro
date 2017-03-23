@@ -23,7 +23,6 @@ import (
 type (
 	// Server represents an RPC Server.
 	Server struct {
-		Log               Logger
 		PluginContainer   IServerPluginContainer
 		Timeout           time.Duration
 		ReadTimeout       time.Duration
@@ -79,15 +78,10 @@ func (server *Server) init() *Server {
 	server.contextPool.New = func() interface{} {
 		return &Context{
 			server:        server,
-			Log:           server.Log,
 			req:           new(rpc.Request),
 			resp:          new(rpc.Response),
 			serviceMethod: server.ServiceMethodFunc(),
 		}
-	}
-
-	if server.Log == nil {
-		server.Log = newDefaultLogger()
 	}
 	if server.PluginContainer == nil {
 		server.PluginContainer = new(ServerPluginContainer)
@@ -186,10 +180,10 @@ func (server *Server) register(spath string, rcvr interface{}, p IServerPluginCo
 
 	for _, plugin := range p.GetAll() {
 		if _, ok := plugin.(IPostConnAcceptPlugin); ok {
-			server.Log.Warnf("The method 'PostConnAccept()' of the plugin '%s' in the service '%s' will not be executed!", plugin.Name(), spath)
+			Log.Warnf("The method 'PostConnAccept()' of the plugin '%s' in the service '%s' will not be executed!", plugin.Name(), spath)
 		}
 		if _, ok := plugin.(IPreReadRequestHeaderPlugin); ok {
-			server.Log.Warnf("The method 'PreReadRequestHeader()' of the plugin '%s' in the service '%s' will not be executed!", plugin.Name(), spath)
+			Log.Warnf("The method 'PreReadRequestHeader()' of the plugin '%s' in the service '%s' will not be executed!", plugin.Name(), spath)
 		}
 	}
 
@@ -220,6 +214,13 @@ func (server *Server) register(spath string, rcvr interface{}, p IServerPluginCo
 	for k, v := range suitableMethods(s.typ, true) {
 		sm.Reset(spath, k, nil)
 		s.method[sm.Method()] = v
+
+		// print routers.
+		router := sm.Encode()
+		server.routers = append(server.routers, router)
+		if server.RouterPrintable {
+			Log.Infof("[RPC ROUTER] %s", router)
+		}
 	}
 	s.name = sm.Service()
 
@@ -236,15 +237,7 @@ func (server *Server) register(spath string, rcvr interface{}, p IServerPluginCo
 	}
 	server.serviceMap[s.name] = s
 
-	// record routers and sort it.
-	for m := range s.method {
-		sm.Reset(s.name, m, nil)
-		router := sm.Encode()
-		server.routers = append(server.routers, router)
-		if server.RouterPrintable {
-			server.Log.Infof("[RPC ROUTER] %s", router)
-		}
-	}
+	// sort router
 	sort.Strings(server.routers)
 	return nil
 }
@@ -258,10 +251,10 @@ func (server *Server) Routers() []string {
 func (server *Server) Serve(network, address string) {
 	lis, err := makeListener(network, address)
 	if err != nil {
-		server.Log.Fatalf("[RPC] %v", err)
+		Log.Fatalf("[RPC] %v", err)
 	}
 	if server.RouterPrintable {
-		server.Log.Infof("[RPC] listening and serving %s on %s", strings.ToUpper(network), address)
+		Log.Infof("[RPC] listening and serving %s on %s", strings.ToUpper(network), address)
 	}
 	server.ServeListener(lis)
 }
@@ -270,10 +263,10 @@ func (server *Server) Serve(network, address string) {
 func (server *Server) ServeTLS(network, address string, config *tls.Config) {
 	lis, err := tls.Listen(network, address, config)
 	if err != nil {
-		server.Log.Fatalf("[RPC] %v", err)
+		Log.Fatalf("[RPC] %v", err)
 	}
 	if server.RouterPrintable {
-		server.Log.Infof("[RPC] listening and serving %s on %s", strings.ToUpper(network), address)
+		Log.Infof("[RPC] listening and serving %s on %s", strings.ToUpper(network), address)
 	}
 	server.ServeListener(lis)
 }
@@ -298,13 +291,13 @@ func (server *Server) ServeListener(lis net.Listener) {
 		c, err := lis.Accept()
 		if err != nil {
 			if !strings.Contains(err.Error(), "use of closed network connection") {
-				server.Log.Infof("[RPC] accept: %v", err)
+				Log.Infof("[RPC] accept: %v", err)
 			}
 			return
 		}
 		conn := NewServerCodecConn(c)
 		if err = server.PluginContainer.doPostConnAccept(conn); err != nil {
-			server.Log.Infof("[RPC] PostConnAccept: %s", err.Error())
+			Log.Infof("[RPC] PostConnAccept: %s", err.Error())
 			continue
 		}
 		go server.ServeConn(conn)
@@ -347,13 +340,13 @@ func (server *Server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 	c, _, err := w.(http.Hijacker).Hijack()
 	if err != nil {
-		server.Log.Infof("[RPC] hijacking %s: %v", req.RemoteAddr, err)
+		Log.Infof("[RPC] hijacking %s: %v", req.RemoteAddr, err)
 		return
 	}
 
 	conn := NewServerCodecConn(c)
 	if err = server.PluginContainer.doPostConnAccept(conn); err != nil {
-		server.Log.Infof("[RPC] PostConnAccept: %s", err.Error())
+		Log.Infof("[RPC] PostConnAccept: %s", err.Error())
 		return
 	}
 
@@ -379,7 +372,7 @@ func (server *Server) Close() {
 	server.mu.Lock()
 	defer server.mu.Unlock()
 	server.listener.Close()
-	server.Log.Infof("[RPC] stopped listening and serveing %s", server.Address())
+	Log.Infof("[RPC] stopped listening and serveing %s", server.Address())
 }
 
 // ServeConn runs the server on a single connection.
@@ -397,7 +390,7 @@ func (server *Server) ServeConn(conn ServerCodecConn) {
 		keepReading, notSend, err := server.readRequest(ctx)
 		if err != nil {
 			if debugLog && err != io.EOF {
-				server.Log.Infof("[RPC] %s", err.Error())
+				Log.Infof("[RPC] %s", err.Error())
 			}
 			if !keepReading {
 				server.putContext(ctx)
@@ -508,7 +501,7 @@ func (server *Server) sendResponse(sending *sync.Mutex, ctx *Context, errmsg str
 	sending.Lock()
 	err := ctx.writeResponse(reply)
 	if debugLog && err != nil {
-		server.Log.Infof("[RPC] writing response: %s", err.Error())
+		Log.Infof("[RPC] writing response: %s", err.Error())
 	}
 	sending.Unlock()
 	server.putContext(ctx)

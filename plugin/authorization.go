@@ -3,7 +3,6 @@ package plugin
 import (
 	"errors"
 	"net/rpc"
-	"net/url"
 	"strings"
 
 	"github.com/henrylee2cn/rpc2"
@@ -15,24 +14,26 @@ type (
 		token             string // Authorization token
 		tag               string // extra tag for Authorization
 		authorizationFunc AuthorizationFunc
+		serviceMethodFunc rpc2.ServiceMethodFunc
 	}
 
 	// AuthorizationFunc defines a method type which handles Authorization info
-	AuthorizationFunc func(token string, tag string, serviceMethod string) error
+	AuthorizationFunc func(serviceMethod, tag, token string) error
 )
 
 // NewServerAuthorizationPlugin is by name
-func NewServerAuthorizationPlugin(fn AuthorizationFunc) *AuthorizationPlugin {
+func NewServerAuthorizationPlugin(authorizationFunc AuthorizationFunc) *AuthorizationPlugin {
 	return &AuthorizationPlugin{
-		authorizationFunc: fn,
+		authorizationFunc: authorizationFunc,
 	}
 }
 
 // NewClientAuthorizationPlugin is by name
-func NewClientAuthorizationPlugin(token string, tag string) *AuthorizationPlugin {
+func NewClientAuthorizationPlugin(serviceMethodFunc rpc2.ServiceMethodFunc, tag string, token string) *AuthorizationPlugin {
 	return &AuthorizationPlugin{
-		token: token,
-		tag:   tag,
+		token:             token,
+		tag:               tag,
+		serviceMethodFunc: serviceMethodFunc,
 	}
 }
 
@@ -44,13 +45,12 @@ func (auth *AuthorizationPlugin) Name() string {
 var _ rpc2.IPreWriteRequestPlugin = new(AuthorizationPlugin)
 
 func (auth *AuthorizationPlugin) PreWriteRequest(r *rpc.Request, body interface{}) error {
-	s := url.Values{"auth": []string{auth.token + "\x1f" + auth.tag}}.Encode()
-	idx := strings.Index(r.ServiceMethod, "?")
-	if idx < 0 {
-		r.ServiceMethod += "?" + s
-	} else {
-		r.ServiceMethod += "&" + s
+	sm := auth.serviceMethodFunc()
+	if err := sm.ParseInto(r.ServiceMethod); err != nil {
+		return err
 	}
+	sm.Query().Add("auth", auth.tag+"\x1f"+auth.token)
+	r.ServiceMethod = sm.Encode()
 	return nil
 }
 
@@ -65,5 +65,5 @@ func (auth *AuthorizationPlugin) PostReadRequestHeader(ctx *rpc2.Context) error 
 	if len(a) != 2 {
 		return errors.New("The authorization is not formatted correctly: " + s)
 	}
-	return auth.authorizationFunc(a[0], a[1], ctx.Path())
+	return auth.authorizationFunc(ctx.Path(), a[0], a[1])
 }

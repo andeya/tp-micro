@@ -1,212 +1,404 @@
 package rpc2
 
 import (
-	"errors"
+	"bufio"
+	"crypto/tls"
 	"io"
-	"log"
+	"net"
+	"net/http"
 	"net/rpc"
-	"sync"
+	"time"
+
+	kcp "github.com/xtaci/kcp-go"
+
+	codecGob "github.com/henrylee2cn/rpc2/codec/gob"
 )
 
 type (
-	// Client interface.
-	Client interface {
-		Call(serviceMethod string, args interface{}, reply interface{}) error
-		Go(serviceMethod string, args interface{}, reply interface{}, done chan *Call) *Call
-		Close() error
+	// Client rpc client.
+	Client struct {
+		ClientCodecFunc ClientCodecFunc
+		// PluginContainer is by name
+		PluginContainer IClientPluginContainer
+		// TLSConfig specifies the TLS configuration to use with tls.Config.
+		TLSConfig *tls.Config
+		// HTTPPath is only for HTTP network
+		HTTPPath string
+		// KCPBlock is only for KCP network
+		KCPBlock kcp.BlockCrypt
+		FailMode FailMode
+		// The maximum number of attempts of the Call.
+		MaxTry int
+		//Timeout sets deadline for underlying net.Conns
+		Timeout time.Duration
+		//ReadTimeout sets readdeadline for underlying net.Conns
+		ReadTimeout time.Duration
+		//WriteTimeout sets writedeadline for underlying net.Conns
+		WriteTimeout    time.Duration
+		invokerSelector InvokerSelector
 	}
 
-	// Client represents an RPC Client.
-	// There may be multiple outstanding Calls associated
-	// with a single Client, and a Client may be used by
-	// multiple goroutines simultaneously.
-	client struct {
-		codec rpc.ClientCodec
-
-		reqMutex sync.Mutex // protects following
-		request  rpc.Request
-
-		mutex    sync.Mutex // protects following
-		seq      uint64
-		pending  map[uint64]*Call
-		closing  bool // user has called Close
-		shutdown bool // server has told us to stop
-	}
-
-	// Call represents an active RPC.
-	Call struct {
-		ServiceMethod string      // The name of the service and method to call.
-		Args          interface{} // The argument to the function (*struct).
-		Reply         interface{} // The reply from the function (*struct).
-		Error         error       // After completion, the error status.
-		Done          chan *Call  // Strobes when call is complete.
-	}
+	// ClientCodecFunc is used to create a rpc.ClientCodec from net.Conn.
+	ClientCodecFunc func(io.ReadWriteCloser) rpc.ClientCodec
 )
 
-// NewClientWithCodec is like NewClientWithConn but uses the specified
-// codec to encode requests and decode responses.
-func NewClientWithCodec(codec rpc.ClientCodec) Client {
-	client := &client{
-		codec:   codec,
-		pending: make(map[uint64]*Call),
+//FailMode is a feature to decide client actions when clients fail to invoke services
+type FailMode int
+
+const (
+	//Failover selects another server automaticaly
+	Failover FailMode = iota
+	//Failfast returns error immediately
+	Failfast
+	//Failtry use current client again
+	Failtry
+	//Broadcast sends requests to all servers and Success only when all servers return OK
+	Broadcast
+	//Forking sends requests to all servers and Success once one server returns OK
+	Forking
+)
+
+// NewClient creates a new Client
+func NewClient(client Client, invokerSelector InvokerSelector) *Client {
+	client.invokerSelector = invokerSelector
+	return client.init()
+}
+
+func (client *Client) init() *Client {
+	if client.ClientCodecFunc == nil {
+		client.ClientCodecFunc = codecGob.NewGobClientCodec
 	}
-	go client.input()
+	if client.PluginContainer == nil {
+		client.PluginContainer = new(ClientPluginContainer)
+	}
+	if client.MaxTry <= 0 {
+		client.MaxTry = 3
+	}
+	if client.invokerSelector == nil {
+		Log.Fatal("Client do not have a 'InvokerSelector' Field!")
+	}
+	client.invokerSelector.SetNewInvokerFunc(client.newInvoker)
 	return client
 }
 
-// Go invokes the function asynchronously. It returns the Call structure representing
-// the invocation. The done channel will signal when the call is complete by returning
-// the same Call object. If done is nil, Go will allocate a new channel.
-// If non-nil, done must be buffered or Go will deliberately crash.
-func (client *client) Go(serviceMethod string, args interface{}, reply interface{}, done chan *Call) *Call {
-	call := new(Call)
-	call.ServiceMethod = serviceMethod
-	call.Args = args
-	call.Reply = reply
-	if done == nil {
-		done = make(chan *Call, 10) // buffered.
+var _ NewInvokerFunc = new(Client).newInvoker
+
+// NewInvoker connects to an RPC server at the setted network address.
+func (client *Client) newInvoker(network, address string, dialTimeout time.Duration) (Invoker, error) {
+	var wrapper = &clientCodecWrapper{
+		pluginContainer: client.PluginContainer,
+		timeout:         client.Timeout,
+		readTimeout:     client.ReadTimeout,
+		writeTimeout:    client.WriteTimeout,
+	}
+	switch network {
+	case "http":
+		return client.newHTTPClient(network, address, dialTimeout, wrapper)
+	case "kcp":
+		return client.newKCPClient(address, wrapper)
+	default:
+		return client.newXXXClient(network, address, dialTimeout, wrapper)
+	}
+}
+
+func (client *Client) newXXXClient(network, address string, dialTimeout time.Duration, wrapper *clientCodecWrapper) (Invoker, error) {
+	var (
+		err     error
+		tlsConn *tls.Conn
+		dialer  = &net.Dialer{Timeout: dialTimeout}
+	)
+	if client.TLSConfig != nil {
+		tlsConn, err = tls.DialWithDialer(dialer, network, address, client.TLSConfig)
+		wrapper.conn = net.Conn(tlsConn)
 	} else {
-		// If caller passes done != nil, it must arrange that
-		// done has enough buffer for the number of simultaneous
-		// RPCs that will be using that channel. If the channel
-		// is totally unbuffered, it's best not to run at all.
-		if cap(done) == 0 {
-			log.Panic("rpc: done channel is unbuffered")
+		wrapper.conn, err = dialer.Dial(network, address)
+	}
+	if err == nil {
+		wrapper.conn, err = client.PluginContainer.doPostConnected(wrapper.conn)
+		if err == nil {
+			wrapper.codec = client.ClientCodecFunc(wrapper.conn)
+			return NewInvokerWithCodec(wrapper), nil
 		}
 	}
-	call.Done = done
-	client.send(call)
-	return call
+	return nil, NewRPCError("dial error: ", err.Error())
 }
 
-// Call invokes the named function, waits for it to complete, and returns its error status.
-func (client *client) Call(serviceMethod string, args interface{}, reply interface{}) error {
-	call := <-client.Go(serviceMethod, args, reply, make(chan *Call, 1)).Done
-	return call.Error
-}
-
-// Close calls the underlying codec's Close method. If the connection is already
-// shutting down, ErrShutdown is returned.
-func (client *client) Close() error {
-	client.mutex.Lock()
-	if client.closing {
-		client.mutex.Unlock()
-		return ErrShutdown
+func (client *Client) newHTTPClient(network, address string, dialTimeout time.Duration, wrapper *clientCodecWrapper) (Invoker, error) {
+	if client.HTTPPath == "" {
+		client.HTTPPath = rpc.DefaultRPCPath
 	}
-	client.closing = true
-	client.mutex.Unlock()
-	return client.codec.Close()
-}
-
-func (client *client) send(call *Call) {
-	client.reqMutex.Lock()
-	defer client.reqMutex.Unlock()
-
-	// Register this call.
-	client.mutex.Lock()
-	if client.shutdown || client.closing {
-		call.Error = ErrShutdown
-		client.mutex.Unlock()
-		call.done()
-		return
+	var (
+		err     error
+		resp    *http.Response
+		tlsConn *tls.Conn
+		dialer  = &net.Dialer{Timeout: dialTimeout}
+	)
+	if client.TLSConfig != nil {
+		tlsConn, err = tls.DialWithDialer(dialer, network, address, client.TLSConfig)
+		wrapper.conn = net.Conn(tlsConn)
+	} else {
+		wrapper.conn, err = dialer.Dial(network, address)
 	}
-	seq := client.seq
-	client.seq++
-	client.pending[seq] = call
-	client.mutex.Unlock()
-
-	// Encode and send the request.
-	client.request.Seq = seq
-	client.request.ServiceMethod = call.ServiceMethod
-	err := client.codec.WriteRequest(&client.request, call.Args)
-	if err != nil {
-		client.mutex.Lock()
-		call = client.pending[seq]
-		delete(client.pending, seq)
-		client.mutex.Unlock()
-		if call != nil {
-			call.Error = err
-			call.done()
+	if err == nil {
+		wrapper.conn, err = client.PluginContainer.doPostConnected(wrapper.conn)
+		if err == nil {
+			wrapper.codec = client.ClientCodecFunc(wrapper.conn)
+			io.WriteString(wrapper.conn, "CONNECT "+client.HTTPPath+" HTTP/1.0\n\n")
+			// Require successful HTTP response before switching to RPC protocol.
+			resp, err = http.ReadResponse(bufio.NewReader(wrapper.conn), &http.Request{Method: "CONNECT"})
+			if err == nil {
+				if resp.Status == connected {
+					return NewInvokerWithCodec(wrapper), nil
+				}
+				err = NewRPCError("unexpected HTTP response: " + resp.Status)
+			}
+			wrapper.conn.Close()
 		}
 	}
+	return nil, NewRPCError("dial error: " + (&net.OpError{
+		Op:   "dial-http",
+		Net:  network + " " + address,
+		Addr: nil,
+		Err:  err,
+	}).Error())
 }
 
-func (client *client) input() {
+func (client *Client) newKCPClient(address string, wrapper *clientCodecWrapper) (Invoker, error) {
 	var err error
-	var response rpc.Response
-	for err == nil {
-		response = rpc.Response{}
-		err = client.codec.ReadResponseHeader(&response)
-		if err != nil {
+	wrapper.conn, err = kcp.DialWithOptions(address, client.KCPBlock, 10, 3)
+	if err == nil {
+		wrapper.conn, err = client.PluginContainer.doPostConnected(wrapper.conn)
+		if err == nil {
+			wrapper.codec = client.ClientCodecFunc(wrapper.conn)
+			return NewInvokerWithCodec(wrapper), nil
+		}
+	}
+	return nil, NewRPCError("dial error: ", err.Error())
+}
+
+//Call invokes the named function, waits for it to complete, and returns its error status.
+func (client *Client) Call(serviceMethod string, args interface{}, reply interface{}) (err error) {
+	if client.FailMode == Broadcast {
+		return client.invokerBroadCast(serviceMethod, args, &reply)
+	}
+	if client.FailMode == Forking {
+		return client.invokerForking(serviceMethod, args, &reply)
+	}
+
+	var invoker Invoker
+
+	if client.FailMode == Failover {
+		for tries := client.MaxTry; tries > 0; tries-- {
+			invoker, err := client.invokerSelector.Select(serviceMethod, args)
+			if err != nil || invoker == nil {
+				continue
+			}
+
+			err = invoker.Call(serviceMethod, args, reply)
+			if err == nil {
+				return nil
+			}
+
+			Log.Errorf("failed to call: %v", err)
+			client.invokerSelector.HandleFailed(invoker)
+		}
+
+	} else if client.FailMode == Failtry {
+		for tries := client.MaxTry; tries > 0; tries-- {
+			if invoker == nil {
+				if invoker, err = client.invokerSelector.Select(serviceMethod, args); err != nil {
+					Log.Errorf("failed to select a invoker: %v", err)
+				}
+			}
+
+			if invoker != nil {
+				err = invoker.Call(serviceMethod, args, reply)
+				if err == nil {
+					return nil
+				}
+
+				Log.Errorf("failed to call: %v", err)
+				client.invokerSelector.HandleFailed(invoker)
+			}
+		}
+	}
+
+	return
+}
+
+func (client *Client) invokerBroadCast(serviceMethod string, args interface{}, reply *interface{}) (err error) {
+	invokers := client.invokerSelector.List()
+
+	if len(invokers) == 0 {
+		Log.Infof("no any invoker is available")
+		return nil
+	}
+
+	l := len(invokers)
+	done := make(chan *Call, l)
+	for _, invoker := range invokers {
+		invoker.Go(serviceMethod, args, reply, done)
+	}
+
+	for l > 0 {
+		call := <-done
+		if call == nil || call.Error != nil {
+			if call != nil {
+				Log.Warnf("failed to call: %v", call.Error)
+			}
+			return NewRPCError("some invokers return Error")
+		}
+		*reply = call.Reply
+		l--
+	}
+
+	return nil
+}
+
+func (client *Client) invokerForking(serviceMethod string, args interface{}, reply *interface{}) (err error) {
+	invokers := client.invokerSelector.List()
+
+	if len(invokers) == 0 {
+		Log.Infof("no any invoker is available")
+		return nil
+	}
+
+	l := len(invokers)
+	done := make(chan *Call, l)
+	for _, invoker := range invokers {
+		invoker.Go(serviceMethod, args, reply, done)
+	}
+
+	for l > 0 {
+		call := <-done
+		if call != nil && call.Error == nil {
+			*reply = call.Reply
+			return nil
+		}
+		if call == nil {
 			break
 		}
-		seq := response.Seq
-		client.mutex.Lock()
-		call := client.pending[seq]
-		delete(client.pending, seq)
-		client.mutex.Unlock()
+		if call.Error != nil {
+			Log.Warnf("failed to call: %v", call.Error)
+		}
+		l--
+	}
 
-		switch {
-		case call == nil:
-			// We've got no pending call. That usually means that
-			// WriteRequest partially failed, and call was already
-			// removed; response is a server telling us about an
-			// error reading request body. We should still attempt
-			// to read error body, but there's no one to give it to.
-			err = client.codec.ReadResponseBody(nil)
-			if err != nil {
-				err = errors.New("reading error body: " + err.Error())
-			}
-		case response.Error != "":
-			// We've got an error response. Give this to the request;
-			// any subsequent requests will get the ReadResponseBody
-			// error if there is one.
-			call.Error = NewRPCError(response.Error)
-			err = client.codec.ReadResponseBody(nil)
-			if err != nil {
-				err = errors.New("reading error body: " + err.Error())
-			}
-			call.done()
-		default:
-			err = client.codec.ReadResponseBody(call.Reply)
-			if err != nil {
-				call.Error = errors.New("reading body " + err.Error())
-			}
-			call.done()
-		}
-	}
-	// Terminate pending calls.
-	client.reqMutex.Lock()
-	client.mutex.Lock()
-	client.shutdown = true
-	closing := client.closing
-	if err == io.EOF {
-		if closing {
-			err = ErrShutdown
-		} else {
-			err = io.ErrUnexpectedEOF
-		}
-	}
-	for _, call := range client.pending {
-		call.Error = err
-		call.done()
-	}
-	client.mutex.Unlock()
-	client.reqMutex.Unlock()
-	if debugLog && err != io.EOF && !closing {
-		log.Println("rpc: client protocol error:", err)
-	}
+	return NewRPCError("all invokers return Error")
 }
 
-func (call *Call) done() {
-	select {
-	case call.Done <- call:
-		// ok
-	default:
-		// We don't want to block here. It is the caller's responsibility to make
-		// sure the channel has enough buffer space. See comment in Go().
-		if debugLog {
-			log.Println("rpc: discarding Call reply due to insufficient Done chan capacity")
+// Go invokes the function asynchronously. It returns the Call structure representing the invocation.
+// The done channel will signal when the call is complete by returning the same Call object.
+// If done is nil, Go will allocate a new channel.
+// If non-nil, done must be buffered or Go will deliberately crash.
+func (client *Client) Go(serviceMethod string, args interface{}, reply interface{}, done chan *Call) *Call {
+	invoker, err := client.invokerSelector.Select()
+	if err != nil {
+		call := new(Call)
+		call.ServiceMethod = serviceMethod
+		call.Args = args
+		call.Reply = reply
+		call.Error = err
+		if done == nil {
+			done = make(chan *Call, 1) // buffered.
+		} else {
+			// If caller passes done != nil, it must arrange that
+			// done has enough buffer for the number of simultaneous
+			// RPCs that will be using that channel. If the channel
+			// is totally unbuffered, it's best not to run at all.
+			if cap(done) == 0 {
+				Log.Panic("rpc: done channel is unbuffered")
+			}
 		}
+		call.Done = done
+		call.done()
+		return call
 	}
+	return invoker.Go(serviceMethod, args, reply, done)
+}
+
+// Close closes the connection
+func (client *Client) Close() error {
+	for _, invoker := range client.invokerSelector.List() {
+		invoker.Close()
+	}
+	return nil
+}
+
+type clientCodecWrapper struct {
+	pluginContainer IClientPluginContainer
+	codec           rpc.ClientCodec
+	conn            net.Conn
+	timeout         time.Duration
+	readTimeout     time.Duration
+	writeTimeout    time.Duration
+}
+
+func (w *clientCodecWrapper) WriteRequest(r *rpc.Request, body interface{}) error {
+	if w.timeout > 0 {
+		w.conn.SetDeadline(time.Now().Add(w.timeout))
+	}
+	if w.writeTimeout > 0 {
+		w.conn.SetWriteDeadline(time.Now().Add(w.writeTimeout))
+	}
+
+	//pre
+	err := w.pluginContainer.doPreWriteRequest(r, body)
+	if err != nil {
+		return err
+	}
+
+	err = w.codec.WriteRequest(r, body)
+	if err != nil {
+		return NewRPCError("WriteRequest: ", err.Error())
+	}
+
+	//post
+	err = w.pluginContainer.doPostWriteRequest(r, body)
+	return err
+}
+
+func (w *clientCodecWrapper) ReadResponseHeader(r *rpc.Response) error {
+	if w.timeout > 0 {
+		w.conn.SetDeadline(time.Now().Add(w.timeout))
+	}
+	if w.readTimeout > 0 {
+		w.conn.SetReadDeadline(time.Now().Add(w.readTimeout))
+	}
+
+	//pre
+	err := w.pluginContainer.doPreReadResponseHeader(r)
+	if err != nil {
+		return err
+	}
+
+	err = w.codec.ReadResponseHeader(r)
+	if err != nil {
+		return NewRPCError("ReadResponseHeader: ", err.Error())
+	}
+
+	//post
+	err = w.pluginContainer.doPostReadResponseHeader(r)
+	return err
+}
+
+func (w *clientCodecWrapper) ReadResponseBody(body interface{}) error {
+	//pre
+	err := w.pluginContainer.doPreReadResponseBody(body)
+	if err != nil {
+		return err
+	}
+
+	err = w.codec.ReadResponseBody(body)
+	if err != nil {
+		return NewRPCError("ReadResponseBody: ", err.Error())
+	}
+
+	//post
+	err = w.pluginContainer.doPostReadResponseBody(body)
+	return err
+}
+
+func (w *clientCodecWrapper) Close() error {
+	return w.codec.Close()
 }

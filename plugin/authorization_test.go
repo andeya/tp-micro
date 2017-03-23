@@ -2,23 +2,24 @@ package plugin
 
 import (
 	"errors"
-	"github.com/henrylee2cn/rpc2"
-	"log"
 	"testing"
 	"time"
+
+	"github.com/henrylee2cn/rpc2"
+	"github.com/henrylee2cn/rpc2/invokerselector"
 )
 
 type worker struct{}
 
-func (*worker) Todo1(task string, reply *string) error {
-	log.Println("Worker.Todo1: do job", task)
-	*reply = "OK"
+func (*worker) Todo1(arg string, reply *string) error {
+	rpc2.Log.Info("[server] Worker.Todo1: do job:", arg)
+	*reply = "OK: " + arg
 	return nil
 }
 
-func (*worker) Todo2(task string, reply *string) error {
-	log.Println("Worker.Todo2: do job", task)
-	*reply = "OK"
+func (*worker) Todo2(arg string, reply *string) error {
+	rpc2.Log.Info("[server] Worker.Todo2: do job:", arg)
+	*reply = "OK: " + arg
 	return nil
 }
 
@@ -28,8 +29,8 @@ func TestAuthorizationPlugin(t *testing.T) {
 		__tag__   = "basic"
 	)
 
-	var checkAuthorization = func(token string, tag string, serviceMethod string) error {
-		if serviceMethod != "test/1.0.work.Todo1" {
+	var checkAuthorization = func(serviceMethod, tag, token string) error {
+		if serviceMethod != "/test/1.0.work/todo1" {
 			return nil
 		}
 		if __token__ == token && __tag__ == tag {
@@ -59,17 +60,25 @@ func TestAuthorizationPlugin(t *testing.T) {
 	time.Sleep(2e9)
 
 	// client
-	factory := rpc2.NewClientFactory(rpc2.ClientFactory{
-		Network: "tcp",
-		Address: "127.0.0.1:8080",
-	})
-	factory.PluginContainer.Add(NewClientAuthorizationPlugin(__token__, __tag__))
-	client, _ := factory.NewClient()
+	client := rpc2.NewClient(
+		rpc2.Client{
+			FailMode: rpc2.Failtry,
+		},
+		&invokerselector.DirectInvokerSelector{
+			Network: "tcp",
+			Address: "127.0.0.1:8080",
+		},
+	)
+
+	client.PluginContainer.Add(NewClientAuthorizationPlugin(rpc2.NewURLServiceMethod, __tag__, __token__))
+
 	var reply = new(string)
-	e := client.Call("/test/1.0.work/todo1", "test_request1", reply)
+	e := client.Call("/test/1.0.work/todo1?key=value", "test_request1", reply)
 	t.Log(*reply, e)
 	e = client.Call("/test/1.0.work/todo2", "test_request2", reply)
 	t.Log(*reply, e)
+	call := <-client.Go("/test/1.0.work/todo2", "test_request2", reply, nil).Done
+	t.Log(*reply, call.Error)
 	client.Close()
 	server.Close()
 }

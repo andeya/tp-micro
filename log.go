@@ -64,6 +64,20 @@ type Logger interface {
 	Debugf(format string, args ...interface{})
 }
 
+// global logger
+var Log = &struct {
+	Logger
+}{newDefaultLogger()}
+
+// SetLog sets global logger.
+// Note: Concurrent is not safe!
+func SetLog(logger Logger) {
+	if logger == nil {
+		return
+	}
+	Log.Logger = logger
+}
+
 const __loglevel__ = "DEBUG"
 
 func newDefaultLogger() Logger {

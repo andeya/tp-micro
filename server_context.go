@@ -82,7 +82,6 @@ type Context struct {
 	replyv        reflect.Value
 	serviceMethod IServiceMethod
 	data          map[interface{}]interface{}
-	Log           Logger
 	sync.RWMutex
 }
 
@@ -144,12 +143,12 @@ func (ctx *Context) readRequestHeader() (keepReading bool, notSend bool, err err
 	ctx.service = ctx.server.serviceMap[ctx.serviceMethod.Service()]
 	ctx.server.mu.RUnlock()
 	if ctx.service == nil {
-		err = NewRPCError("can't find service " + ctx.serviceMethod.Service())
+		err = NewRPCError("can't find service '" + ctx.serviceMethod.Service() + "'")
 		return
 	}
 	ctx.mtype = ctx.service.method[ctx.serviceMethod.Method()]
 	if ctx.mtype == nil {
-		err = NewRPCError("can't find method " + ctx.serviceMethod.Method())
+		err = NewRPCError("can't find method '" + ctx.serviceMethod.Method() + "'")
 	}
 
 	// post

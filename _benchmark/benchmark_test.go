@@ -11,20 +11,20 @@ import (
 	"time"
 
 	"github.com/hashicorp/net-rpc-msgpackrpc"
+	"github.com/henrylee2cn/rpc2"
 	"github.com/henrylee2cn/rpc2/codec"
 	"github.com/henrylee2cn/rpc2/codec/gencode"
 	"github.com/henrylee2cn/rpc2/codec/gob"
 	"github.com/henrylee2cn/rpc2/codec/protobuf"
+	"github.com/henrylee2cn/rpc2/invokerselector"
 )
-
-var logger = newDefaultLogger()
 
 // don't use it to test benchmark. It is only used to evaluate libs internally.
 
 func listenTCP() (net.Listener, string) {
 	l, e := net.Listen("tcp", "127.0.0.1:0") // any available address
 	if e != nil {
-		logger.Fatalf("net.Listen tcp :0: %v", e)
+		rpc2.Log.Fatalf("net.Listen tcp :0: %v", e)
 	}
 	return l, l.Addr().String()
 }
@@ -57,7 +57,7 @@ func benchmarkClient(client *rpc.Client, b *testing.B) {
 	b.StopTimer()
 }
 
-func benchmarkRPC2Client(client Client, b *testing.B) {
+func benchmarkRPC2Client(client rpc2.Invoker, b *testing.B) {
 	// Synchronous calls
 	args := &codec.Args{7, 8}
 	procs := runtime.GOMAXPROCS(-1)
@@ -85,7 +85,7 @@ func benchmarkRPC2Client(client Client, b *testing.B) {
 	b.StopTimer()
 }
 
-func benchmarkRPC2GencodeClient(client Client, b *testing.B) {
+func benchmarkRPC2GencodeClient(client rpc2.Invoker, b *testing.B) {
 	// Synchronous calls
 	args := &GencodeArgs{7, 8}
 	procs := runtime.GOMAXPROCS(-1)
@@ -113,7 +113,7 @@ func benchmarkRPC2GencodeClient(client Client, b *testing.B) {
 	b.StopTimer()
 }
 
-func benchmarkRPC2ProtobufClient(client Client, b *testing.B) {
+func benchmarkRPC2ProtobufClient(client rpc2.Invoker, b *testing.B) {
 	// Synchronous calls
 	args := &ProtoArgs{7, 8}
 	procs := runtime.GOMAXPROCS(-1)
@@ -148,7 +148,7 @@ func startNetRPCWithGob() (ln net.Listener, address string) {
 		for {
 			conn, err := ln.Accept()
 			if err != nil {
-				logger.Fatal("accept error:", err)
+				rpc2.Log.Fatal("accept error:", err)
 			}
 
 			go rpc.ServeConn(conn)
@@ -164,7 +164,7 @@ func BenchmarkNetRPC_gob(b *testing.B) {
 
 	conn, err := net.Dial("tcp", address)
 	if err != nil {
-		logger.Fatal("error dialing:", err)
+		rpc2.Log.Fatal("error dialing:", err)
 	}
 	client := rpc.NewClient(conn)
 	defer client.Close()
@@ -180,7 +180,7 @@ func startNetRPCWithJson() (ln net.Listener, address string) {
 		for {
 			conn, err := ln.Accept()
 			if err != nil {
-				logger.Fatal("accept error:", err)
+				rpc2.Log.Fatal("accept error:", err)
 			}
 
 			go jsonrpc.ServeConn(conn)
@@ -212,7 +212,7 @@ func startNetRPCWithMsgp() (ln net.Listener, address string) {
 		for {
 			conn, err := ln.Accept()
 			if err != nil {
-				logger.Fatal("accept error:", err)
+				rpc2.Log.Fatal("accept error:", err)
 			}
 
 			go msgpackrpc.ServeConn(conn)
@@ -236,10 +236,10 @@ func BenchmarkNetRPC_msgp(b *testing.B) {
 	benchmarkClient(client, b)
 }
 
-func startRPC2WithGob() *Server {
-	server := NewServer(Server{
+func startRPC2WithGob() *rpc2.Server {
+	server := rpc2.NewServer(rpc2.Server{
 		ServerCodecFunc:   gob.NewGobServerCodec,
-		ServiceMethodFunc: NewURLServiceMethod,
+		ServiceMethodFunc: rpc2.NewURLServiceMethod,
 	})
 	server.RegisterName("Arith", new(codec.Arith))
 	ln, _ := listenTCP()
@@ -253,25 +253,26 @@ func BenchmarkRPC2_gob(b *testing.B) {
 	server := startRPC2WithGob()
 	time.Sleep(5 * time.Second) //waiting for starting server
 
-	factory := NewClientFactory(ClientFactory{
-		Network:         "tcp",
-		Address:         server.Address(),
-		DialTimeouts:    []time.Duration{10 * time.Second},
-		ClientCodecFunc: gob.NewGobClientCodec,
-	})
-	client, err := factory.NewClient()
-	if err != nil {
-		b.Fatal("error dialing:", err)
-	}
+	client := rpc2.NewClient(
+		rpc2.Client{
+			ClientCodecFunc: gob.NewGobClientCodec,
+			FailMode:        rpc2.Failtry,
+		},
+		&invokerselector.DirectInvokerSelector{
+			Network:     "tcp",
+			Address:     server.Address(),
+			DialTimeout: 10 * time.Second,
+		},
+	)
 	defer client.Close()
 
 	benchmarkRPC2Client(client, b)
 }
 
-func startRPC2WithJson() *Server {
-	server := NewServer(Server{
+func startRPC2WithJson() *rpc2.Server {
+	server := rpc2.NewServer(rpc2.Server{
 		ServerCodecFunc:   jsonrpc.NewServerCodec,
-		ServiceMethodFunc: NewURLServiceMethod,
+		ServiceMethodFunc: rpc2.NewURLServiceMethod,
 	})
 	server.RegisterName("Arith", new(codec.Arith))
 	ln, _ := listenTCP()
@@ -284,25 +285,26 @@ func BenchmarkRPC2_jsonrpc(b *testing.B) {
 	b.StopTimer()
 	server := startRPC2WithJson()
 	time.Sleep(5 * time.Second) //waiting for starting server
-	factory := NewClientFactory(ClientFactory{
-		Network:         "tcp",
-		Address:         server.Address(),
-		DialTimeouts:    []time.Duration{10 * time.Second},
-		ClientCodecFunc: jsonrpc.NewClientCodec,
-	})
-	client, err := factory.NewClient()
-	if err != nil {
-		b.Fatal("error dialing:", err)
-	}
+	client := rpc2.NewClient(
+		rpc2.Client{
+			ClientCodecFunc: jsonrpc.NewClientCodec,
+			FailMode:        rpc2.Failtry,
+		},
+		&invokerselector.DirectInvokerSelector{
+			Network:     "tcp",
+			Address:     server.Address(),
+			DialTimeout: 10 * time.Second,
+		},
+	)
 	defer client.Close()
 
 	benchmarkRPC2Client(client, b)
 }
 
-func startRPC2WithMsgP() *Server {
-	server := NewServer(Server{
+func startRPC2WithMsgP() *rpc2.Server {
+	server := rpc2.NewServer(rpc2.Server{
 		ServerCodecFunc:   msgpackrpc.NewServerCodec,
-		ServiceMethodFunc: NewURLServiceMethod,
+		ServiceMethodFunc: rpc2.NewURLServiceMethod,
 	})
 	server.RegisterName("Arith", new(codec.Arith))
 	ln, _ := listenTCP()
@@ -315,16 +317,17 @@ func BenchmarkRPC2_msgp(b *testing.B) {
 	b.StopTimer()
 	server := startRPC2WithMsgP()
 	time.Sleep(5 * time.Second) //waiting for starting server
-	factory := NewClientFactory(ClientFactory{
-		Network:         "tcp",
-		Address:         server.Address(),
-		DialTimeouts:    []time.Duration{10 * time.Second},
-		ClientCodecFunc: msgpackrpc.NewClientCodec,
-	})
-	client, err := factory.NewClient()
-	if err != nil {
-		b.Fatal("error dialing:", err)
-	}
+	client := rpc2.NewClient(
+		rpc2.Client{
+			ClientCodecFunc: msgpackrpc.NewClientCodec,
+			FailMode:        rpc2.Failtry,
+		},
+		&invokerselector.DirectInvokerSelector{
+			Network:     "tcp",
+			Address:     server.Address(),
+			DialTimeout: 10 * time.Second,
+		},
+	)
 	defer client.Close()
 
 	benchmarkRPC2Client(client, b)
@@ -341,10 +344,10 @@ func (t *GencodeArith) Error(args *GencodeArgs, reply *GencodeReply) error {
 	panic("ERROR")
 }
 
-func startRPC2WithGencodec() *Server {
-	server := NewServer(Server{
+func startRPC2WithGencodec() *rpc2.Server {
+	server := rpc2.NewServer(rpc2.Server{
 		ServerCodecFunc:   gencode.NewGencodeServerCodec,
-		ServiceMethodFunc: NewURLServiceMethod,
+		ServiceMethodFunc: rpc2.NewURLServiceMethod,
 	})
 	server.RegisterName("Arith", new(GencodeArith))
 	ln, _ := listenTCP()
@@ -357,17 +360,17 @@ func BenchmarkRPC2_gencodec(b *testing.B) {
 	b.StopTimer()
 	server := startRPC2WithGencodec()
 	time.Sleep(5 * time.Second) //waiting for starting server
-
-	factory := NewClientFactory(ClientFactory{
-		Network:         "tcp",
-		Address:         server.Address(),
-		DialTimeouts:    []time.Duration{10 * time.Second},
-		ClientCodecFunc: gencode.NewGencodeClientCodec,
-	})
-	client, err := factory.NewClient()
-	if err != nil {
-		b.Fatal("error dialing:", err)
-	}
+	client := rpc2.NewClient(
+		rpc2.Client{
+			ClientCodecFunc: gencode.NewGencodeClientCodec,
+			FailMode:        rpc2.Failtry,
+		},
+		&invokerselector.DirectInvokerSelector{
+			Network:     "tcp",
+			Address:     server.Address(),
+			DialTimeout: 10 * time.Second,
+		},
+	)
 	defer client.Close()
 
 	benchmarkRPC2GencodeClient(client, b)
@@ -384,10 +387,10 @@ func (t *ProtoArith) Error(args *ProtoArgs, reply *ProtoReply) error {
 	panic("ERROR")
 }
 
-func startRPC2WithProtobuf() *Server {
-	server := NewServer(Server{
+func startRPC2WithProtobuf() *rpc2.Server {
+	server := rpc2.NewServer(rpc2.Server{
 		ServerCodecFunc:   protobuf.NewProtobufServerCodec,
-		ServiceMethodFunc: NewURLServiceMethod,
+		ServiceMethodFunc: rpc2.NewURLServiceMethod,
 	})
 	server.RegisterName("Arith", new(ProtoArith))
 	ln, _ := listenTCP()
@@ -400,17 +403,17 @@ func BenchmarkRPC2_protobuf(b *testing.B) {
 	b.StopTimer()
 	server := startRPC2WithProtobuf()
 	time.Sleep(5 * time.Second) //waiting for starting server
-
-	factory := NewClientFactory(ClientFactory{
-		Network:         "tcp",
-		Address:         server.Address(),
-		DialTimeouts:    []time.Duration{10 * time.Second},
-		ClientCodecFunc: protobuf.NewProtobufClientCodec,
-	})
-	client, err := factory.NewClient()
-	if err != nil {
-		b.Fatal("error dialing:", err)
-	}
+	client := rpc2.NewClient(
+		rpc2.Client{
+			ClientCodecFunc: protobuf.NewProtobufClientCodec,
+			FailMode:        rpc2.Failtry,
+		},
+		&invokerselector.DirectInvokerSelector{
+			Network:     "tcp",
+			Address:     server.Address(),
+			DialTimeout: 10 * time.Second,
+		},
+	)
 	defer client.Close()
 
 	benchmarkRPC2ProtobufClient(client, b)
