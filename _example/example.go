@@ -2,26 +2,28 @@ package main
 
 import (
 	"errors"
-	"log"
 	"net/rpc"
 	"strconv"
 	"time"
 
-	"github.com/henrylee2cn/rpc2"
-	"github.com/henrylee2cn/rpc2/invokerselector"
-	"github.com/henrylee2cn/rpc2/plugin"
+	"github.com/henrylee2cn/rpc2/client"
+	"github.com/henrylee2cn/rpc2/client/selector"
+	"github.com/henrylee2cn/rpc2/log"
+	"github.com/henrylee2cn/rpc2/plugin/auth"
+	"github.com/henrylee2cn/rpc2/plugin/ip_whitelist"
+	"github.com/henrylee2cn/rpc2/server"
 )
 
 type Worker struct{}
 
 func (*Worker) Todo1(arg string, reply *string) error {
-	rpc2.Log.Info("[server] Worker.Todo1: do job:", arg)
+	log.Info("[server] Worker.Todo1: do job:", arg)
 	*reply = "OK: " + arg
 	return nil
 }
 
 func (*Worker) Todo2(arg string, reply *string) error {
-	rpc2.Log.Info("[server] Worker.Todo2: do job:", arg)
+	log.Info("[server] Worker.Todo2: do job:", arg)
 	*reply = "OK: " + arg
 	return nil
 }
@@ -32,8 +34,8 @@ func (t *serverPlugin) Name() string {
 	return "server_plugin"
 }
 
-func (t *serverPlugin) PostReadRequestHeader(ctx *rpc2.Context) error {
-	rpc2.Log.Infof("serverPlugin.PostReadRequestHeader -> query: %#v", ctx.Query())
+func (t *serverPlugin) PostReadRequestHeader(ctx *server.Context) error {
+	log.Infof("serverPlugin.PostReadRequestHeader -> query: %#v", ctx.Query())
 	return nil
 }
 
@@ -44,7 +46,7 @@ func (t *clientPlugin) Name() string {
 }
 
 func (t *clientPlugin) PostReadResponseHeader(resp *rpc.Response) error {
-	rpc2.Log.Infof("clientPlugin.PostReadResponseHeader -> resp: %v", resp)
+	log.Infof("clientPlugin.PostReadResponseHeader -> resp: %v", resp)
 	return nil
 }
 
@@ -66,20 +68,19 @@ func checkAuthorization(serviceMethod, tag, token string) error {
 // rpc2
 func main() {
 	// server
-	server := rpc2.NewServer(rpc2.Server{
-		RouterPrintable:   true,
-		ServiceMethodFunc: rpc2.NewURLServiceMethod,
+	srv := server.NewServer(server.Server{
+		RouterPrintable: true,
 	})
 
 	// ip filter
-	ipwl := plugin.NewIPWhitelistPlugin()
+	ipwl := ip_whitelist.NewIPWhitelistPlugin()
 	ipwl.Allow("127.0.0.1")
-	server.PluginContainer.Add(ipwl)
+	srv.PluginContainer.Add(ipwl)
 
 	// authorization
-	group, err := server.Group(
+	group, err := srv.Group(
 		"test",
-		plugin.NewServerAuthorizationPlugin(checkAuthorization),
+		auth.NewServerAuthorizationPlugin(checkAuthorization),
 		new(serverPlugin),
 	)
 	if err != nil {
@@ -91,26 +92,26 @@ func main() {
 		panic(err)
 	}
 
-	go server.Serve("tcp", "0.0.0.0:8080")
+	go srv.Serve("tcp", "0.0.0.0:8080")
 	time.Sleep(2e9)
 
 	// client
-	client := rpc2.NewClient(
-		rpc2.Client{
-			FailMode: rpc2.Failtry,
+	c := client.NewClient(
+		client.Client{
+			FailMode: client.Failtry,
 		},
-		&invokerselector.DirectInvokerSelector{
+		&selector.DirectSelector{
 			Network: "tcp",
 			Address: "127.0.0.1:8080",
 		},
 	)
 
-	client.PluginContainer.Add(
-		plugin.NewClientAuthorizationPlugin(server.ServiceMethodFunc, __tag__, __token__),
+	c.PluginContainer.Add(
+		auth.NewClientAuthorizationPlugin(new(server.URLFormat), __tag__, __token__),
 		new(clientPlugin),
 	)
 
-	N := 100
+	N := 10
 	bad := 0
 	good := 0
 	mapChan := make(chan int, N)
@@ -118,8 +119,8 @@ func main() {
 	for i := 0; i < N; i++ {
 		go func(i int) {
 			var reply = new(string)
-			e := client.Call("/test/1.0.work/todo1?key=henrylee2cn", strconv.Itoa(i), reply)
-			log.Println(i, *reply, e)
+			e := c.Call("/test/1.0.work/todo1?key=henrylee2cn", strconv.Itoa(i), reply)
+			log.Info(i, *reply, e)
 			if e != nil {
 				mapChan <- 0
 			} else {
@@ -134,8 +135,8 @@ func main() {
 			good++
 		}
 	}
-	client.Close()
-	server.Close()
-	log.Println("cost time:", time.Now().Sub(t1))
-	log.Println("success rate:", float64(good)/float64(good+bad)*100, "%")
+	c.Close()
+	srv.Close()
+	log.Info("cost time:", time.Now().Sub(t1))
+	log.Info("success rate:", float64(good)/float64(good+bad)*100, "%")
 }

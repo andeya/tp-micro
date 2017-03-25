@@ -11,12 +11,14 @@ import (
 	"time"
 
 	"github.com/hashicorp/net-rpc-msgpackrpc"
-	"github.com/henrylee2cn/rpc2"
+	cli "github.com/henrylee2cn/rpc2/client"
+	"github.com/henrylee2cn/rpc2/client/selector"
 	"github.com/henrylee2cn/rpc2/codec"
 	"github.com/henrylee2cn/rpc2/codec/gencode"
 	"github.com/henrylee2cn/rpc2/codec/gob"
 	"github.com/henrylee2cn/rpc2/codec/protobuf"
-	"github.com/henrylee2cn/rpc2/invokerselector"
+	"github.com/henrylee2cn/rpc2/log"
+	srv "github.com/henrylee2cn/rpc2/server"
 )
 
 // don't use it to test benchmark. It is only used to evaluate libs internally.
@@ -24,7 +26,7 @@ import (
 func listenTCP() (net.Listener, string) {
 	l, e := net.Listen("tcp", "127.0.0.1:0") // any available address
 	if e != nil {
-		rpc2.Log.Fatalf("net.Listen tcp :0: %v", e)
+		log.Fatalf("net.Listen tcp :0: %v", e)
 	}
 	return l, l.Addr().String()
 }
@@ -57,7 +59,7 @@ func benchmarkClient(client *rpc.Client, b *testing.B) {
 	b.StopTimer()
 }
 
-func benchmarkRPC2Client(client rpc2.Invoker, b *testing.B) {
+func benchmarkRPC2Client(client *cli.Client, b *testing.B) {
 	// Synchronous calls
 	args := &codec.Args{7, 8}
 	procs := runtime.GOMAXPROCS(-1)
@@ -85,7 +87,7 @@ func benchmarkRPC2Client(client rpc2.Invoker, b *testing.B) {
 	b.StopTimer()
 }
 
-func benchmarkRPC2GencodeClient(client rpc2.Invoker, b *testing.B) {
+func benchmarkRPC2GencodeClient(client *cli.Client, b *testing.B) {
 	// Synchronous calls
 	args := &GencodeArgs{7, 8}
 	procs := runtime.GOMAXPROCS(-1)
@@ -113,7 +115,7 @@ func benchmarkRPC2GencodeClient(client rpc2.Invoker, b *testing.B) {
 	b.StopTimer()
 }
 
-func benchmarkRPC2ProtobufClient(client rpc2.Invoker, b *testing.B) {
+func benchmarkRPC2ProtobufClient(client *cli.Client, b *testing.B) {
 	// Synchronous calls
 	args := &ProtoArgs{7, 8}
 	procs := runtime.GOMAXPROCS(-1)
@@ -148,7 +150,7 @@ func startNetRPCWithGob() (ln net.Listener, address string) {
 		for {
 			conn, err := ln.Accept()
 			if err != nil {
-				rpc2.Log.Fatal("accept error:", err)
+				log.Fatal("accept error:", err)
 			}
 
 			go rpc.ServeConn(conn)
@@ -164,7 +166,7 @@ func BenchmarkNetRPC_gob(b *testing.B) {
 
 	conn, err := net.Dial("tcp", address)
 	if err != nil {
-		rpc2.Log.Fatal("error dialing:", err)
+		log.Fatal("error dialing:", err)
 	}
 	client := rpc.NewClient(conn)
 	defer client.Close()
@@ -180,7 +182,7 @@ func startNetRPCWithJson() (ln net.Listener, address string) {
 		for {
 			conn, err := ln.Accept()
 			if err != nil {
-				rpc2.Log.Fatal("accept error:", err)
+				log.Fatal("accept error:", err)
 			}
 
 			go jsonrpc.ServeConn(conn)
@@ -212,7 +214,7 @@ func startNetRPCWithMsgp() (ln net.Listener, address string) {
 		for {
 			conn, err := ln.Accept()
 			if err != nil {
-				rpc2.Log.Fatal("accept error:", err)
+				log.Fatal("accept error:", err)
 			}
 
 			go msgpackrpc.ServeConn(conn)
@@ -236,10 +238,9 @@ func BenchmarkNetRPC_msgp(b *testing.B) {
 	benchmarkClient(client, b)
 }
 
-func startRPC2WithGob() *rpc2.Server {
-	server := rpc2.NewServer(rpc2.Server{
-		ServerCodecFunc:   gob.NewGobServerCodec,
-		ServiceMethodFunc: rpc2.NewURLServiceMethod,
+func startRPC2WithGob() *srv.Server {
+	server := srv.NewServer(srv.Server{
+		ServerCodecFunc: gob.NewGobServerCodec,
 	})
 	server.RegisterName("Arith", new(codec.Arith))
 	ln, _ := listenTCP()
@@ -253,12 +254,12 @@ func BenchmarkRPC2_gob(b *testing.B) {
 	server := startRPC2WithGob()
 	time.Sleep(5 * time.Second) //waiting for starting server
 
-	client := rpc2.NewClient(
-		rpc2.Client{
+	client := cli.NewClient(
+		cli.Client{
 			ClientCodecFunc: gob.NewGobClientCodec,
-			FailMode:        rpc2.Failtry,
+			FailMode:        cli.Failtry,
 		},
-		&invokerselector.DirectInvokerSelector{
+		&selector.DirectSelector{
 			Network:     "tcp",
 			Address:     server.Address(),
 			DialTimeout: 10 * time.Second,
@@ -269,10 +270,9 @@ func BenchmarkRPC2_gob(b *testing.B) {
 	benchmarkRPC2Client(client, b)
 }
 
-func startRPC2WithJson() *rpc2.Server {
-	server := rpc2.NewServer(rpc2.Server{
-		ServerCodecFunc:   jsonrpc.NewServerCodec,
-		ServiceMethodFunc: rpc2.NewURLServiceMethod,
+func startRPC2WithJson() *srv.Server {
+	server := srv.NewServer(srv.Server{
+		ServerCodecFunc: jsonrpc.NewServerCodec,
 	})
 	server.RegisterName("Arith", new(codec.Arith))
 	ln, _ := listenTCP()
@@ -285,12 +285,12 @@ func BenchmarkRPC2_jsonrpc(b *testing.B) {
 	b.StopTimer()
 	server := startRPC2WithJson()
 	time.Sleep(5 * time.Second) //waiting for starting server
-	client := rpc2.NewClient(
-		rpc2.Client{
+	client := cli.NewClient(
+		cli.Client{
 			ClientCodecFunc: jsonrpc.NewClientCodec,
-			FailMode:        rpc2.Failtry,
+			FailMode:        cli.Failtry,
 		},
-		&invokerselector.DirectInvokerSelector{
+		&selector.DirectSelector{
 			Network:     "tcp",
 			Address:     server.Address(),
 			DialTimeout: 10 * time.Second,
@@ -301,10 +301,9 @@ func BenchmarkRPC2_jsonrpc(b *testing.B) {
 	benchmarkRPC2Client(client, b)
 }
 
-func startRPC2WithMsgP() *rpc2.Server {
-	server := rpc2.NewServer(rpc2.Server{
-		ServerCodecFunc:   msgpackrpc.NewServerCodec,
-		ServiceMethodFunc: rpc2.NewURLServiceMethod,
+func startRPC2WithMsgP() *srv.Server {
+	server := srv.NewServer(srv.Server{
+		ServerCodecFunc: msgpackrpc.NewServerCodec,
 	})
 	server.RegisterName("Arith", new(codec.Arith))
 	ln, _ := listenTCP()
@@ -317,12 +316,12 @@ func BenchmarkRPC2_msgp(b *testing.B) {
 	b.StopTimer()
 	server := startRPC2WithMsgP()
 	time.Sleep(5 * time.Second) //waiting for starting server
-	client := rpc2.NewClient(
-		rpc2.Client{
+	client := cli.NewClient(
+		cli.Client{
 			ClientCodecFunc: msgpackrpc.NewClientCodec,
-			FailMode:        rpc2.Failtry,
+			FailMode:        cli.Failtry,
 		},
-		&invokerselector.DirectInvokerSelector{
+		&selector.DirectSelector{
 			Network:     "tcp",
 			Address:     server.Address(),
 			DialTimeout: 10 * time.Second,
@@ -344,10 +343,9 @@ func (t *GencodeArith) Error(args *GencodeArgs, reply *GencodeReply) error {
 	panic("ERROR")
 }
 
-func startRPC2WithGencodec() *rpc2.Server {
-	server := rpc2.NewServer(rpc2.Server{
-		ServerCodecFunc:   gencode.NewGencodeServerCodec,
-		ServiceMethodFunc: rpc2.NewURLServiceMethod,
+func startRPC2WithGencodec() *srv.Server {
+	server := srv.NewServer(srv.Server{
+		ServerCodecFunc: gencode.NewGencodeServerCodec,
 	})
 	server.RegisterName("Arith", new(GencodeArith))
 	ln, _ := listenTCP()
@@ -360,12 +358,12 @@ func BenchmarkRPC2_gencodec(b *testing.B) {
 	b.StopTimer()
 	server := startRPC2WithGencodec()
 	time.Sleep(5 * time.Second) //waiting for starting server
-	client := rpc2.NewClient(
-		rpc2.Client{
+	client := cli.NewClient(
+		cli.Client{
 			ClientCodecFunc: gencode.NewGencodeClientCodec,
-			FailMode:        rpc2.Failtry,
+			FailMode:        cli.Failtry,
 		},
-		&invokerselector.DirectInvokerSelector{
+		&selector.DirectSelector{
 			Network:     "tcp",
 			Address:     server.Address(),
 			DialTimeout: 10 * time.Second,
@@ -387,10 +385,9 @@ func (t *ProtoArith) Error(args *ProtoArgs, reply *ProtoReply) error {
 	panic("ERROR")
 }
 
-func startRPC2WithProtobuf() *rpc2.Server {
-	server := rpc2.NewServer(rpc2.Server{
-		ServerCodecFunc:   protobuf.NewProtobufServerCodec,
-		ServiceMethodFunc: rpc2.NewURLServiceMethod,
+func startRPC2WithProtobuf() *srv.Server {
+	server := srv.NewServer(srv.Server{
+		ServerCodecFunc: protobuf.NewProtobufServerCodec,
 	})
 	server.RegisterName("Arith", new(ProtoArith))
 	ln, _ := listenTCP()
@@ -403,12 +400,12 @@ func BenchmarkRPC2_protobuf(b *testing.B) {
 	b.StopTimer()
 	server := startRPC2WithProtobuf()
 	time.Sleep(5 * time.Second) //waiting for starting server
-	client := rpc2.NewClient(
-		rpc2.Client{
+	client := cli.NewClient(
+		cli.Client{
 			ClientCodecFunc: protobuf.NewProtobufClientCodec,
-			FailMode:        rpc2.Failtry,
+			FailMode:        cli.Failtry,
 		},
-		&invokerselector.DirectInvokerSelector{
+		&selector.DirectSelector{
 			Network:     "tcp",
 			Address:     server.Address(),
 			DialTimeout: 10 * time.Second,
