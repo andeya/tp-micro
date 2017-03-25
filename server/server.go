@@ -429,27 +429,13 @@ func (server *Server) readRequest(ctx *Context) (keepReading bool, notSend bool,
 	}
 
 	// Decode the argument value.
-	if err = ctx.readRequestBody(argv.Interface()); err != nil {
-		return
-	}
-
-	// get reply value
-	replyType := ctx.service.GetReplyType()
-	replyIsValue := false
-	if replyType.Kind() == reflect.Ptr {
-		ctx.replyv = reflect.New(replyType.Elem())
-	} else {
-		ctx.replyv = reflect.New(replyType)
-		replyIsValue = true
-	}
-	if replyIsValue {
-		ctx.replyv = ctx.replyv.Elem()
-	}
+	err = ctx.readRequestBody(argv.Interface())
 	return
 }
 
 func (server *Server) call(sending *sync.Mutex, ctx *Context) {
-	err := ctx.service.Call(ctx.argv, ctx.replyv, ctx)
+	var err error
+	ctx.replyv, err = ctx.service.Call(ctx.argv, ctx)
 	errmsg := ""
 	if err != nil {
 		errmsg = err.Error()

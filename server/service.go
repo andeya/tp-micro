@@ -26,10 +26,10 @@ type (
 		GetPath() string
 		// GetArgType returns the receiver type of request body.
 		GetArgType() reflect.Type
-		// GetReplyType returns the receiver type of response body.
-		GetReplyType() reflect.Type
+		// // GetReplyType returns the receiver type of response body.
+		// GetReplyType() reflect.Type
 		// Call calls service method.
-		Call(argv, replyv reflect.Value, ctx *Context) error
+		Call(argv reflect.Value, ctx *Context) (replyv reflect.Value, err error)
 	}
 )
 
@@ -85,25 +85,38 @@ func (n *NormService) GetArgType() reflect.Type {
 	return n.ArgType
 }
 
-// GetReplyType returns the receiver type of request body.
-func (n *NormService) GetReplyType() reflect.Type {
-	return n.ReplyType
-}
+// // GetReplyType returns the receiver type of request body.
+// func (n *NormService) GetReplyType() reflect.Type {
+// 	return n.ReplyType
+// }
 
 // Call calls service method, and returns response result.
-func (n *NormService) Call(argv, replyv reflect.Value, _ *Context) error {
+func (n *NormService) Call(argv reflect.Value, _ *Context) (replyv reflect.Value, err error) {
 	n.Lock()
 	n.numCalls++
 	n.Unlock()
+
+	// get reply value
+	replyIsValue := false
+	if n.ReplyType.Kind() == reflect.Ptr {
+		replyv = reflect.New(n.ReplyType.Elem())
+	} else {
+		replyv = reflect.New(n.ReplyType)
+		replyIsValue = true
+	}
+	if replyIsValue {
+		replyv = replyv.Elem()
+	}
+
 	function := n.method.Func
 	// Invoke the method, providing a new value for the reply.
 	returnValues := function.Call([]reflect.Value{n.rcvr, argv, replyv})
 	// The return value for the method is an error.
 	errInter := returnValues[0].Interface()
 	if errInter != nil {
-		return errInter.(error)
+		return replyv, errInter.(error)
 	}
-	return nil
+	return replyv, nil
 }
 
 // GetPath returns the name of service
