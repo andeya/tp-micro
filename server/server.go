@@ -139,7 +139,7 @@ func (server *Server) Register(rcvr interface{}, metadata ...string) {
 // instead of the receiver's concrete type.
 func (server *Server) RegisterName(name string, rcvr interface{}, metadata ...string) {
 	if err := common.CheckSname(name); err != nil {
-		log.Fatal("rpc:" + err.Error())
+		log.Fatal("rpc: " + err.Error())
 	}
 	p := new(ServerPluginContainer)
 	server.register([]string{name}, rcvr, p, metadata...)
@@ -154,7 +154,7 @@ func (group *ServiceGroup) Register(rcvr interface{}, metadata ...string) {
 // RegisterName register service based on group
 func (group *ServiceGroup) RegisterName(name string, rcvr interface{}, metadata ...string) {
 	if err := common.CheckSname(name); err != nil {
-		log.Fatal("rpc:" + err.Error())
+		log.Fatal("rpc: " + err.Error())
 	}
 	var all []plugin.IPlugin
 	if group.PluginContainer != nil {
@@ -175,7 +175,7 @@ func (server *Server) register(pathSegments []string, rcvr interface{}, p IServe
 	defer server.mu.Unlock()
 	services, err := server.ServiceBuilder.NewServices(rcvr, pathSegments...)
 	if err != nil {
-		log.Fatal("rpc:" + err.Error())
+		log.Fatal("rpc: " + err.Error())
 	}
 	if len(services) == 0 {
 		log.Fatal("rpc: can not register invalid service: '" + reflect.ValueOf(rcvr).String() + "'")
@@ -207,7 +207,7 @@ func (server *Server) register(pathSegments []string, rcvr interface{}, p IServe
 		server.serviceMap[spath] = service
 	}
 	if len(errs) > 0 {
-		log.Fatal("rpc:" + common.NewMultiError(errs).Error())
+		log.Fatal("rpc: " + common.NewMultiError(errs).Error())
 	}
 	// sort router
 	sort.Strings(server.routers)
@@ -222,7 +222,7 @@ func (server *Server) Routers() []string {
 func (server *Server) Serve(network, address string) {
 	lis, err := makeListener(network, address)
 	if err != nil {
-		log.Fatalf("rpc: %v", err)
+		log.Fatal("rpc: " + err.Error())
 	}
 	log.Infof("rpc: listening and serving %s on %s", strings.ToUpper(network), address)
 	server.ServeListener(lis)
@@ -232,7 +232,7 @@ func (server *Server) Serve(network, address string) {
 func (server *Server) ServeTLS(network, address string, config *tls.Config) {
 	lis, err := tls.Listen(network, address, config)
 	if err != nil {
-		log.Fatalf("rpc: %v", err)
+		log.Fatal("rpc: " + err.Error())
 	}
 	log.Infof("rpc: listening and serving %s on %s", strings.ToUpper(network), address)
 	server.ServeListener(lis)
