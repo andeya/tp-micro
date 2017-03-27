@@ -42,9 +42,7 @@ func TestAuthorizationPlugin(t *testing.T) {
 	}
 
 	// server
-	srv := server.NewServer(server.Server{
-		RouterPrintable: true,
-	})
+	srv := server.NewServer(server.Server{})
 
 	// authorization
 	group, err := srv.Group("test", NewServerAuthorizationPlugin(checkAuthorization))
@@ -52,10 +50,7 @@ func TestAuthorizationPlugin(t *testing.T) {
 		panic(err)
 	}
 
-	err = group.RegisterName("1.0.work", new(worker))
-	if err != nil {
-		panic(err)
-	}
+	group.RegisterName("1.0.work", new(worker))
 
 	go srv.Serve("tcp", "0.0.0.0:8080")
 	time.Sleep(2e9)

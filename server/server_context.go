@@ -181,7 +181,7 @@ func (ctx *Context) readRequestHeader() (keepReading bool, notSend bool, err err
 			return
 		}
 		keepReading = true // Added laster by henry
-		err = common.NewRPCError("ReadRequestHeader: ", err.Error())
+		err = common.NewRPCError("ReadRequestHeader: " + err.Error())
 		return
 	}
 
@@ -229,7 +229,7 @@ func (ctx *Context) readRequestBody(body interface{}) error {
 
 	err = ctx.codecConn.ReadRequestBody(body)
 	if err != nil {
-		return common.NewRPCError("ReadRequestBody: ", err.Error())
+		return common.NewRPCError("ReadRequestBody: " + err.Error())
 	}
 
 	// post
@@ -269,7 +269,7 @@ func (ctx *Context) writeResponse(body interface{}) error {
 	// decode request header
 	err = ctx.codecConn.WriteResponse(ctx.resp, body)
 	if err != nil {
-		return common.NewRPCError("WriteResponse: ", err.Error())
+		return common.NewRPCError("WriteResponse: " + err.Error())
 	}
 
 	// post

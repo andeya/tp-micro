@@ -159,7 +159,7 @@ func (*NormServiceBuilder) suitableMethods(typ reflect.Type, reportErr bool) map
 		// Method needs three ins: receiver, *args, *reply.
 		if mtype.NumIn() != 3 {
 			if reportErr {
-				// log.Notice("[RPC] method", mname, "has wrong number of ins:", mtype.NumIn())
+				// log.Notice("rpc: method", mname, "has wrong number of ins:", mtype.NumIn())
 			}
 			continue
 		}
@@ -167,7 +167,7 @@ func (*NormServiceBuilder) suitableMethods(typ reflect.Type, reportErr bool) map
 		argType := mtype.In(1)
 		if !isExportedOrBuiltinType(argType) {
 			if reportErr {
-				// log.Notice("[RPC]", mname, "argument type not exported:", argType)
+				// log.Notice("rpc:", mname, "argument type not exported:", argType)
 			}
 			continue
 		}
@@ -175,28 +175,28 @@ func (*NormServiceBuilder) suitableMethods(typ reflect.Type, reportErr bool) map
 		replyType := mtype.In(2)
 		if replyType.Kind() != reflect.Ptr {
 			if reportErr {
-				// log.Notice("[RPC] method", mname, "reply type not a pointer:", replyType)
+				// log.Notice("rpc: method", mname, "reply type not a pointer:", replyType)
 			}
 			continue
 		}
 		// Reply type must be exported.
 		if !isExportedOrBuiltinType(replyType) {
 			if reportErr {
-				// log.Notice("[RPC] method", mname, "reply type not exported:", replyType)
+				// log.Notice("rpc: method", mname, "reply type not exported:", replyType)
 			}
 			continue
 		}
 		// Method needs one out.
 		if mtype.NumOut() != 1 {
 			if reportErr {
-				// log.Notice("[RPC] method", mname, "has wrong number of outs:", mtype.NumOut())
+				// log.Notice("rpc: method", mname, "has wrong number of outs:", mtype.NumOut())
 			}
 			continue
 		}
 		// The return type of the method must be error.
 		if returnType := mtype.Out(0); returnType != typeOfError {
 			if reportErr {
-				// log.Notice("[RPC] method", mname, "returns", returnType.String(), "not error")
+				// log.Notice("rpc: method", mname, "returns", returnType.String(), "not error")
 			}
 			continue
 		}

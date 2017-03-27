@@ -71,9 +71,7 @@ func checkAuthorization(serviceMethod, tag, token string) error {
 // rpc2
 func main() {
 	// server
-	srv := server.NewServer(server.Server{
-		RouterPrintable: true,
-	})
+	srv := server.NewServer(server.Server{})
 
 	// ip filter
 	ipwl := ip_whitelist.NewIPWhitelistPlugin()
@@ -92,10 +90,7 @@ func main() {
 		panic(err)
 	}
 
-	err = group.RegisterName("1.0.work", new(Worker))
-	if err != nil {
-		panic(err)
-	}
+	group.RegisterName("1.0.work", new(Worker))
 
 	go srv.Serve("tcp", "0.0.0.0:8080")
 	time.Sleep(2e9)

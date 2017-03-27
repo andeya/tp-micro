@@ -77,7 +77,7 @@ func (client *Client) init() *Client {
 		client.MaxTry = 3
 	}
 	if client.selector == nil {
-		log.Fatal("Client do not have a 'Selector' Field!")
+		log.Fatal("rpc: client do not have a 'Selector' field!")
 	}
 	client.selector.SetNewInvokerFunc(client.newInvoker)
 	return client
@@ -122,7 +122,7 @@ func (client *Client) newXXXClient(network, address string, dialTimeout time.Dur
 			return NewInvokerWithCodec(wrapper), nil
 		}
 	}
-	return nil, common.NewRPCError("dial error: ", err.Error())
+	return nil, common.NewRPCError("dial error: " + err.Error())
 }
 
 func (client *Client) newHTTPClient(network, address string, dialTimeout time.Duration, wrapper *clientCodecWrapper) (Invoker, error) {
@@ -175,7 +175,7 @@ func (client *Client) newKCPClient(address string, wrapper *clientCodecWrapper) 
 			return NewInvokerWithCodec(wrapper), nil
 		}
 	}
-	return nil, common.NewRPCError("dial error: ", err.Error())
+	return nil, common.NewRPCError("dial error: " + err.Error())
 }
 
 //Call invokes the named function, waits for it to complete, and returns its error status.
@@ -201,7 +201,7 @@ func (client *Client) Call(serviceMethod string, args interface{}, reply interfa
 				return nil
 			}
 
-			log.Errorf("failed to call: %v", err)
+			log.Errorf("rpc: failed to call: %v", err)
 			client.selector.HandleFailed(invoker)
 		}
 
@@ -209,7 +209,7 @@ func (client *Client) Call(serviceMethod string, args interface{}, reply interfa
 		for tries := client.MaxTry; tries > 0; tries-- {
 			if invoker == nil {
 				if invoker, err = client.selector.Select(serviceMethod, args); err != nil {
-					log.Errorf("failed to select a invoker: %v", err)
+					log.Errorf("rpc: failed to select a invoker: %v", err)
 				}
 			}
 
@@ -219,7 +219,7 @@ func (client *Client) Call(serviceMethod string, args interface{}, reply interfa
 					return nil
 				}
 
-				log.Errorf("failed to call: %v", err)
+				log.Errorf("rpc: failed to call: %v", err)
 				client.selector.HandleFailed(invoker)
 			}
 		}
@@ -232,7 +232,7 @@ func (client *Client) invokerBroadCast(serviceMethod string, args interface{}, r
 	invokers := client.selector.List()
 
 	if len(invokers) == 0 {
-		log.Infof("no any invoker is available")
+		log.Infof("rpc: no any invoker is available")
 		return nil
 	}
 
@@ -246,7 +246,7 @@ func (client *Client) invokerBroadCast(serviceMethod string, args interface{}, r
 		call := <-done
 		if call == nil || call.Error != nil {
 			if call != nil {
-				log.Warnf("failed to call: %v", call.Error)
+				log.Warnf("rpc: failed to call: %v", call.Error)
 			}
 			return common.NewRPCError("some invokers return Error")
 		}
@@ -261,7 +261,7 @@ func (client *Client) invokerForking(serviceMethod string, args interface{}, rep
 	invokers := client.selector.List()
 
 	if len(invokers) == 0 {
-		log.Infof("no any invoker is available")
+		log.Infof("rpc: no any invoker is available")
 		return nil
 	}
 
@@ -281,7 +281,7 @@ func (client *Client) invokerForking(serviceMethod string, args interface{}, rep
 			break
 		}
 		if call.Error != nil {
-			log.Warnf("failed to call: %v", call.Error)
+			log.Warnf("rpc: failed to call: %v", call.Error)
 		}
 		l--
 	}
@@ -352,7 +352,7 @@ func (w *clientCodecWrapper) WriteRequest(r *rpc.Request, body interface{}) erro
 
 	err = w.codec.WriteRequest(r, body)
 	if err != nil {
-		return common.NewRPCError("WriteRequest: ", err.Error())
+		return common.NewRPCError("WriteRequest: " + err.Error())
 	}
 
 	//post
@@ -376,7 +376,7 @@ func (w *clientCodecWrapper) ReadResponseHeader(r *rpc.Response) error {
 
 	err = w.codec.ReadResponseHeader(r)
 	if err != nil {
-		return common.NewRPCError("ReadResponseHeader: ", err.Error())
+		return common.NewRPCError("ReadResponseHeader: " + err.Error())
 	}
 
 	//post
@@ -393,7 +393,7 @@ func (w *clientCodecWrapper) ReadResponseBody(body interface{}) error {
 
 	err = w.codec.ReadResponseBody(body)
 	if err != nil {
-		return common.NewRPCError("ReadResponseBody: ", err.Error())
+		return common.NewRPCError("ReadResponseBody: " + err.Error())
 	}
 
 	//post

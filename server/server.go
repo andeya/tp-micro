@@ -29,7 +29,6 @@ type (
 		WriteTimeout    time.Duration
 		ServerCodecFunc ServerCodecFunc
 		ServiceBuilder  IServiceBuilder
-		RouterPrintable bool
 
 		serviceMap  map[string]IService
 		mu          sync.RWMutex // protects the serviceMap
@@ -105,13 +104,13 @@ func (group *ServiceGroup) Group(prefix string, plugins ...plugin.IPlugin) (*Ser
 	groupPath := group.server.ServiceBuilder.URIEncode(nil, prefixes...)
 	for _, plugin := range plugins {
 		if _, ok := plugin.(IPostConnAcceptPlugin); ok {
-			log.Noticef("'PostConnAccept()' of '%s' plugin in '%s' group is invalid", plugin.Name(), groupPath)
+			log.Noticef("rpc: 'PostConnAccept()' of '%s' plugin in '%s' group is invalid", plugin.Name(), groupPath)
 		}
 		if _, ok := plugin.(IPreReadRequestHeaderPlugin); ok {
-			log.Noticef("'PreReadRequestHeader()' of '%s' plugin in '%s' group is invalid", plugin.Name(), groupPath)
+			log.Noticef("rpc: 'PreReadRequestHeader()' of '%s' plugin in '%s' group is invalid", plugin.Name(), groupPath)
 		}
 		if _, ok := plugin.(IPostReadRequestHeaderPlugin); ok {
-			log.Noticef("'PostReadRequestHeader()' of '%s' plugin in '%s' group is invalid", plugin.Name(), groupPath)
+			log.Noticef("rpc: 'PostReadRequestHeader()' of '%s' plugin in '%s' group is invalid", plugin.Name(), groupPath)
 		}
 	}
 	return &ServiceGroup{
@@ -131,31 +130,31 @@ func (group *ServiceGroup) Group(prefix string, plugins ...plugin.IPlugin) (*Ser
 // no suitable methods. It also logs the error using package log.
 // The client accesses each method using a string of the form "Type.Method",
 // where Type is the receiver's concrete type.
-func (server *Server) Register(rcvr interface{}, metadata ...string) error {
+func (server *Server) Register(rcvr interface{}, metadata ...string) {
 	name := common.ObjectName(rcvr)
-	return server.RegisterName(name, rcvr, metadata...)
+	server.RegisterName(name, rcvr, metadata...)
 }
 
 // RegisterName is like Register but uses the provided name for the type
 // instead of the receiver's concrete type.
-func (server *Server) RegisterName(name string, rcvr interface{}, metadata ...string) error {
+func (server *Server) RegisterName(name string, rcvr interface{}, metadata ...string) {
 	if err := common.CheckSname(name); err != nil {
-		return err
+		log.Fatal("rpc:" + err.Error())
 	}
 	p := new(ServerPluginContainer)
-	return server.register([]string{name}, rcvr, p, metadata...)
+	server.register([]string{name}, rcvr, p, metadata...)
 }
 
 // Register register service based on group
-func (group *ServiceGroup) Register(rcvr interface{}, metadata ...string) error {
+func (group *ServiceGroup) Register(rcvr interface{}, metadata ...string) {
 	name := common.ObjectName(rcvr)
-	return group.RegisterName(name, rcvr, metadata...)
+	group.RegisterName(name, rcvr, metadata...)
 }
 
 // RegisterName register service based on group
-func (group *ServiceGroup) RegisterName(name string, rcvr interface{}, metadata ...string) error {
+func (group *ServiceGroup) RegisterName(name string, rcvr interface{}, metadata ...string) {
 	if err := common.CheckSname(name); err != nil {
-		return err
+		log.Fatal("rpc:" + err.Error())
 	}
 	var all []plugin.IPlugin
 	if group.PluginContainer != nil {
@@ -168,18 +167,18 @@ func (group *ServiceGroup) RegisterName(name string, rcvr interface{}, metadata 
 			Plugins: all,
 		},
 	}
-	return group.server.register(append(group.prefixes, name), rcvr, p, metadata...)
+	group.server.register(append(group.prefixes, name), rcvr, p, metadata...)
 }
 
-func (server *Server) register(pathSegments []string, rcvr interface{}, p IServerPluginContainer, metadata ...string) error {
+func (server *Server) register(pathSegments []string, rcvr interface{}, p IServerPluginContainer, metadata ...string) {
 	server.mu.Lock()
 	defer server.mu.Unlock()
 	services, err := server.ServiceBuilder.NewServices(rcvr, pathSegments...)
 	if err != nil {
-		return common.NewRPCError(err.Error())
+		log.Fatal("rpc:" + err.Error())
 	}
 	if len(services) == 0 {
-		return common.NewRPCError("Can not register invalid service: '" + reflect.ValueOf(rcvr).String() + "'")
+		log.Fatal("rpc: can not register invalid service: '" + reflect.ValueOf(rcvr).String() + "'")
 	}
 	var errs []error
 	for _, service := range services {
@@ -203,18 +202,15 @@ func (server *Server) register(pathSegments []string, rcvr interface{}, p IServe
 
 		// print routers.
 		server.routers = append(server.routers, spath)
-		if server.RouterPrintable {
-			log.Infof("[RPC ROUTER] %s", spath)
-		}
+		log.Infof("rpc: route ->	%s", spath)
 
 		server.serviceMap[spath] = service
 	}
 	if len(errs) > 0 {
-		return common.NewMultiError(errs)
+		log.Fatal("rpc:" + common.NewMultiError(errs).Error())
 	}
 	// sort router
 	sort.Strings(server.routers)
-	return nil
 }
 
 // Routers return registered routers.
@@ -226,11 +222,9 @@ func (server *Server) Routers() []string {
 func (server *Server) Serve(network, address string) {
 	lis, err := makeListener(network, address)
 	if err != nil {
-		log.Fatalf("[RPC] %v", err)
+		log.Fatalf("rpc: %v", err)
 	}
-	if server.RouterPrintable {
-		log.Infof("[RPC] listening and serving %s on %s", strings.ToUpper(network), address)
-	}
+	log.Infof("rpc: listening and serving %s on %s", strings.ToUpper(network), address)
 	server.ServeListener(lis)
 }
 
@@ -238,11 +232,9 @@ func (server *Server) Serve(network, address string) {
 func (server *Server) ServeTLS(network, address string, config *tls.Config) {
 	lis, err := tls.Listen(network, address, config)
 	if err != nil {
-		log.Fatalf("[RPC] %v", err)
+		log.Fatalf("rpc: %v", err)
 	}
-	if server.RouterPrintable {
-		log.Infof("[RPC] listening and serving %s on %s", strings.ToUpper(network), address)
-	}
+	log.Infof("rpc: listening and serving %s on %s", strings.ToUpper(network), address)
 	server.ServeListener(lis)
 }
 
@@ -266,13 +258,13 @@ func (server *Server) ServeListener(lis net.Listener) {
 		c, err := lis.Accept()
 		if err != nil {
 			if !strings.Contains(err.Error(), "use of closed network connection") {
-				log.Debugf("[RPC] accept: %s", err.Error())
+				log.Debugf("rpc: accept: %s", err.Error())
 			}
 			return
 		}
 		conn := NewServerCodecConn(c)
 		if err = server.PluginContainer.doPostConnAccept(conn); err != nil {
-			log.Debugf("[RPC] PostConnAccept: %s", err.Error())
+			log.Debugf("rpc: PostConnAccept: %s", err.Error())
 			continue
 		}
 		go server.ServeConn(conn)
@@ -312,13 +304,13 @@ func (server *Server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 	c, _, err := w.(http.Hijacker).Hijack()
 	if err != nil {
-		log.Debugf("[RPC] hijacking %s: %s", req.RemoteAddr, err.Error())
+		log.Debugf("rpc: hijacking %s: %s", req.RemoteAddr, err.Error())
 		return
 	}
 
 	conn := NewServerCodecConn(c)
 	if err = server.PluginContainer.doPostConnAccept(conn); err != nil {
-		log.Debugf("[RPC] PostConnAccept: %s", err.Error())
+		log.Debugf("rpc: PostConnAccept: %s", err.Error())
 		return
 	}
 
@@ -343,7 +335,7 @@ func (server *Server) Close() {
 	server.mu.Lock()
 	defer server.mu.Unlock()
 	server.listener.Close()
-	log.Infof("[RPC] stopped listening and serveing %s", server.Address())
+	log.Infof("rpc: stopped listening and serveing %s", server.Address())
 }
 
 // ServeConn runs the server on a single connection.
@@ -361,7 +353,7 @@ func (server *Server) ServeConn(conn ServerCodecConn) {
 		keepReading, notSend, err := server.readRequest(ctx)
 		if err != nil {
 			if err != io.EOF {
-				log.Debugf("[RPC] %s", err.Error())
+				log.Debugf("rpc: %s", err.Error())
 			}
 			if !keepReading {
 				server.putContext(ctx)
@@ -467,7 +459,7 @@ func (server *Server) sendResponse(sending *sync.Mutex, ctx *Context, errmsg str
 	sending.Lock()
 	err := ctx.writeResponse(reply)
 	if err != nil {
-		log.Debugf("[RPC] writing response: %s", err.Error())
+		log.Debugf("rpc: writing response: %s", err.Error())
 	}
 	sending.Unlock()
 	server.putContext(ctx)
