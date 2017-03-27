@@ -82,9 +82,7 @@ func checkAuthorization(serviceMethod, tag, token string) error {
 // rpc2
 func main() {
     // server
-    srv := server.NewServer(server.Server{
-        RouterPrintable: true,
-    })
+    srv := server.NewServer(server.Server{})
 
     // ip filter
     ipwl := ip_whitelist.NewIPWhitelistPlugin()
@@ -95,18 +93,12 @@ func main() {
     srv.PluginContainer.Add(new(serverRedirectPlugin))
 
     // authorization
-    group, err := srv.Group(
+    group := srv.Group(
         "test",
         auth.NewServerAuthorizationPlugin(checkAuthorization),
     )
-    if err != nil {
-        panic(err)
-    }
 
-    err = group.RegisterName("1.0.work", new(Worker))
-    if err != nil {
-        panic(err)
-    }
+    group.RegisterName("1.0.work", new(Worker))
 
     go srv.Serve("tcp", "0.0.0.0:8080")
     time.Sleep(2e9)

@@ -45,10 +45,7 @@ func TestAuthorizationPlugin(t *testing.T) {
 	srv := server.NewServer(server.Server{})
 
 	// authorization
-	group, err := srv.Group("test", NewServerAuthorizationPlugin(checkAuthorization))
-	if err != nil {
-		panic(err)
-	}
+	group := srv.Group("test", NewServerAuthorizationPlugin(checkAuthorization))
 
 	group.RegisterName("1.0.work", new(worker))
 

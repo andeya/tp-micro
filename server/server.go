@@ -82,23 +82,23 @@ func (server *Server) init() *Server {
 }
 
 // Group add service group
-func (server *Server) Group(prefix string, plugins ...plugin.IPlugin) (*ServiceGroup, error) {
+func (server *Server) Group(prefix string, plugins ...plugin.IPlugin) *ServiceGroup {
 	return (&ServiceGroup{
 		server: server,
 	}).Group(prefix, plugins...)
 }
 
 // Group add service group
-func (group *ServiceGroup) Group(prefix string, plugins ...plugin.IPlugin) (*ServiceGroup, error) {
+func (group *ServiceGroup) Group(prefix string, plugins ...plugin.IPlugin) *ServiceGroup {
 	if err := common.CheckSname(prefix); err != nil {
-		return nil, err
+		log.Fatal("rpc: " + err.Error())
 	}
 	p := new(ServerPluginContainer)
 	if group.PluginContainer != nil {
 		p.Add(group.PluginContainer.GetAll()...)
 	}
 	if err := p.Add(plugins...); err != nil {
-		return nil, err
+		log.Fatal("rpc: " + err.Error())
 	}
 	prefixes := append(group.prefixes, prefix)
 	groupPath := group.server.ServiceBuilder.URIEncode(nil, prefixes...)
@@ -117,7 +117,7 @@ func (group *ServiceGroup) Group(prefix string, plugins ...plugin.IPlugin) (*Ser
 		prefixes:        prefixes,
 		PluginContainer: p,
 		server:          group.server,
-	}, nil
+	}
 }
 
 // Register publishes in the server the set of methods of the
