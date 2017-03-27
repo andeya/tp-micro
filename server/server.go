@@ -266,13 +266,13 @@ func (server *Server) ServeListener(lis net.Listener) {
 		c, err := lis.Accept()
 		if err != nil {
 			if !strings.Contains(err.Error(), "use of closed network connection") {
-				log.Infof("[RPC] accept: %v", err)
+				log.Debugf("[RPC] accept: %s", err.Error())
 			}
 			return
 		}
 		conn := NewServerCodecConn(c)
 		if err = server.PluginContainer.doPostConnAccept(conn); err != nil {
-			log.Infof("[RPC] PostConnAccept: %s", err.Error())
+			log.Debugf("[RPC] PostConnAccept: %s", err.Error())
 			continue
 		}
 		go server.ServeConn(conn)
