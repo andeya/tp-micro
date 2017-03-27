@@ -138,7 +138,16 @@ type MultiError struct {
 
 // Error returns the message of the actual error
 func (e *MultiError) Error() string {
-	return fmt.Sprintf("%v", e.errors)
+	s := errPrefix + "[MultiError]:"
+	for _, err := range e.errors {
+		if err != nil {
+			s += "\n  - " + strings.TrimPrefix(err.Error(), errPrefix)
+		} else {
+			s += "\n  - " + fmt.Sprintf("%v", err)
+		}
+	}
+	return s
+	// return fmt.Sprintf("%v", e.errors)
 }
 
 // NewMultiError creates and returns an Error with error splice
