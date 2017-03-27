@@ -39,14 +39,17 @@ func (*Worker) Todo2(arg string, reply *string) error {
     return nil
 }
 
-type serverPlugin struct{}
+type serverRedirectPlugin struct{}
 
-func (t *serverPlugin) Name() string {
+func (t *serverRedirectPlugin) Name() string {
     return "server_plugin"
 }
 
-func (t *serverPlugin) PostReadRequestHeader(ctx *server.Context) error {
-    log.Infof("serverPlugin.PostReadRequestHeader -> query: %#v", ctx.Query())
+func (t *serverRedirectPlugin) PostReadRequestHeader(ctx *server.Context) error {
+    if ctx.Path() == "/test/1.0.work/todo1" {
+        ctx.SetPath("/test/1.0.work/todo2")
+        log.Info("Redirect to todo2")
+    }
     return nil
 }
 
@@ -88,11 +91,13 @@ func main() {
     ipwl.Allow("127.0.0.1")
     srv.PluginContainer.Add(ipwl)
 
+    // redirect
+    srv.PluginContainer.Add(new(serverRedirectPlugin))
+
     // authorization
     group, err := srv.Group(
         "test",
         auth.NewServerAuthorizationPlugin(checkAuthorization),
-        new(serverPlugin),
     )
     if err != nil {
         panic(err)
@@ -122,7 +127,7 @@ func main() {
         new(clientPlugin),
     )
 
-    N := 10
+    N := 1
     bad := 0
     good := 0
     mapChan := make(chan int, N)
@@ -151,5 +156,4 @@ func main() {
     log.Info("cost time:", time.Now().Sub(t1))
     log.Info("success rate:", float64(good)/float64(good+bad)*100, "%")
 }
-
 ```
