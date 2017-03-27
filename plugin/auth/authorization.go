@@ -58,9 +58,9 @@ func (auth *AuthorizationPlugin) PreWriteRequest(r *rpc.Request, body interface{
 	return nil
 }
 
-var _ server.IPostReadRequestHeaderPlugin = new(AuthorizationPlugin)
+var _ server.IPreReadRequestBodyPlugin = new(AuthorizationPlugin)
 
-func (auth *AuthorizationPlugin) PostReadRequestHeader(ctx *server.Context) error {
+func (auth *AuthorizationPlugin) PreReadRequestBody(ctx *server.Context, _ interface{}) error {
 	if auth.authorizationFunc == nil {
 		return nil
 	}

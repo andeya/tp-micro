@@ -101,8 +101,21 @@ func (group *ServiceGroup) Group(prefix string, plugins ...plugin.IPlugin) (*Ser
 	if err := p.Add(plugins...); err != nil {
 		return nil, err
 	}
+	prefixes := append(group.prefixes, prefix)
+	groupPath := group.server.ServiceBuilder.URIEncode(nil, prefixes...)
+	for _, plugin := range plugins {
+		if _, ok := plugin.(IPostConnAcceptPlugin); ok {
+			log.Noticef("'PostConnAccept()' of '%s' plugin in '%s' group is invalid", plugin.Name(), groupPath)
+		}
+		if _, ok := plugin.(IPreReadRequestHeaderPlugin); ok {
+			log.Noticef("'PreReadRequestHeader()' of '%s' plugin in '%s' group is invalid", plugin.Name(), groupPath)
+		}
+		if _, ok := plugin.(IPostReadRequestHeaderPlugin); ok {
+			log.Noticef("'PostReadRequestHeader()' of '%s' plugin in '%s' group is invalid", plugin.Name(), groupPath)
+		}
+	}
 	return &ServiceGroup{
-		prefixes:        append(group.prefixes, prefix),
+		prefixes:        prefixes,
 		PluginContainer: p,
 		server:          group.server,
 	}, nil
@@ -171,14 +184,6 @@ func (server *Server) register(pathSegments []string, rcvr interface{}, p IServe
 	var errs []error
 	for _, service := range services {
 		spath := service.GetPath()
-		for _, plugin := range p.GetAll() {
-			if _, ok := plugin.(IPostConnAcceptPlugin); ok {
-				log.Noticef("The method 'PostConnAccept()' of the plugin '%s' in the service '%s' will not be executed!", plugin.Name(), spath)
-			}
-			if _, ok := plugin.(IPreReadRequestHeaderPlugin); ok {
-				log.Noticef("The method 'PreReadRequestHeader()' of the plugin '%s' in the service '%s' will not be executed!", plugin.Name(), spath)
-			}
-		}
 
 		if _, present := server.serviceMap[spath]; present {
 			errs = append(errs, common.ErrServiceAlreadyExists.Format(spath))

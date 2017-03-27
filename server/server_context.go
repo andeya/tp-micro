@@ -82,6 +82,7 @@ type Context struct {
 	service   IService
 	argv      reflect.Value
 	replyv    reflect.Value
+	path      string
 	query     url.Values
 	data      map[interface{}]interface{}
 	sync.RWMutex
@@ -106,12 +107,18 @@ func (ctx *Context) ID() string {
 
 // ServiceMethod returns request raw serviceMethod.
 func (ctx *Context) ServiceMethod() string {
-	return ctx.req.ServiceMethod
+	// return ctx.req.ServiceMethod
+	return ctx.server.ServiceBuilder.URIEncode(ctx.query, ctx.path)
 }
 
 // Path returns request serviceMethod path.
 func (ctx *Context) Path() string {
-	return ctx.service.GetPath()
+	return ctx.path
+}
+
+// SetPath sets request serviceMethod path.
+func (ctx *Context) SetPath(p string) {
+	ctx.path = p
 }
 
 // Query returns request query params.
@@ -182,18 +189,27 @@ func (ctx *Context) readRequestHeader() (keepReading bool, notSend bool, err err
 	// we can still recover and move on to the next request.
 	keepReading = true
 
-	err = ctx.getService()
+	// parse serviceMethod
+	ctx.path, ctx.query, err = ctx.server.ServiceBuilder.URIParse(ctx.req.ServiceMethod)
 	if err != nil {
+		err = common.NewRPCError(err.Error())
 		return
 	}
 
 	// post
-	err = ctx.service.GetPluginContainer().doPostReadRequestHeader(ctx)
+	err = ctx.server.PluginContainer.doPostReadRequestHeader(ctx)
 	if err != nil {
 		return
 	}
 
-	err = ctx.server.PluginContainer.doPostReadRequestHeader(ctx)
+	// get service
+	ctx.server.mu.RLock()
+	ctx.service = ctx.server.serviceMap[ctx.path]
+	ctx.server.mu.RUnlock()
+	if ctx.service == nil {
+		err = common.NewRPCError("can't find service '" + ctx.path + "'")
+	}
+
 	return
 }
 
@@ -265,19 +281,4 @@ func (ctx *Context) writeResponse(body interface{}) error {
 	}
 	err = ctx.server.PluginContainer.doPostWriteResponse(ctx, body)
 	return err
-}
-
-func (ctx *Context) getService() error {
-	path, query, err := ctx.server.ServiceBuilder.URIParse(ctx.req.ServiceMethod)
-	if err != nil {
-		return common.NewRPCError(err.Error())
-	}
-	ctx.server.mu.RLock()
-	ctx.service = ctx.server.serviceMap[path]
-	ctx.server.mu.RUnlock()
-	if ctx.service == nil {
-		return common.NewRPCError("can't find service '" + path + "'")
-	}
-	ctx.query = query
-	return nil
 }
