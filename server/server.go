@@ -312,13 +312,13 @@ func (server *Server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 	c, _, err := w.(http.Hijacker).Hijack()
 	if err != nil {
-		log.Infof("[RPC] hijacking %s: %v", req.RemoteAddr, err)
+		log.Debugf("[RPC] hijacking %s: %s", req.RemoteAddr, err.Error())
 		return
 	}
 
 	conn := NewServerCodecConn(c)
 	if err = server.PluginContainer.doPostConnAccept(conn); err != nil {
-		log.Infof("[RPC] PostConnAccept: %s", err.Error())
+		log.Debugf("[RPC] PostConnAccept: %s", err.Error())
 		return
 	}
 
