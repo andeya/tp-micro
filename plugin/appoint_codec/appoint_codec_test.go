@@ -44,7 +44,7 @@ func TestAppointCodecPlugin(t *testing.T) {
 		},
 	)
 
-	c.PluginContainer.Add(NewClientAppointCodecPlugin(CODEC_JSON))
+	c.PluginContainer.Add(NewClientAppointCodecPlugin(CODEC_TYPE_JSON))
 
 	var reply = new(string)
 	e := c.Call("/work/todo1?key=value", "test_request1", reply)
