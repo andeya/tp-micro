@@ -43,9 +43,6 @@ type (
 		PluginContainer IServerPluginContainer
 		server          *Server
 	}
-
-	// ServerCodecFunc is used to create a ServerCodec from io.ReadWriteCloser.
-	ServerCodecFunc func(io.ReadWriteCloser) rpc.ServerCodec
 )
 
 // DefaultServer is the default instance of *Server.

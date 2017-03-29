@@ -39,9 +39,6 @@ type (
 		WriteTimeout time.Duration
 		selector     Selector
 	}
-
-	// ClientCodecFunc is used to create a rpc.ClientCodec from net.Conn.
-	ClientCodecFunc func(io.ReadWriteCloser) rpc.ClientCodec
 )
 
 //FailMode is a feature to decide client actions when clients fail to invoke services
@@ -85,7 +82,7 @@ func (client *Client) init() *Client {
 
 var _ NewInvokerFunc = new(Client).newInvoker
 
-// newInvoker connects to an RPC server at the setted network address.
+// NewInvoker connects to an RPC server at the setted network address.
 func (client *Client) newInvoker(network, address string, dialTimeout time.Duration) (Invoker, error) {
 	var wrapper = &clientCodecWrapper{
 		pluginContainer: client.PluginContainer,
@@ -108,17 +105,21 @@ func (client *Client) newXXXClient(network, address string, dialTimeout time.Dur
 		err     error
 		tlsConn *tls.Conn
 		dialer  = &net.Dialer{Timeout: dialTimeout}
+		conn    net.Conn
 	)
 	if client.TLSConfig != nil {
 		tlsConn, err = tls.DialWithDialer(dialer, network, address, client.TLSConfig)
-		wrapper.conn = net.Conn(tlsConn)
+		conn = net.Conn(tlsConn)
 	} else {
-		wrapper.conn, err = dialer.Dial(network, address)
+		conn, err = dialer.Dial(network, address)
 	}
 	if err == nil {
-		wrapper.conn, err = client.PluginContainer.doPostConnected(wrapper.conn)
+		wrapper.codecConn = NewClientCodecConn(conn)
+		err = client.PluginContainer.doPostConnected(wrapper.codecConn)
 		if err == nil {
-			wrapper.codec = client.ClientCodecFunc(wrapper.conn)
+			if wrapper.codecConn.GetClientCodec() == nil {
+				wrapper.codecConn.SetClientCodec(client.ClientCodecFunc)
+			}
 			return NewInvokerWithCodec(wrapper), nil
 		}
 	}
@@ -133,28 +134,32 @@ func (client *Client) newHTTPClient(network, address string, dialTimeout time.Du
 		err     error
 		resp    *http.Response
 		tlsConn *tls.Conn
+		conn    net.Conn
 		dialer  = &net.Dialer{Timeout: dialTimeout}
 	)
 	if client.TLSConfig != nil {
 		tlsConn, err = tls.DialWithDialer(dialer, network, address, client.TLSConfig)
-		wrapper.conn = net.Conn(tlsConn)
+		conn = net.Conn(tlsConn)
 	} else {
-		wrapper.conn, err = dialer.Dial(network, address)
+		conn, err = dialer.Dial(network, address)
 	}
 	if err == nil {
-		wrapper.conn, err = client.PluginContainer.doPostConnected(wrapper.conn)
+		wrapper.codecConn = NewClientCodecConn(conn)
+		err = client.PluginContainer.doPostConnected(wrapper.codecConn)
 		if err == nil {
-			wrapper.codec = client.ClientCodecFunc(wrapper.conn)
-			io.WriteString(wrapper.conn, "CONNECT "+client.HTTPPath+" HTTP/1.0\n\n")
+			if wrapper.codecConn.GetClientCodec() == nil {
+				wrapper.codecConn.SetClientCodec(client.ClientCodecFunc)
+			}
+			io.WriteString(wrapper.codecConn, "CONNECT "+client.HTTPPath+" HTTP/1.0\n\n")
 			// Require successful HTTP response before switching to RPC protocol.
-			resp, err = http.ReadResponse(bufio.NewReader(wrapper.conn), &http.Request{Method: "CONNECT"})
+			resp, err = http.ReadResponse(bufio.NewReader(wrapper.codecConn), &http.Request{Method: "CONNECT"})
 			if err == nil {
 				if resp.Status == common.Connected {
 					return NewInvokerWithCodec(wrapper), nil
 				}
 				err = common.NewRPCError("unexpected HTTP response: " + resp.Status)
 			}
-			wrapper.conn.Close()
+			wrapper.codecConn.Close()
 		}
 	}
 	return nil, common.NewRPCError("dial error: " + (&net.OpError{
@@ -166,12 +171,14 @@ func (client *Client) newHTTPClient(network, address string, dialTimeout time.Du
 }
 
 func (client *Client) newKCPClient(address string, wrapper *clientCodecWrapper) (Invoker, error) {
-	var err error
-	wrapper.conn, err = kcp.DialWithOptions(address, client.KCPBlock, 10, 3)
+	conn, err := kcp.DialWithOptions(address, client.KCPBlock, 10, 3)
 	if err == nil {
-		wrapper.conn, err = client.PluginContainer.doPostConnected(wrapper.conn)
+		wrapper.codecConn = NewClientCodecConn(conn)
+		err = client.PluginContainer.doPostConnected(wrapper.codecConn)
 		if err == nil {
-			wrapper.codec = client.ClientCodecFunc(wrapper.conn)
+			if wrapper.codecConn.GetClientCodec() == nil {
+				wrapper.codecConn.SetClientCodec(client.ClientCodecFunc)
+			}
 			return NewInvokerWithCodec(wrapper), nil
 		}
 	}
@@ -325,82 +332,4 @@ func (client *Client) Close() {
 		client.selector.HandleFailed(invoker)
 		invoker.Close()
 	}
-}
-
-type clientCodecWrapper struct {
-	pluginContainer IClientPluginContainer
-	codec           rpc.ClientCodec
-	conn            net.Conn
-	timeout         time.Duration
-	readTimeout     time.Duration
-	writeTimeout    time.Duration
-}
-
-func (w *clientCodecWrapper) WriteRequest(r *rpc.Request, body interface{}) error {
-	if w.timeout > 0 {
-		w.conn.SetDeadline(time.Now().Add(w.timeout))
-	}
-	if w.writeTimeout > 0 {
-		w.conn.SetWriteDeadline(time.Now().Add(w.writeTimeout))
-	}
-
-	//pre
-	err := w.pluginContainer.doPreWriteRequest(r, body)
-	if err != nil {
-		return err
-	}
-
-	err = w.codec.WriteRequest(r, body)
-	if err != nil {
-		return common.NewRPCError("WriteRequest: " + err.Error())
-	}
-
-	//post
-	err = w.pluginContainer.doPostWriteRequest(r, body)
-	return err
-}
-
-func (w *clientCodecWrapper) ReadResponseHeader(r *rpc.Response) error {
-	if w.timeout > 0 {
-		w.conn.SetDeadline(time.Now().Add(w.timeout))
-	}
-	if w.readTimeout > 0 {
-		w.conn.SetReadDeadline(time.Now().Add(w.readTimeout))
-	}
-
-	//pre
-	err := w.pluginContainer.doPreReadResponseHeader(r)
-	if err != nil {
-		return err
-	}
-
-	err = w.codec.ReadResponseHeader(r)
-	if err != nil {
-		return common.NewRPCError("ReadResponseHeader: " + err.Error())
-	}
-
-	//post
-	err = w.pluginContainer.doPostReadResponseHeader(r)
-	return err
-}
-
-func (w *clientCodecWrapper) ReadResponseBody(body interface{}) error {
-	//pre
-	err := w.pluginContainer.doPreReadResponseBody(body)
-	if err != nil {
-		return err
-	}
-
-	err = w.codec.ReadResponseBody(body)
-	if err != nil {
-		return common.NewRPCError("ReadResponseBody: " + err.Error())
-	}
-
-	//post
-	err = w.pluginContainer.doPostReadResponseBody(body)
-	return err
-}
-
-func (w *clientCodecWrapper) Close() error {
-	return w.codec.Close()
 }

@@ -1,7 +1,6 @@
 package client
 
 import (
-	"net"
 	"net/rpc"
 
 	"github.com/henrylee2cn/rpc2/common"
@@ -12,7 +11,7 @@ import (
 type (
 	//IPostConnectedPlugin represents connected plugin.
 	IPostConnectedPlugin interface {
-		PostConnected(net.Conn) (net.Conn, error)
+		PostConnected(ClientCodecConn) error
 	}
 
 	//IPreWriteRequestPlugin means as its name.
@@ -50,7 +49,7 @@ type (
 	IClientPluginContainer interface {
 		plugin.IPluginContainer
 
-		doPostConnected(net.Conn) (net.Conn, error)
+		doPostConnected(ClientCodecConn) error
 
 		doPreWriteRequest(*rpc.Request, interface{}) error
 		doPostWriteRequest(*rpc.Request, interface{}) error
@@ -69,18 +68,18 @@ type ClientPluginContainer struct {
 }
 
 // doPostConnected handles connected.
-func (p *ClientPluginContainer) doPostConnected(conn net.Conn) (net.Conn, error) {
+func (p *ClientPluginContainer) doPostConnected(codecConn ClientCodecConn) error {
 	var err error
 	for i := range p.Plugins {
 		if plugin, ok := p.Plugins[i].(IPostConnectedPlugin); ok {
-			conn, err = plugin.PostConnected(conn)
+			err = plugin.PostConnected(codecConn)
 			if err != nil { //interrupt
-				conn.Close()
-				return conn, common.ErrPostConnected.Format(p.Plugins[i].Name(), err.Error())
+				codecConn.Close()
+				return common.ErrPostConnected.Format(p.Plugins[i].Name(), err.Error())
 			}
 		}
 	}
-	return conn, nil
+	return nil
 }
 
 // doPreWriteRequest invokes doPreWriteRequest plugin.
