@@ -30,11 +30,12 @@ type (
 		ServerCodecFunc ServerCodecFunc
 		ServiceBuilder  IServiceBuilder
 
-		serviceMap  map[string]IService
-		mu          sync.RWMutex // protects the serviceMap
-		routers     []string
-		listener    net.Listener
-		contextPool sync.Pool
+		serviceMap   map[string]IService
+		mu           sync.RWMutex // protects the serviceMap
+		routers      []string
+		listener     net.Listener
+		contextPool  sync.Pool
+		baseMetadata string
 	}
 
 	// ServiceGroup is the group of service.
@@ -76,6 +77,13 @@ func (server *Server) init() *Server {
 
 	addServers(server)
 	return server
+}
+
+// SetBaseMetadata sets default meta data.
+// Must be called before the registration service.
+// Its priority is lower than the register metadata parameter.
+func (server *Server) SetBaseMetadata(metadata string) {
+	server.baseMetadata = metadata
 }
 
 // Group add service group
@@ -184,6 +192,8 @@ func (server *Server) register(pathSegments []string, rcvr interface{}, p IServe
 		if _, present := server.serviceMap[spath]; present {
 			errs = append(errs, common.ErrServiceAlreadyExists.Format(spath))
 		}
+
+		metadata = append(metadata, server.baseMetadata)
 
 		var err error
 		err = server.PluginContainer.doRegister(spath, rcvr, metadata...)
