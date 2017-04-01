@@ -6,6 +6,14 @@ type RPCError struct {
 	Error string
 }
 
+// NewRPCError creates rpc error.
+func NewRPCError(errorType ErrorType, errMsg string) *RPCError {
+	return &RPCError{
+		Type:  errorType,
+		Error: errMsg,
+	}
+}
+
 // ErrorType error type
 type ErrorType int8
 
