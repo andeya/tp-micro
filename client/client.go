@@ -120,10 +120,11 @@ func (client *Client) newXXXClient(network, address string, dialTimeout time.Dur
 			if wrapper.codecConn.GetClientCodec() == nil {
 				wrapper.codecConn.SetClientCodec(client.ClientCodecFunc)
 			}
-			return NewInvokerWithCodec(wrapper), nil
+			return newInvoker(wrapper), nil
 		}
+		wrapper.codecConn.Close()
 	}
-	return nil, common.NewRPCError("dial error: " + err.Error())
+	return nil, common.NewError("dial error: " + err.Error())
 }
 
 func (client *Client) newHTTPClient(network, address string, dialTimeout time.Duration, wrapper *clientCodecWrapper) (Invoker, error) {
@@ -155,14 +156,14 @@ func (client *Client) newHTTPClient(network, address string, dialTimeout time.Du
 			resp, err = http.ReadResponse(bufio.NewReader(wrapper.codecConn), &http.Request{Method: "CONNECT"})
 			if err == nil {
 				if resp.Status == common.Connected {
-					return NewInvokerWithCodec(wrapper), nil
+					return newInvoker(wrapper), nil
 				}
-				err = common.NewRPCError("unexpected HTTP response: " + resp.Status)
+				err = common.NewError("unexpected HTTP response: " + resp.Status)
 			}
-			wrapper.codecConn.Close()
 		}
+		wrapper.codecConn.Close()
 	}
-	return nil, common.NewRPCError("dial error: " + (&net.OpError{
+	return nil, common.NewError("dial error: " + (&net.OpError{
 		Op:   "dial-http",
 		Net:  network + " " + address,
 		Addr: nil,
@@ -179,63 +180,77 @@ func (client *Client) newKCPClient(address string, wrapper *clientCodecWrapper) 
 			if wrapper.codecConn.GetClientCodec() == nil {
 				wrapper.codecConn.SetClientCodec(client.ClientCodecFunc)
 			}
-			return NewInvokerWithCodec(wrapper), nil
+			return newInvoker(wrapper), nil
 		}
+		wrapper.codecConn.Close()
 	}
-	return nil, common.NewRPCError("dial error: " + err.Error())
+	return nil, common.NewError("dial error: " + err.Error())
 }
 
 //Call invokes the named function, waits for it to complete, and returns its error status.
-func (client *Client) Call(serviceMethod string, args interface{}, reply interface{}) (err error) {
+func (client *Client) Call(serviceMethod string, args interface{}, reply interface{}) *common.RPCError {
 	if client.FailMode == Broadcast {
 		return client.invokerBroadCast(serviceMethod, args, &reply)
 	}
 	if client.FailMode == Forking {
 		return client.invokerForking(serviceMethod, args, &reply)
 	}
-
-	var invoker Invoker
-
+	var (
+		invoker Invoker
+		rpcErr  *common.RPCError
+		err     error
+	)
 	if client.FailMode == Failover {
 		for tries := client.MaxTry; tries > 0; tries-- {
 			invoker, err = client.selector.Select(serviceMethod, args)
 			if err != nil || invoker == nil {
+				log.Error("rpc: failed to select a invoker: " + err.Error())
 				continue
 			}
 
-			err = invoker.Call(serviceMethod, args, reply)
-			if err == nil {
+			rpcErr = invoker.Call(serviceMethod, args, reply)
+			if rpcErr == nil {
 				return nil
 			}
-
-			log.Errorf("rpc: failed to call: %v", err)
 			client.selector.HandleFailed(invoker)
+			if rpcErr.Type == common.ErrorTypeClientShutdown || rpcErr.Type > 0 {
+				break
+			}
+			log.Error("rpc: failed to call: " + rpcErr.Error)
 		}
 
 	} else if client.FailMode == Failtry {
 		for tries := client.MaxTry; tries > 0; tries-- {
 			if invoker == nil {
 				if invoker, err = client.selector.Select(serviceMethod, args); err != nil {
-					log.Errorf("rpc: failed to select a invoker: %v", err)
+					log.Error("rpc: failed to select a invoker: " + err.Error())
 				}
 			}
 
 			if invoker != nil {
-				err = invoker.Call(serviceMethod, args, reply)
-				if err == nil {
+				rpcErr = invoker.Call(serviceMethod, args, reply)
+				if rpcErr == nil {
 					return nil
 				}
 
-				log.Errorf("rpc: failed to call: %v", err)
 				client.selector.HandleFailed(invoker)
+				if rpcErr.Type == common.ErrorTypeClientShutdown || rpcErr.Type > 0 {
+					break
+				}
+				log.Error("rpc: failed to call: " + rpcErr.Error)
 			}
 		}
 	}
-
-	return
+	if err != nil {
+		return &common.RPCError{
+			Type:  common.ErrorTypeClientConnect,
+			Error: err.Error(),
+		}
+	}
+	return rpcErr
 }
 
-func (client *Client) invokerBroadCast(serviceMethod string, args interface{}, reply *interface{}) (err error) {
+func (client *Client) invokerBroadCast(serviceMethod string, args interface{}, reply *interface{}) *common.RPCError {
 	invokers := client.selector.List()
 
 	if len(invokers) == 0 {
@@ -255,7 +270,7 @@ func (client *Client) invokerBroadCast(serviceMethod string, args interface{}, r
 			if call != nil {
 				log.Warnf("rpc: failed to call: %v", call.Error)
 			}
-			return common.NewRPCError("some invokers return Error")
+			return common.RPCErrBroadCast
 		}
 		*reply = call.Reply
 		l--
@@ -264,7 +279,7 @@ func (client *Client) invokerBroadCast(serviceMethod string, args interface{}, r
 	return nil
 }
 
-func (client *Client) invokerForking(serviceMethod string, args interface{}, reply *interface{}) (err error) {
+func (client *Client) invokerForking(serviceMethod string, args interface{}, reply *interface{}) *common.RPCError {
 	invokers := client.selector.List()
 
 	if len(invokers) == 0 {
@@ -293,7 +308,7 @@ func (client *Client) invokerForking(serviceMethod string, args interface{}, rep
 		l--
 	}
 
-	return common.NewRPCError("all invokers return Error")
+	return common.RPCErrForking
 }
 
 // Go invokes the function asynchronously. It returns the Call structure representing the invocation.
@@ -307,7 +322,10 @@ func (client *Client) Go(serviceMethod string, args interface{}, reply interface
 		call.ServiceMethod = serviceMethod
 		call.Args = args
 		call.Reply = reply
-		call.Error = err
+		call.Error = &common.RPCError{
+			Type:  common.ErrorTypeClientConnect,
+			Error: err.Error(),
+		}
 		if done == nil {
 			done = make(chan *Call, 1) // buffered.
 		} else {
@@ -327,9 +345,10 @@ func (client *Client) Go(serviceMethod string, args interface{}, reply interface
 }
 
 // Close closes the connection
-func (client *Client) Close() {
+func (client *Client) Close() error {
 	for _, invoker := range client.selector.List() {
 		client.selector.HandleFailed(invoker)
 		invoker.Close()
 	}
+	return nil
 }

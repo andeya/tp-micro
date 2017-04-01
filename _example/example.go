@@ -116,9 +116,9 @@ func main() {
 	for i := 0; i < N; i++ {
 		go func(i int) {
 			var reply = new(string)
-			e := c.Call("/test/1.0.work/todo1?key=henrylee2cn", strconv.Itoa(i), reply)
-			log.Info(i, *reply, e)
-			if e != nil {
+			rpcErr := c.Call("/test/1.0.work/todo1?key=henrylee2cn", strconv.Itoa(i), reply)
+			log.Info(i, *reply, rpcErr)
+			if rpcErr != nil {
 				mapChan <- 0
 			} else {
 				mapChan <- 1

@@ -198,11 +198,11 @@ func (server *Server) register(pathSegments []string, rcvr interface{}, p IServe
 		var err error
 		err = server.PluginContainer.doRegister(spath, rcvr, metadata...)
 		if err != nil {
-			errs = append(errs, common.NewRPCError(err.Error()))
+			errs = append(errs, common.NewError(err.Error()))
 		}
 		err = p.doRegister(spath, rcvr, metadata...)
 		if err != nil {
-			errs = append(errs, common.NewRPCError(err.Error()))
+			errs = append(errs, common.NewError(err.Error()))
 		}
 
 		service.SetPluginContainer(p)
@@ -443,6 +443,7 @@ func (server *Server) call(sending *sync.Mutex, ctx *Context) {
 	errmsg := ""
 	if err != nil {
 		errmsg = err.Error()
+		ctx.rpcErrorType = common.ErrorTypeServerService
 	}
 	server.sendResponse(sending, ctx, errmsg)
 }

@@ -15,7 +15,7 @@ type clientCodecWrapper struct {
 	writeTimeout    time.Duration
 }
 
-func (w *clientCodecWrapper) WriteRequest(r *rpc.Request, body interface{}) error {
+func (w *clientCodecWrapper) WriteRequest(r *rpc.Request, body interface{}) *common.RPCError {
 	if w.timeout > 0 {
 		w.codecConn.SetDeadline(time.Now().Add(w.timeout))
 	}
@@ -26,20 +26,32 @@ func (w *clientCodecWrapper) WriteRequest(r *rpc.Request, body interface{}) erro
 	//pre
 	err := w.pluginContainer.doPreWriteRequest(r, body)
 	if err != nil {
-		return err
+		return &common.RPCError{
+			Type:  common.ErrorTypeClientPreWriteRequest,
+			Error: err.Error(),
+		}
 	}
 
 	err = w.codecConn.WriteRequest(r, body)
 	if err != nil {
-		return common.NewRPCError("WriteRequest: " + err.Error())
+		return &common.RPCError{
+			Type:  common.ErrorTypeClientWriteRequest,
+			Error: err.Error(),
+		}
 	}
 
 	//post
 	err = w.pluginContainer.doPostWriteRequest(r, body)
-	return err
+	if err != nil {
+		return &common.RPCError{
+			Type:  common.ErrorTypeClientPostWriteRequest,
+			Error: err.Error(),
+		}
+	}
+	return nil
 }
 
-func (w *clientCodecWrapper) ReadResponseHeader(r *rpc.Response) error {
+func (w *clientCodecWrapper) ReadResponseHeader(r *rpc.Response) *common.RPCError {
 	if w.timeout > 0 {
 		w.codecConn.SetDeadline(time.Now().Add(w.timeout))
 	}
@@ -50,34 +62,58 @@ func (w *clientCodecWrapper) ReadResponseHeader(r *rpc.Response) error {
 	//pre
 	err := w.pluginContainer.doPreReadResponseHeader(r)
 	if err != nil {
-		return err
+		return &common.RPCError{
+			Type:  common.ErrorTypeClientPreReadResponseHeader,
+			Error: err.Error(),
+		}
 	}
 
 	err = w.codecConn.ReadResponseHeader(r)
 	if err != nil {
-		return common.NewRPCError("ReadResponseHeader: " + err.Error())
+		return &common.RPCError{
+			Type:  common.ErrorTypeClientReadResponseHeader,
+			Error: err.Error(),
+		}
 	}
 
 	//post
 	err = w.pluginContainer.doPostReadResponseHeader(r)
-	return err
+	if err != nil {
+		return &common.RPCError{
+			Type:  common.ErrorTypeClientPostReadResponseHeader,
+			Error: err.Error(),
+		}
+	}
+	return nil
 }
 
-func (w *clientCodecWrapper) ReadResponseBody(body interface{}) error {
+func (w *clientCodecWrapper) ReadResponseBody(body interface{}) *common.RPCError {
 	//pre
 	err := w.pluginContainer.doPreReadResponseBody(body)
 	if err != nil {
-		return err
+		return &common.RPCError{
+			Type:  common.ErrorTypeClientPreReadResponseBody,
+			Error: err.Error(),
+		}
 	}
 
 	err = w.codecConn.ReadResponseBody(body)
 	if err != nil {
-		return common.NewRPCError("ReadResponseBody: " + err.Error())
+		return &common.RPCError{
+			Type:  common.ErrorTypeClientReadResponseBody,
+			Error: err.Error(),
+		}
 	}
 
 	//post
 	err = w.pluginContainer.doPostReadResponseBody(body)
-	return err
+	if err != nil {
+		return &common.RPCError{
+			Type:  common.ErrorTypeClientPostReadResponseBody,
+			Error: err.Error(),
+		}
+	}
+	return nil
 }
 
 func (w *clientCodecWrapper) Close() error {

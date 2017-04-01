@@ -10,20 +10,22 @@ import (
 	"time"
 
 	"github.com/henrylee2cn/rpc2/common"
+	"github.com/henrylee2cn/rpc2/log"
 )
 
 // Context means as its name.
 type Context struct {
-	codecConn ServerCodecConn
-	server    *Server
-	req       *rpc.Request
-	resp      *rpc.Response
-	service   IService
-	argv      reflect.Value
-	replyv    reflect.Value
-	path      string
-	query     url.Values
-	data      map[interface{}]interface{}
+	codecConn    ServerCodecConn
+	server       *Server
+	req          *rpc.Request
+	resp         *rpc.Response
+	service      IService
+	argv         reflect.Value
+	replyv       reflect.Value
+	path         string
+	query        url.Values
+	data         map[interface{}]interface{}
+	rpcErrorType common.ErrorType
 	sync.RWMutex
 }
 
@@ -108,19 +110,19 @@ func (ctx *Context) readRequestHeader() (keepReading bool, notSend bool, err err
 	// pre
 	err = ctx.server.PluginContainer.doPreReadRequestHeader(ctx)
 	if err != nil {
-		keepReading = true // Added laster by henry
+		ctx.rpcErrorType = common.ErrorTypeServerPreReadRequestHeader
 		return
 	}
 
 	// decode request header
 	err = ctx.codecConn.ReadRequestHeader(ctx.req)
 	if err != nil {
+		ctx.rpcErrorType = common.ErrorTypeServerReadRequestHeader
 		if err == io.EOF || err == io.ErrUnexpectedEOF {
 			notSend = true
 			return
 		}
-		keepReading = true // Added laster by henry
-		err = common.NewRPCError("ReadRequestHeader: " + err.Error())
+		err = common.NewError("ReadRequestHeader: " + err.Error())
 		return
 	}
 
@@ -131,13 +133,15 @@ func (ctx *Context) readRequestHeader() (keepReading bool, notSend bool, err err
 	// parse serviceMethod
 	ctx.path, ctx.query, err = ctx.server.ServiceBuilder.URIParse(ctx.req.ServiceMethod)
 	if err != nil {
-		err = common.NewRPCError(err.Error())
+		ctx.rpcErrorType = common.ErrorTypeServerInvalidServiceMethod
+		err = common.NewError(err.Error())
 		return
 	}
 
 	// post
 	err = ctx.server.PluginContainer.doPostReadRequestHeader(ctx)
 	if err != nil {
+		ctx.rpcErrorType = common.ErrorTypeServerPostReadRequestHeader
 		return
 	}
 
@@ -146,7 +150,8 @@ func (ctx *Context) readRequestHeader() (keepReading bool, notSend bool, err err
 	ctx.service = ctx.server.serviceMap[ctx.path]
 	ctx.server.mu.RUnlock()
 	if ctx.service == nil {
-		err = common.NewRPCError("can't find service '" + ctx.path + "'")
+		ctx.rpcErrorType = common.ErrorTypeServerNotFoundService
+		err = common.NewError("can't find service '" + ctx.path + "'")
 	}
 
 	return
@@ -156,29 +161,30 @@ func (ctx *Context) readRequestBody(body interface{}) error {
 	var err error
 	// pre
 	err = ctx.server.PluginContainer.doPreReadRequestBody(ctx, body)
-	if err != nil {
-		return err
-	}
-	if ctx.service != nil {
+	if err == nil && ctx.service != nil {
 		err = ctx.service.GetPluginContainer().doPreReadRequestBody(ctx, body)
-		if err != nil {
-			return err
-		}
+	}
+	if err != nil {
+		ctx.rpcErrorType = common.ErrorTypeServerPreReadRequestBody
+		return err
 	}
 
 	err = ctx.codecConn.ReadRequestBody(body)
 	if err != nil {
-		return common.NewRPCError("ReadRequestBody: " + err.Error())
+		ctx.rpcErrorType = common.ErrorTypeServerReadRequestBody
+		return common.NewError("ReadRequestBody: " + err.Error())
 	}
 
 	// post
 	if ctx.service != nil {
 		err = ctx.service.GetPluginContainer().doPostReadRequestBody(ctx, body)
-		if err != nil {
-			return err
-		}
 	}
-	err = ctx.server.PluginContainer.doPostReadRequestBody(ctx, body)
+	if err == nil {
+		err = ctx.server.PluginContainer.doPostReadRequestBody(ctx, body)
+	}
+	if err != nil {
+		ctx.rpcErrorType = common.ErrorTypeServerPostReadRequestBody
+	}
 	return err
 }
 
@@ -195,29 +201,31 @@ func (ctx *Context) writeResponse(body interface{}) error {
 	var err error
 	// pre
 	err = ctx.server.PluginContainer.doPreWriteResponse(ctx, body)
-	if err != nil {
-		return err
-	}
-	if ctx.service != nil {
+	if err == nil && ctx.service != nil {
 		err = ctx.service.GetPluginContainer().doPreWriteResponse(ctx, body)
-		if err != nil {
-			return err
-		}
+	}
+	if err != nil {
+		log.Debug("rpc: PreWriteResponse: " + err.Error())
+		ctx.rpcErrorType = common.ErrorTypeServerPreWriteResponse
+		ctx.resp.Error = err.Error()
+		body = nil
 	}
 
 	// decode request header
+	if len(ctx.resp.Error) > 0 {
+		ctx.resp.Error = strconv.Itoa(int(ctx.rpcErrorType)) + ctx.resp.Error
+	}
 	err = ctx.codecConn.WriteResponse(ctx.resp, body)
 	if err != nil {
-		return common.NewRPCError("WriteResponse: " + err.Error())
+		return common.NewError("WriteResponse: " + err.Error())
 	}
 
 	// post
 	if ctx.service != nil {
 		err = ctx.service.GetPluginContainer().doPostWriteResponse(ctx, body)
-		if err != nil {
-			return err
-		}
 	}
-	err = ctx.server.PluginContainer.doPostWriteResponse(ctx, body)
+	if err == nil {
+		err = ctx.server.PluginContainer.doPostWriteResponse(ctx, body)
+	}
 	return err
 }
