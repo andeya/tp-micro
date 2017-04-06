@@ -488,7 +488,6 @@ func (server *Server) getContext(conn ServerCodecConn) *Context {
 	ctx.resp.Error = ""
 	ctx.resp.Seq = 0
 	ctx.resp.ServiceMethod = ""
-	ctx.data = make(map[interface{}]interface{})
 	ctx.service = nil
 	ctx.codecConn = conn
 	ctx.service = nil

@@ -13,20 +13,86 @@ import (
 	"github.com/henrylee2cn/rpc2/log"
 )
 
-// Context means as its name.
-type Context struct {
-	codecConn    ServerCodecConn
-	server       *Server
-	req          *rpc.Request
-	resp         *rpc.Response
-	service      IService
-	argv         reflect.Value
-	replyv       reflect.Value
-	path         string
-	query        url.Values
-	data         map[interface{}]interface{}
-	rpcErrorType common.ErrorType
-	sync.RWMutex
+type (
+	// Context means as its name.
+	Context struct {
+		codecConn    ServerCodecConn
+		server       *Server
+		req          *rpc.Request
+		resp         *rpc.Response
+		service      IService
+		argv         reflect.Value
+		replyv       reflect.Value
+		path         string
+		query        url.Values
+		data         *Store
+		rpcErrorType common.ErrorType
+		sync.RWMutex
+	}
+	// Store concurrent secure data storage.
+	Store struct {
+		lock sync.RWMutex
+		data map[interface{}]interface{}
+	}
+)
+
+// Data returns the data store.
+// The data are only available in this context.
+func (ctx *Context) Data() *Store {
+	ctx.RLock()
+	if ctx.data == nil {
+		ctx.RUnlock()
+
+		ctx.Lock()
+		if ctx.data == nil {
+			ctx.data = &Store{
+				data: make(map[interface{}]interface{}),
+			}
+		}
+		defer ctx.Unlock()
+
+		return ctx.data
+	}
+
+	defer ctx.RUnlock()
+	return ctx.data
+}
+
+// Set stores data with given key in this context.
+func (store *Store) Set(key, val interface{}) {
+	store.lock.Lock()
+	defer store.lock.Unlock()
+	store.data[key] = val
+}
+
+// Get returns the stored data in this context.
+func (store *Store) Get(key interface{}) interface{} {
+	store.lock.RLock()
+	defer store.lock.RUnlock()
+	if v, ok := store.data[key]; ok {
+		return v
+	}
+	return nil
+}
+
+// Has checks if the key exists in the context.
+func (store *Store) Has(key interface{}) bool {
+	store.lock.RLock()
+	defer store.lock.RUnlock()
+	_, ok := store.data[key]
+	return ok
+}
+
+// Each performs the callback function on each key.
+func (store *Store) Each(callback func(key interface{}, data map[interface{}]interface{}) (next bool)) {
+	store.lock.Lock()
+	defer store.lock.Unlock()
+	d := store.data
+	for k := range d {
+		if !callback(k, d) {
+			return
+		}
+	}
 }
 
 // RemoteAddr returns remote address
@@ -65,37 +131,6 @@ func (ctx *Context) SetPath(p string) {
 // Query returns request query params.
 func (ctx *Context) Query() url.Values {
 	return ctx.query
-}
-
-// Data returns the stored data in this context.
-func (ctx *Context) Data(key interface{}) interface{} {
-	if v, ok := ctx.data[key]; ok {
-		return v
-	}
-	return nil
-}
-
-// HasData checks if the key exists in the context.
-func (ctx *Context) HasData(key interface{}) bool {
-	_, ok := ctx.data[key]
-	return ok
-}
-
-// DataAll return the implicit data in the context
-func (ctx *Context) DataAll() map[interface{}]interface{} {
-	if ctx.data == nil {
-		ctx.data = make(map[interface{}]interface{})
-	}
-	return ctx.data
-}
-
-// SetData stores data with given key in this context.
-// This data are only available in this context.
-func (ctx *Context) SetData(key, val interface{}) {
-	if ctx.data == nil {
-		ctx.data = make(map[interface{}]interface{})
-	}
-	ctx.data[key] = val
 }
 
 func (ctx *Context) readRequestHeader() (keepReading bool, notSend bool, err error) {
