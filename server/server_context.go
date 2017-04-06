@@ -213,7 +213,7 @@ func (ctx *Context) writeResponse(body interface{}) error {
 
 	// decode request header
 	if len(ctx.resp.Error) > 0 {
-		ctx.resp.Error = strconv.Itoa(int(ctx.rpcErrorType)) + ctx.resp.Error
+		ctx.resp.Error = string(ctx.rpcErrorType) + ctx.resp.Error
 	}
 	err = ctx.codecConn.WriteResponse(ctx.resp, body)
 	if err != nil {

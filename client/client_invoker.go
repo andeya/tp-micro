@@ -4,7 +4,6 @@ import (
 	"errors"
 	"io"
 	"net/rpc"
-	"strconv"
 	"sync"
 
 	"github.com/henrylee2cn/rpc2/common"
@@ -213,9 +212,8 @@ func (call *Call) done() {
 }
 
 func parseResponseError(errMsg string) *common.RPCError {
-	i, _ := strconv.Atoi(errMsg[:1])
 	return &common.RPCError{
-		Type:  common.ErrorType(i),
+		Type:  common.ErrorType(errMsg[0]),
 		Error: errMsg[1:],
 	}
 }

@@ -47,6 +47,7 @@ const (
 	ErrorTypeServerPreReadRequestBody
 	ErrorTypeServerReadRequestBody
 	ErrorTypeServerPostReadRequestBody
+	ErrorTypeServerServicePanic
 	ErrorTypeServerService
 	ErrorTypeServerPreWriteResponse
 )
