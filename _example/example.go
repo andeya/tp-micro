@@ -39,6 +39,8 @@ func (t *serverRedirectPlugin) PostReadRequestHeader(ctx *server.Context) error 
 		ctx.SetPath("/test/1.0.work/todo2")
 		log.Info("Redirect to todo2")
 	}
+	ctx.Data().Set("a", 1)
+	log.Debug(ctx.Data().Get("a"))
 	return nil
 }
 
