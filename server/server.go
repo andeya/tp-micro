@@ -440,7 +440,7 @@ func (server *Server) readRequest(ctx *Context) (keepReading bool, notSend bool,
 func (server *Server) call(sending *sync.Mutex, ctx *Context) {
 	defer func() {
 		if p := recover(); p != nil {
-			log.Criticalf("rpc: (%s) %v\n[PANIC]\n%s\n", ctx.Path(), p, common.PanicTrace(4))
+			log.Criticalf("rpc: (%s): %v\n[PANIC]\n%s\n", ctx.Path(), p, common.PanicTrace(4))
 			ctx.rpcErrorType = common.ErrorTypeServerServicePanic
 			server.sendResponse(sending, ctx, "Service Panic!")
 		}
