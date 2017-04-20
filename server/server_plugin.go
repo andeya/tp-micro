@@ -7,6 +7,9 @@ import (
 
 // for server
 type (
+	//IPlugin represents a plugin.
+	IPlugin plugin.IPlugin
+
 	//IRegisterPlugin is register plugin.
 	IRegisterPlugin interface {
 		Register(nodePath string, rcvr interface{}, metadata ...string) error

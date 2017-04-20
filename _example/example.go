@@ -89,7 +89,7 @@ func main() {
 		auth.NewServerAuthorizationPlugin(checkAuthorization),
 	)
 
-	group.RegisterName("1.0.work", new(Worker))
+	group.NamedRegister("1.0.work", new(Worker))
 
 	go srv.Serve("tcp", "0.0.0.0:8080")
 	time.Sleep(2e9)

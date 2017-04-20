@@ -137,12 +137,12 @@ func (group *ServiceGroup) Group(prefix string, plugins ...plugin.IPlugin) *Serv
 // where Type is the receiver's concrete type.
 func (server *Server) Register(rcvr interface{}, metadata ...string) {
 	name := common.ObjectName(rcvr)
-	server.RegisterName(name, rcvr, metadata...)
+	server.NamedRegister(name, rcvr, metadata...)
 }
 
-// RegisterName is like Register but uses the provided name for the type
+// NamedRegister is like Register but uses the provided name for the type
 // instead of the receiver's concrete type.
-func (server *Server) RegisterName(name string, rcvr interface{}, metadata ...string) {
+func (server *Server) NamedRegister(name string, rcvr interface{}, metadata ...string) {
 	if err := common.CheckSname(name); err != nil {
 		log.Fatal("rpc: " + err.Error())
 	}
@@ -153,11 +153,11 @@ func (server *Server) RegisterName(name string, rcvr interface{}, metadata ...st
 // Register register service based on group
 func (group *ServiceGroup) Register(rcvr interface{}, metadata ...string) {
 	name := common.ObjectName(rcvr)
-	group.RegisterName(name, rcvr, metadata...)
+	group.NamedRegister(name, rcvr, metadata...)
 }
 
-// RegisterName register service based on group
-func (group *ServiceGroup) RegisterName(name string, rcvr interface{}, metadata ...string) {
+// NamedRegister register service based on group
+func (group *ServiceGroup) NamedRegister(name string, rcvr interface{}, metadata ...string) {
 	if err := common.CheckSname(name); err != nil {
 		log.Fatal("rpc: " + err.Error())
 	}

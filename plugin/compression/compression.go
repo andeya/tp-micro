@@ -6,11 +6,13 @@ import (
 	"io"
 	"net"
 
-	"github.com/DataDog/zstd"
+	// "github.com/DataDog/zstd"
 	"github.com/golang/snappy"
 	"github.com/pierrec/lz4"
 
-	"github.com/henrylee2cn/rpc2"
+	"github.com/henrylee2cn/rpc2/client"
+	"github.com/henrylee2cn/rpc2/plugin"
+	"github.com/henrylee2cn/rpc2/server"
 )
 
 // CompressionPlugin can compress responses and decompress requests
@@ -23,30 +25,31 @@ func NewCompressionPlugin(compressType CompressType) *CompressionPlugin {
 	return &CompressionPlugin{CompressType: compressType}
 }
 
-var _ rpc2.IPlugin = new(CompressionPlugin)
+var _ plugin.IPlugin = new(CompressionPlugin)
 
 // Name return name of this plugin.
 func (p *CompressionPlugin) Name() string {
 	return "CompressionPlugin"
 }
 
-var _ rpc2.IPostConnAcceptPlugin = new(CompressionPlugin)
+var _ server.IPostConnAcceptPlugin = new(CompressionPlugin)
 
 // PostConnAccept can create a conn that support compression.
 // Used by servers.
-func (p *CompressionPlugin) PostConnAccept(codecConn rpc2.ServerCodecConn) error {
+func (p *CompressionPlugin) PostConnAccept(codecConn server.ServerCodecConn) error {
 	conn := NewCompressConn(codecConn.GetConn(), p.CompressType)
 	codecConn.SetConn(conn)
 	return nil
 }
 
-var _ rpc2.IPostConnectedPlugin = new(CompressionPlugin)
+var _ client.IPostConnectedPlugin = new(CompressionPlugin)
 
 // PostConnected can create a conn that support compression.
 // Used by servers.
-func (p *CompressionPlugin) PostConnected(conn net.Conn) (net.Conn, error) {
-	conn = NewCompressConn(conn, p.CompressType)
-	return conn, nil
+func (p *CompressionPlugin) PostConnected(codecConn client.ClientCodecConn) error {
+	conn := NewCompressConn(codecConn.GetConn(), p.CompressType)
+	codecConn.SetConn(conn)
+	return nil
 }
 
 // CompressType is compression type. Currently only support zip and snappy
@@ -59,10 +62,10 @@ const (
 	CompressFlate
 	// CompressSnappy represents snappy
 	CompressSnappy
-	// CompressZstd represents Facebook/Zstandard
-	CompressZstd
 	// CompressLZ4 represents LZ4 (http://www.lz4.org)
 	CompressLZ4
+	// CompressZstd represents Facebook/Zstandard
+	// CompressZstd
 )
 
 type writeFlusher struct {
@@ -99,10 +102,10 @@ func NewCompressConn(conn net.Conn, compressType CompressType) net.Conn {
 		r = flate.NewReader(r)
 	case CompressSnappy:
 		r = snappy.NewReader(r)
-	case CompressZstd:
-		r = zstd.NewReader(r)
 	case CompressLZ4:
 		r = lz4.NewReader(r)
+		// case CompressZstd:
+		// r = zstd.NewReader(r)
 	}
 	cc.r = r
 
@@ -117,10 +120,10 @@ func NewCompressConn(conn net.Conn, compressType CompressType) net.Conn {
 		w = &writeFlusher{w: zw}
 	case CompressSnappy:
 		w = snappy.NewBufferedWriter(w)
-	case CompressZstd:
-		w = zstd.NewWriter(w)
 	case CompressLZ4:
 		w = lz4.NewWriter(w)
+		// case CompressZstd:
+		// w = zstd.NewWriter(w)
 	}
 	cc.w = w
 	return cc

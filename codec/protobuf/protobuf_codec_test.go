@@ -23,7 +23,7 @@ func TestProtobufCodec(t *testing.T) {
 	// server
 	server := rpc2.NewServer(60e9, 0, 0, NewProtobufServerCodec)
 	group, _ := server.Group(codec.ServiceGroup)
-	err := group.RegisterName(codec.ServiceName, new(ProtoArith))
+	err := group.NamedRegister(codec.ServiceName, new(ProtoArith))
 	if err != nil {
 		t.Fatal(err)
 	}

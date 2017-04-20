@@ -28,7 +28,7 @@ func TestAppointCodecPlugin(t *testing.T) {
 	// server
 	srv := server.NewServer(server.Server{})
 	srv.PluginContainer.Add(NewServerAppointCodecPlugin())
-	srv.RegisterName("work", new(worker))
+	srv.NamedRegister("work", new(worker))
 
 	go srv.Serve("tcp", "0.0.0.0:8080")
 	time.Sleep(2e9)

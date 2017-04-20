@@ -9,6 +9,9 @@ import (
 
 // for client
 type (
+	//IPlugin represents a plugin.
+	IPlugin plugin.IPlugin
+
 	//IPostConnectedPlugin represents connected plugin.
 	IPostConnectedPlugin interface {
 		PostConnected(ClientCodecConn) error

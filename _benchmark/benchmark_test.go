@@ -242,7 +242,7 @@ func startRPC2WithGob() *srv.Server {
 	server := srv.NewServer(srv.Server{
 		ServerCodecFunc: gob.NewGobServerCodec,
 	})
-	server.RegisterName("Arith", new(codec.Arith))
+	server.NamedRegister("Arith", new(codec.Arith))
 	ln, _ := listenTCP()
 	go server.ServeListener(ln)
 
@@ -274,7 +274,7 @@ func startRPC2WithJson() *srv.Server {
 	server := srv.NewServer(srv.Server{
 		ServerCodecFunc: jsonrpc.NewServerCodec,
 	})
-	server.RegisterName("Arith", new(codec.Arith))
+	server.NamedRegister("Arith", new(codec.Arith))
 	ln, _ := listenTCP()
 	go server.ServeListener(ln)
 
@@ -305,7 +305,7 @@ func startRPC2WithMsgP() *srv.Server {
 	server := srv.NewServer(srv.Server{
 		ServerCodecFunc: msgpackrpc.NewServerCodec,
 	})
-	server.RegisterName("Arith", new(codec.Arith))
+	server.NamedRegister("Arith", new(codec.Arith))
 	ln, _ := listenTCP()
 	go server.ServeListener(ln)
 
@@ -347,7 +347,7 @@ func startRPC2WithGencodec() *srv.Server {
 	server := srv.NewServer(srv.Server{
 		ServerCodecFunc: gencode.NewGencodeServerCodec,
 	})
-	server.RegisterName("Arith", new(GencodeArith))
+	server.NamedRegister("Arith", new(GencodeArith))
 	ln, _ := listenTCP()
 	go server.ServeListener(ln)
 
@@ -389,7 +389,7 @@ func startRPC2WithProtobuf() *srv.Server {
 	server := srv.NewServer(srv.Server{
 		ServerCodecFunc: protobuf.NewProtobufServerCodec,
 	})
-	server.RegisterName("Arith", new(ProtoArith))
+	server.NamedRegister("Arith", new(ProtoArith))
 	ln, _ := listenTCP()
 	go server.ServeListener(ln)
 

@@ -47,7 +47,7 @@ func TestAuthorizationPlugin(t *testing.T) {
 	// authorization
 	group := srv.Group("test", NewServerAuthorizationPlugin(checkAuthorization))
 
-	group.RegisterName("1.0.work", new(worker))
+	group.NamedRegister("1.0.work", new(worker))
 
 	go srv.Serve("tcp", "0.0.0.0:8080")
 	time.Sleep(2e9)

@@ -12,7 +12,7 @@ func TestBsonCodec(t *testing.T) {
 	// server
 	server := rpc2.NewServer(60e9, 0, 0, NewBsonServerCodec)
 	group, _ := server.Group(codec.ServiceGroup)
-	err := group.RegisterName(codec.ServiceName, codec.Service)
+	err := group.NamedRegister(codec.ServiceName, codec.Service)
 	if err != nil {
 		t.Fatal(err)
 	}

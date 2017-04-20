@@ -16,7 +16,7 @@ func TestColferCodec(t *testing.T) {
 	// server
 	server := rpc2.NewServer(60e9, 0, 0, NewColferServerCodec)
 	group, _ := server.Group(codecpkg.ServiceGroup)
-	err := group.RegisterName(codecpkg.ServiceName, new(ColfArith))
+	err := group.NamedRegister(codecpkg.ServiceName, new(ColfArith))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -45,7 +45,7 @@ func TestColferCodec2(t *testing.T) {
 	// server
 	server := rpc2.NewServer(60e9, 0, 0, NewColferServerCodec)
 	group, _ := server.Group(codecpkg.ServiceGroup)
-	err := group.RegisterName(codecpkg.ServiceName, new(ColfArith))
+	err := group.NamedRegister(codecpkg.ServiceName, new(ColfArith))
 	if err != nil {
 		t.Fatal(err)
 	}
