@@ -1,4 +1,4 @@
-package codec
+package codec_protobuf
 
 import (
 	"encoding/binary"

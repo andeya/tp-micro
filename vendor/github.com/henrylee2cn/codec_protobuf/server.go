@@ -1,4 +1,4 @@
-package codec
+package codec_protobuf
 
 import (
 	"bufio"
@@ -8,7 +8,8 @@ import (
 	"sync"
 
 	"github.com/golang/protobuf/proto"
-	"github.com/mars9/codec/wirepb"
+	"github.com/henrylee2cn/codec_protobuf/empty"
+	"github.com/henrylee2cn/codec_protobuf/wirepb"
 )
 
 const defaultBufferSize = 4 * 1024
@@ -44,6 +45,8 @@ func NewServerCodec(rwc io.ReadWriteCloser) rpc.ServerCodec {
 	}
 }
 
+var emptyStruct = struct{}{}
+
 func (c *serverCodec) WriteResponse(resp *rpc.Response, body interface{}) error {
 	c.mu.Lock()
 	c.resp.Method = resp.ServiceMethod
@@ -55,9 +58,16 @@ func (c *serverCodec) WriteResponse(resp *rpc.Response, body interface{}) error 
 		c.mu.Unlock()
 		return err
 	}
-	if err = encode(c.enc, body); err != nil {
-		c.mu.Unlock()
-		return err
+	if body != nil && body != emptyStruct {
+		if err = encode(c.enc, body); err != nil {
+			c.mu.Unlock()
+			return err
+		}
+	} else {
+		if err = encode(c.enc, empty.Empty); err != nil {
+			c.mu.Unlock()
+			return err
+		}
 	}
 	err = c.w.Flush()
 	c.mu.Unlock()
@@ -76,9 +86,13 @@ func (c *serverCodec) ReadRequestHeader(req *rpc.Request) error {
 }
 
 func (c *serverCodec) ReadRequestBody(body interface{}) error {
+	if body == nil {
+		return c.dec.Decode(empty.Empty)
+	}
 	if pb, ok := body.(proto.Message); ok {
 		return c.dec.Decode(pb)
 	}
+	c.dec.Decode(empty.Empty)
 	return fmt.Errorf("%T does not implement proto.Message", body)
 }
 

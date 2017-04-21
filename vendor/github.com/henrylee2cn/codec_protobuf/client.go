@@ -1,4 +1,4 @@
-package codec
+package codec_protobuf
 
 import (
 	"bufio"
@@ -8,7 +8,8 @@ import (
 	"sync"
 
 	"github.com/golang/protobuf/proto"
-	"github.com/mars9/codec/wirepb"
+	"github.com/henrylee2cn/codec_protobuf/empty"
+	"github.com/henrylee2cn/codec_protobuf/wirepb"
 )
 
 type clientCodec struct {
@@ -52,9 +53,16 @@ func (c *clientCodec) WriteRequest(req *rpc.Request, body interface{}) error {
 		c.mu.Unlock()
 		return err
 	}
-	if err = encode(c.enc, body); err != nil {
-		c.mu.Unlock()
-		return err
+	if body != nil && body != emptyStruct {
+		if err = encode(c.enc, body); err != nil {
+			c.mu.Unlock()
+			return err
+		}
+	} else {
+		if err = encode(c.enc, empty.Empty); err != nil {
+			c.mu.Unlock()
+			return err
+		}
 	}
 	err = c.w.Flush()
 	c.mu.Unlock()
@@ -74,9 +82,13 @@ func (c *clientCodec) ReadResponseHeader(resp *rpc.Response) error {
 }
 
 func (c *clientCodec) ReadResponseBody(body interface{}) (err error) {
+	if body == nil {
+		return c.dec.Decode(empty.Empty)
+	}
 	if pb, ok := body.(proto.Message); ok {
 		return c.dec.Decode(pb)
 	}
+	c.dec.Decode(empty.Empty)
 	return fmt.Errorf("%T does not implement proto.Message", body)
 }
 

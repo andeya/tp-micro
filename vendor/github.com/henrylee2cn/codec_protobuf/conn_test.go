@@ -1,4 +1,4 @@
-package codec
+package codec_protobuf
 
 import (
 	"bufio"
@@ -8,7 +8,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/mars9/codec/internal"
+	"github.com/henrylee2cn/codec_protobuf/internal"
 )
 
 var (
