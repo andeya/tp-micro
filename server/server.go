@@ -355,26 +355,30 @@ func (server *Server) ServeConn(conn ServerCodecConn) {
 		conn.SetServerCodec(server.ServerCodecFunc)
 	}
 	sending := new(sync.Mutex)
+	var ctx *Context
 	for {
-		ctx := server.getContext(conn)
+		ctx = server.getContext(conn)
 		keepReading, notSend, err := server.readRequest(ctx)
-		if err != nil {
-			if err != io.EOF {
-				log.Debugf("rpc: %s", err.Error())
-			}
-			if !keepReading {
-				server.putContext(ctx)
-				break
-			}
+		if err == nil {
+			go func(c *Context) {
+				server.call(sending, c)
+				server.putContext(c)
+			}(ctx)
+			continue
+		}
+		if err != io.EOF {
+			log.Debugf("rpc: %s", err.Error())
+		}
+		if keepReading {
 			// send a response if we actually managed to read a header.
 			if !notSend {
 				server.sendResponse(sending, ctx, err.Error())
-			} else {
-				server.putContext(ctx)
 			}
+			server.putContext(ctx)
 			continue
 		}
-		go server.call(sending, ctx)
+		server.putContext(ctx)
+		break
 	}
 	conn.Close()
 }
@@ -388,20 +392,17 @@ func (server *Server) ServeRequest(conn ServerCodecConn) error {
 	sending := new(sync.Mutex)
 	ctx := server.getContext(conn)
 	keepReading, notSend, err := server.readRequest(ctx)
-	if err != nil {
-		if !keepReading {
-			return err
-		}
-		// send a response if we actually managed to read a header.
-		if !notSend {
-			server.sendResponse(sending, ctx, err.Error())
-		} else {
-			server.putContext(ctx)
-		}
-		return err
+	if err == nil {
+		server.call(sending, ctx)
+		server.putContext(ctx)
+		return nil
 	}
-	server.call(sending, ctx)
-	return nil
+	if keepReading && !notSend {
+		// send a response if we actually managed to read a header.
+		server.sendResponse(sending, ctx, err.Error())
+	}
+	server.putContext(ctx)
+	return err
 }
 
 func (server *Server) readRequest(ctx *Context) (keepReading bool, notSend bool, err error) {
@@ -477,7 +478,6 @@ func (server *Server) sendResponse(sending *sync.Mutex, ctx *Context, errmsg str
 		log.Debugf("rpc: writing response: %s", err.Error())
 	}
 	sending.Unlock()
-	server.putContext(ctx)
 }
 
 func (server *Server) getContext(conn ServerCodecConn) *Context {
