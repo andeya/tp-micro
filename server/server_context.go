@@ -252,6 +252,9 @@ func (ctx *Context) writeResponse(body interface{}) error {
 	}
 	err = ctx.codecConn.WriteResponse(ctx.resp, body)
 	if err != nil {
+		ctx.rpcErrorType = common.ErrorTypeServerWriteResponse
+		ctx.resp.Error = string(ctx.rpcErrorType) + err.Error()
+		ctx.codecConn.WriteResponse(ctx.resp, invalidRequest)
 		return common.NewError("WriteResponse: " + err.Error())
 	}
 

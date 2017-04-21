@@ -50,6 +50,7 @@ const (
 	ErrorTypeServerServicePanic
 	ErrorTypeServerService
 	ErrorTypeServerPreWriteResponse
+	ErrorTypeServerWriteResponse
 )
 
 // ErrShutdown returns an error with message: 'connection is shut down'

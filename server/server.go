@@ -411,7 +411,7 @@ func (server *Server) readRequest(ctx *Context) (keepReading bool, notSend bool,
 			return
 		}
 		// discard body
-		ctx.readRequestBody(nil)
+		ctx.codecConn.ReadRequestBody(nil)
 		return
 	}
 
