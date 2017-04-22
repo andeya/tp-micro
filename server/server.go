@@ -63,6 +63,7 @@ func (server *Server) init() *Server {
 			server: server,
 			req:    new(rpc.Request),
 			resp:   new(rpc.Response),
+			data:   new(Store),
 		}
 	}
 	if server.PluginContainer == nil {
@@ -484,14 +485,14 @@ func (server *Server) getContext(conn ServerCodecConn) *Context {
 	ctx := server.contextPool.Get().(*Context)
 	ctx.Lock()
 	ctx.codecConn = conn
-	ctx.data = make(map[interface{}]interface{})
+	ctx.data.data = make(map[interface{}]interface{})
 	ctx.Unlock()
 	return ctx
 }
 
 func (server *Server) putContext(ctx *Context) {
 	ctx.Lock()
-	ctx.data = nil
+	ctx.data.data = nil
 	ctx.codecConn = nil
 	ctx.req.ServiceMethod = ""
 	ctx.req.Seq = 0
