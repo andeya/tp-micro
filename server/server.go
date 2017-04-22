@@ -483,17 +483,8 @@ func (server *Server) sendResponse(sending *sync.Mutex, ctx *Context, errmsg str
 func (server *Server) getContext(conn ServerCodecConn) *Context {
 	ctx := server.contextPool.Get().(*Context)
 	ctx.Lock()
-	ctx.req.ServiceMethod = ""
-	ctx.req.Seq = 0
-	ctx.resp.Error = ""
-	ctx.resp.Seq = 0
-	ctx.resp.ServiceMethod = ""
-	ctx.service = nil
 	ctx.codecConn = conn
-	ctx.service = nil
-	ctx.query = url.Values{}
-	ctx.argv = reflect.Value{}
-	ctx.replyv = reflect.Value{}
+	ctx.data = make(map[interface{}]interface{})
 	ctx.Unlock()
 	return ctx
 }
@@ -502,6 +493,15 @@ func (server *Server) putContext(ctx *Context) {
 	ctx.Lock()
 	ctx.data = nil
 	ctx.codecConn = nil
+	ctx.req.ServiceMethod = ""
+	ctx.req.Seq = 0
+	ctx.resp.Error = ""
+	ctx.resp.Seq = 0
+	ctx.resp.ServiceMethod = ""
+	ctx.service = nil
+	ctx.query = url.Values{}
+	ctx.argv = reflect.Value{}
+	ctx.replyv = reflect.Value{}
 	ctx.Unlock()
 	server.contextPool.Put(ctx)
 }

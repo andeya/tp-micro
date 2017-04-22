@@ -40,20 +40,6 @@ type (
 // The data are only available in this context.
 func (ctx *Context) Data() *Store {
 	ctx.RLock()
-	if ctx.data == nil {
-		ctx.RUnlock()
-
-		ctx.Lock()
-		if ctx.data == nil {
-			ctx.data = &Store{
-				data: make(map[interface{}]interface{}),
-			}
-		}
-		defer ctx.Unlock()
-
-		return ctx.data
-	}
-
 	defer ctx.RUnlock()
 	return ctx.data
 }
