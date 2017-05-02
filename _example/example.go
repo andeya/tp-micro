@@ -73,6 +73,12 @@ func checkAuthorization(serviceMethod, tag, token string) error {
 // rpc2
 func main() {
 	// server
+	server.SetShutdown(60e9, func() error {
+		log.Debugf("Shutdown finalizer: sleep 1s")
+		time.Sleep(1e9)
+		return nil
+	})
+
 	srv := server.NewServer(server.Server{})
 
 	// ip filter
@@ -135,7 +141,7 @@ func main() {
 		}
 	}
 	c.Close()
-	srv.Close()
+	server.Shutdown()
 	log.Info("cost time:", time.Now().Sub(t1))
 	log.Info("success rate:", float64(good)/float64(good+bad)*100, "%")
 }

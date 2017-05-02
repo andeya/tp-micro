@@ -1,14 +1,15 @@
 package server
 
 import (
+	"context"
 	"crypto/tls"
+	"errors"
 	"io"
 	"net"
 	"net/http"
 	"net/rpc"
 	"net/url"
 	"reflect"
-	"regexp"
 	"sort"
 	"strings"
 	"sync"
@@ -36,6 +37,8 @@ type (
 		listener     net.Listener
 		contextPool  sync.Pool
 		baseMetadata string
+		callGroup    sync.WaitGroup
+		running      bool
 	}
 
 	// ServiceGroup is the group of service.
@@ -232,36 +235,42 @@ func (server *Server) Serve(network, address string) {
 	if err != nil {
 		log.Fatal("rpc: " + err.Error())
 	}
-	log.Infof("rpc: listening and serving %s on %s", strings.ToUpper(network), address)
-	server.ServeListener(lis)
+	server.serveListener(lis)
 }
 
 // ServeTLS open secure RPC service at the specified network address.
 func (server *Server) ServeTLS(network, address string, config *tls.Config) {
-	lis, err := tls.Listen(network, address, config)
+	lis, err := makeListener(network, address)
 	if err != nil {
-		log.Fatal("rpc: " + err.Error())
+		log.Fatalf("rpc: %s", err.Error())
 	}
-	log.Infof("rpc: listening and serving %s on %s", strings.ToUpper(network), address)
-	server.ServeListener(lis)
-}
-
-func validIP4(ipAddress string) bool {
-	ipAddress = strings.Trim(ipAddress, " ")
-	i := strings.LastIndex(ipAddress, ":")
-	ipAddress = ipAddress[:i] //remove port
-
-	re, _ := regexp.Compile(`^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$`)
-	return re.MatchString(ipAddress)
+	lis = tls.NewListener(lis, config)
+	server.serveListener(lis)
 }
 
 // ServeListener accepts connection on the listener and serves requests.
 // ServeListener blocks until the listener returns a non-nil error.
 // The caller typically invokes ServeListener in a go statement.
 func (server *Server) ServeListener(lis net.Listener) {
+	err := grace.Append(lis)
+	if err != nil {
+		log.Fatalf("rpc: %s", err.Error())
+	}
+	server.serveListener(lis)
+}
+
+// serveListener accepts connection on the listener and serves requests.
+// serveListener blocks until the listener returns a non-nil error.
+// The caller typically invokes serveListener in a go statement.
+func (server *Server) serveListener(lis net.Listener) {
 	server.mu.Lock()
 	server.listener = lis
+	server.running = true
 	server.mu.Unlock()
+	defer func() {
+		<-exit
+	}()
+	log.Infof("rpc: listening and serving %s on %s", strings.ToUpper(server.listener.Addr().Network()), server.listener.Addr().String())
 	for {
 		c, err := lis.Accept()
 		if err != nil {
@@ -281,6 +290,10 @@ func (server *Server) ServeListener(lis net.Listener) {
 
 // ServeByHTTP serves
 func (server *Server) ServeByHTTP(lis net.Listener, rpcPath ...string) {
+	err := grace.Append(lis)
+	if err != nil {
+		log.Fatalf("rpc: %s", err.Error())
+	}
 	var p = rpc.DefaultRPCPath
 	if len(rpcPath) > 0 && len(rpcPath[0]) > 0 {
 		p = rpcPath[0]
@@ -292,6 +305,10 @@ func (server *Server) ServeByHTTP(lis net.Listener, rpcPath ...string) {
 
 // ServeByMux serves
 func (server *Server) ServeByMux(lis net.Listener, mux *http.ServeMux, rpcPath ...string) {
+	err := grace.Append(lis)
+	if err != nil {
+		log.Fatalf("rpc: %s", err.Error())
+	}
 	var p = rpc.DefaultRPCPath
 	if len(rpcPath) > 0 && len(rpcPath[0]) > 0 {
 		p = rpcPath[0]
@@ -338,12 +355,36 @@ func (server *Server) Address() string {
 	return server.listener.Addr().String()
 }
 
-// Close listening and serveing.
-func (server *Server) Close() {
+// close listener and server.
+func (server *Server) close(ctx context.Context) error {
+	if server.listener == nil {
+		return nil
+	}
+	server.listener.Close()
 	server.mu.Lock()
 	defer server.mu.Unlock()
-	server.listener.Close()
-	log.Infof("rpc: stopped listening and serveing %s", server.Address())
+	if !server.running {
+		return nil
+	}
+	log.Infof("rpc: stopped listening %s", server.Address())
+	server.running = false
+	var c = make(chan bool)
+	go func() {
+		server.callGroup.Wait()
+		close(c)
+	}()
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-c:
+		return nil
+	}
+}
+
+func (server *Server) isRunning() bool {
+	server.mu.RLock()
+	defer server.mu.RUnlock()
+	return server.running
 }
 
 // ServeConn runs the server on a single connection.
@@ -357,13 +398,15 @@ func (server *Server) ServeConn(conn ServerCodecConn) {
 	}
 	sending := new(sync.Mutex)
 	var ctx *Context
-	for {
+	for server.isRunning() {
 		ctx = server.getContext(conn)
 		keepReading, notSend, err := server.readRequest(ctx)
+		server.callGroup.Add(1)
 		if err == nil {
 			go func(c *Context) {
 				server.call(sending, c)
 				server.putContext(c)
+				server.callGroup.Done()
 			}(ctx)
 			continue
 		}
@@ -376,9 +419,11 @@ func (server *Server) ServeConn(conn ServerCodecConn) {
 				server.sendResponse(sending, ctx, err.Error())
 			}
 			server.putContext(ctx)
+			server.callGroup.Done()
 			continue
 		}
 		server.putContext(ctx)
+		server.callGroup.Done()
 		break
 	}
 	conn.Close()
@@ -387,15 +432,20 @@ func (server *Server) ServeConn(conn ServerCodecConn) {
 // ServeRequest is like ServeConn but synchronously serves a single request.
 // It does not close the codec upon completion.
 func (server *Server) ServeRequest(conn ServerCodecConn) error {
+	if !server.isRunning() {
+		return errors.New("rpc: server has stopped")
+	}
 	if conn.GetServerCodec() == nil {
 		conn.SetServerCodec(server.ServerCodecFunc)
 	}
 	sending := new(sync.Mutex)
 	ctx := server.getContext(conn)
 	keepReading, notSend, err := server.readRequest(ctx)
+	server.callGroup.Add(1)
 	if err == nil {
 		server.call(sending, ctx)
 		server.putContext(ctx)
+		server.callGroup.Done()
 		return nil
 	}
 	if keepReading && !notSend {
@@ -403,6 +453,7 @@ func (server *Server) ServeRequest(conn ServerCodecConn) error {
 		server.sendResponse(sending, ctx, err.Error())
 	}
 	server.putContext(ctx)
+	server.callGroup.Done()
 	return err
 }
 
