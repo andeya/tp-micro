@@ -49,9 +49,6 @@ type (
 	}
 )
 
-// DefaultServer is the default instance of *Server.
-var DefaultServer = NewServer(Server{})
-
 // NewServer returns a new Server.
 func NewServer(srv Server) *Server {
 	return srv.init()
