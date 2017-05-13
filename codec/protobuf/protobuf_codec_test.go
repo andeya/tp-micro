@@ -4,8 +4,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/henrylee2cn/rpc2"
-	"github.com/henrylee2cn/rpc2/codec"
+	"github.com/henrylee2cn/myrpc"
+	"github.com/henrylee2cn/myrpc/codec"
 )
 
 type ProtoArith int
@@ -21,7 +21,7 @@ func (t *ProtoArith) Error(args *ProtoArgs, reply *ProtoReply) error {
 
 func TestProtobufCodec(t *testing.T) {
 	// server
-	server := rpc2.NewServer(60e9, 0, 0, NewProtobufServerCodec)
+	server := myrpc.NewServer(60e9, 0, 0, NewProtobufServerCodec)
 	group, _ := server.Group(codec.ServiceGroup)
 	err := group.NamedRegister(codec.ServiceName, new(ProtoArith))
 	if err != nil {
@@ -34,9 +34,9 @@ func TestProtobufCodec(t *testing.T) {
 	var args = &ProtoArgs{7, 8}
 	var reply ProtoReply
 
-	err = rpc2.
+	err = myrpc.
 		NewDialer(codec.Network, codec.ServerAddr, NewProtobufClientCodec).
-		Remote(func(client rpc2.IClient) error {
+		Remote(func(client myrpc.IClient) error {
 			return client.Call(codec.ServiceMethodName, args, &reply)
 		})
 

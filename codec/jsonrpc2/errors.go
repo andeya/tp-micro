@@ -1,4 +1,4 @@
-package jsonrpc2
+package jsonmyrpc
 
 import (
 	"encoding/json"
@@ -14,7 +14,7 @@ var (
 	errParams      = NewError(-32602, "Invalid params")
 	errInternal    = NewError(-32603, "Internal error")
 	errServer      = NewError(-32000, "Server error")
-	errServerError = NewError(-32001, "jsonrpc2.Error: json.Marshal failed")
+	errServerError = NewError(-32001, "jsonmyrpc.Error: json.Marshal failed")
 )
 
 // Error represent JSON-RPC 2.0 "Error object".
@@ -69,7 +69,7 @@ func ServerError(rpcerr error) *Error {
 	e := &Error{}
 	err := json.Unmarshal([]byte(errmsg), e)
 	if err != nil {
-		panic(fmt.Sprintf("not a jsonrpc2 error: %s (%#q)", err, rpcerr))
+		panic(fmt.Sprintf("not a jsonmyrpc error: %s (%#q)", err, rpcerr))
 	}
 	if e.Code == errInternal.Code && e.Data != nil && !keepData {
 		// ReadResponseBody fail on this call.

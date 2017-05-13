@@ -5,10 +5,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/henrylee2cn/rpc2/client"
-	"github.com/henrylee2cn/rpc2/client/selector"
-	"github.com/henrylee2cn/rpc2/log"
-	"github.com/henrylee2cn/rpc2/server"
+	"github.com/henrylee2cn/myrpc/client"
+	"github.com/henrylee2cn/myrpc/client/selector"
+	"github.com/henrylee2cn/myrpc/log"
+	"github.com/henrylee2cn/myrpc/server"
 )
 
 type worker struct{}

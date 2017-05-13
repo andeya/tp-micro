@@ -3,7 +3,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package jsonrpc2
+package jsonmyrpc
 
 import (
 	"encoding/json"
@@ -41,14 +41,14 @@ type serverCodec struct {
 //
 // For most use cases NewServerCodec is too low-level and you should use
 // ServeConn instead. You'll need NewServerCodec if you wanna register
-// your own object of type named "JSONRPC2" (same as used internally to
+// your own object of type named "JSONMyrpc" (same as used internally to
 // process batch requests) or you wanna use custom rpc server object
 // instead of rpc.DefaultServer to process requests on conn.
 func NewServerCodec(conn io.ReadWriteCloser, srv *rpc.Server) rpc.ServerCodec {
 	if srv == nil {
 		srv = rpc.DefaultServer
 	}
-	srv.Register(JSONRPC2{})
+	srv.Register(JSONMyrpc{})
 	return &serverCodec{
 		dec:     json.NewDecoder(conn),
 		enc:     json.NewEncoder(conn),
@@ -141,7 +141,7 @@ func (c *serverCodec) ReadRequestHeader(r *rpc.Request) (err error) {
 
 	if len(raw) > 0 && raw[0] == '[' {
 		c.req.Version = "2.0"
-		c.req.Method = "JSONRPC2.Batch"
+		c.req.Method = "JSONMyrpc.Batch"
 		c.req.Params = &raw
 		c.req.ID = &null
 	} else if err := json.Unmarshal(raw, &c.req); err != nil {
@@ -177,7 +177,7 @@ func (c *serverCodec) ReadRequestBody(x interface{}) error {
 	if c.req.Params == nil {
 		return nil
 	}
-	if c.req.Method == "JSONRPC2.Batch" {
+	if c.req.Method == "JSONMyrpc.Batch" {
 		arg := x.(*BatchArg)
 		arg.srv = c.srv
 		if err := json.Unmarshal(*c.req.Params, &arg.reqs); err != nil {
@@ -208,7 +208,7 @@ func (c *serverCodec) WriteResponse(r *rpc.Response, x interface{}) error {
 	delete(c.pending, r.Seq)
 	c.mutex.Unlock()
 
-	if replies, ok := x.(*[]*json.RawMessage); r.ServiceMethod == "JSONRPC2.Batch" && ok {
+	if replies, ok := x.(*[]*json.RawMessage); r.ServiceMethod == "JSONMyrpc.Batch" && ok {
 		if len(*replies) == 0 {
 			return nil
 		}

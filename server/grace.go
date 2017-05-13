@@ -7,8 +7,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/henrylee2cn/rpc2/gracenet"
-	"github.com/henrylee2cn/rpc2/log"
+	"github.com/henrylee2cn/myrpc/gracenet"
+	"github.com/henrylee2cn/myrpc/log"
 	kcp "github.com/xtaci/kcp-go"
 )
 

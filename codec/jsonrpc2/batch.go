@@ -1,4 +1,4 @@
-package jsonrpc2
+package jsonmyrpc
 
 import (
 	"encoding/json"
@@ -8,17 +8,17 @@ import (
 
 var jErrRequest = json.RawMessage(`{"jsonrpc":"2.0","id":null,"error":{"code":-32600,"message":"Invalid request"}}`)
 
-// JSONRPC2 is an internal RPC service used to process batch requests.
-type JSONRPC2 struct{}
+// JSONMyrpc is an internal RPC service used to process batch requests.
+type JSONMyrpc struct{}
 
-// BatchArg is a param for internal RPC JSONRPC2.Batch.
+// BatchArg is a param for internal RPC JSONMyrpc.Batch.
 type BatchArg struct {
 	srv  *rpc.Server
 	reqs []*json.RawMessage
 }
 
 // Batch is an internal RPC method used to process batch requests.
-func (JSONRPC2) Batch(arg BatchArg, replies *[]*json.RawMessage) (err error) {
+func (JSONMyrpc) Batch(arg BatchArg, replies *[]*json.RawMessage) (err error) {
 	cli, srv := net.Pipe()
 	defer cli.Close()
 	go arg.srv.ServeCodec(NewServerCodec(srv, arg.srv))

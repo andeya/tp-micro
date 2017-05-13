@@ -3,7 +3,7 @@ package selector
 import (
 	"time"
 
-	"github.com/henrylee2cn/rpc2/client"
+	"github.com/henrylee2cn/myrpc/client"
 )
 
 // DirectSelector is used to a direct rpc server.

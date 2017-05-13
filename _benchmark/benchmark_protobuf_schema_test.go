@@ -14,7 +14,7 @@
 		ProtoArgs
 		ProtoReply
 */
-package rpc2
+package myrpc
 
 import proto "github.com/gogo/protobuf/proto"
 import fmt "fmt"

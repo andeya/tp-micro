@@ -1,16 +1,16 @@
-package jsonrpc2
+package jsonmyrpc
 
 import (
 	"io"
 	"net/rpc"
 )
 
-// NewJSONRPC2ServerCodec creates a RPC-JSON 2.0 ServerCodec
-func NewJSONRPC2ServerCodec(conn io.ReadWriteCloser) rpc.ServerCodec {
+// NewJSONMyrpcServerCodec creates a RPC-JSON 2.0 ServerCodec
+func NewJSONMyrpcServerCodec(conn io.ReadWriteCloser) rpc.ServerCodec {
 	return NewServerCodec(conn, nil)
 }
 
-// NewJSONRPC2ClientCodec creates a RPC-JSON 2.0 ClientCodec
-func NewJSONRPC2ClientCodec(conn io.ReadWriteCloser) rpc.ClientCodec {
+// NewJSONMyrpcClientCodec creates a RPC-JSON 2.0 ClientCodec
+func NewJSONMyrpcClientCodec(conn io.ReadWriteCloser) rpc.ClientCodec {
 	return NewClientCodec(conn)
 }

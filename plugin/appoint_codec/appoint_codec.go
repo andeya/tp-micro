@@ -1,15 +1,15 @@
 package appoint_codec
 
 import (
-	"github.com/henrylee2cn/rpc2/client"
-	"github.com/henrylee2cn/rpc2/codec/bson"
-	"github.com/henrylee2cn/rpc2/codec/colfer"
-	"github.com/henrylee2cn/rpc2/codec/gencode"
-	"github.com/henrylee2cn/rpc2/codec/gob"
-	"github.com/henrylee2cn/rpc2/codec/jsonrpc"
-	"github.com/henrylee2cn/rpc2/codec/protobuf"
-	"github.com/henrylee2cn/rpc2/plugin"
-	"github.com/henrylee2cn/rpc2/server"
+	"github.com/henrylee2cn/myrpc/client"
+	"github.com/henrylee2cn/myrpc/codec/bson"
+	"github.com/henrylee2cn/myrpc/codec/colfer"
+	"github.com/henrylee2cn/myrpc/codec/gencode"
+	"github.com/henrylee2cn/myrpc/codec/gob"
+	"github.com/henrylee2cn/myrpc/codec/jsonrpc"
+	"github.com/henrylee2cn/myrpc/codec/protobuf"
+	"github.com/henrylee2cn/myrpc/plugin"
+	"github.com/henrylee2cn/myrpc/server"
 )
 
 type CodecType byte

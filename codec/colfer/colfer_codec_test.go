@@ -6,15 +6,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/henrylee2cn/rpc2"
-	codecpkg "github.com/henrylee2cn/rpc2/codec"
+	"github.com/henrylee2cn/myrpc"
+	codecpkg "github.com/henrylee2cn/myrpc/codec"
 )
 
 //go:generate colf go colfer_codec_test.colf
 
 func TestColferCodec(t *testing.T) {
 	// server
-	server := rpc2.NewServer(60e9, 0, 0, NewColferServerCodec)
+	server := myrpc.NewServer(60e9, 0, 0, NewColferServerCodec)
 	group, _ := server.Group(codecpkg.ServiceGroup)
 	err := group.NamedRegister(codecpkg.ServiceName, new(ColfArith))
 	if err != nil {
@@ -24,7 +24,7 @@ func TestColferCodec(t *testing.T) {
 	time.Sleep(2e9)
 
 	// client
-	client, err := rpc2.NewDialer(codecpkg.Network, codecpkg.ServerAddr, NewColferClientCodec).Dial()
+	client, err := myrpc.NewDialer(codecpkg.Network, codecpkg.ServerAddr, NewColferClientCodec).Dial()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -43,7 +43,7 @@ func TestColferCodec(t *testing.T) {
 
 func TestColferCodec2(t *testing.T) {
 	// server
-	server := rpc2.NewServer(60e9, 0, 0, NewColferServerCodec)
+	server := myrpc.NewServer(60e9, 0, 0, NewColferServerCodec)
 	group, _ := server.Group(codecpkg.ServiceGroup)
 	err := group.NamedRegister(codecpkg.ServiceName, new(ColfArith))
 	if err != nil {
@@ -57,9 +57,9 @@ func TestColferCodec2(t *testing.T) {
 	var args = &ColfArgs{7, 8}
 	var reply ColfReply
 
-	err = rpc2.
+	err = myrpc.
 		NewDialer(codecpkg.Network, serverAddr, NewColferClientCodec).
-		Remote(func(client rpc2.IClient) error {
+		Remote(func(client myrpc.IClient) error {
 			return client.Call(codecpkg.ServiceMethodName, args, &reply)
 		})
 

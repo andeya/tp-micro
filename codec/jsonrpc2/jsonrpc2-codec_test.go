@@ -1,16 +1,16 @@
-package jsonrpc2
+package jsonmyrpc
 
 import (
 	"testing"
 	"time"
 
-	"github.com/henrylee2cn/rpc2"
-	"github.com/henrylee2cn/rpc2/codec"
+	"github.com/henrylee2cn/myrpc"
+	"github.com/henrylee2cn/myrpc/codec"
 )
 
-func TestJSONRPC2Codec(t *testing.T) {
+func TestJSONMyrpcCodec(t *testing.T) {
 	// server
-	server := rpc2.NewServer(60e9, 0, 0, NewJSONRPC2ServerCodec)
+	server := myrpc.NewServer(60e9, 0, 0, NewJSONMyrpcServerCodec)
 	group, _ := server.Group(codec.ServiceGroup)
 	err := group.NamedRegister(codec.ServiceName, codec.Service)
 	if err != nil {
@@ -23,9 +23,9 @@ func TestJSONRPC2Codec(t *testing.T) {
 	var args = &codec.Args{7, 8}
 	var reply codec.Reply
 
-	err = rpc2.
-		NewDialer(codec.Network, codec.ServerAddr, NewJSONRPC2ClientCodec).
-		Remote(func(client rpc2.IClient) error {
+	err = myrpc.
+		NewDialer(codec.Network, codec.ServerAddr, NewJSONMyrpcClientCodec).
+		Remote(func(client myrpc.IClient) error {
 			return client.Call(codec.ServiceMethodName, args, &reply)
 		})
 

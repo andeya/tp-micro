@@ -3,8 +3,8 @@ package client
 import (
 	"net/rpc"
 
-	"github.com/henrylee2cn/rpc2/common"
-	"github.com/henrylee2cn/rpc2/plugin"
+	"github.com/henrylee2cn/myrpc/common"
+	"github.com/henrylee2cn/myrpc/plugin"
 )
 
 // for client

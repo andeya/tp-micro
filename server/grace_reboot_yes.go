@@ -22,7 +22,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/henrylee2cn/rpc2/log"
+	"github.com/henrylee2cn/myrpc/log"
 )
 
 func graceSignal() {

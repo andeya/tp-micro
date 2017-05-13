@@ -10,9 +10,9 @@ import (
 	"github.com/golang/snappy"
 	"github.com/pierrec/lz4"
 
-	"github.com/henrylee2cn/rpc2/client"
-	"github.com/henrylee2cn/rpc2/plugin"
-	"github.com/henrylee2cn/rpc2/server"
+	"github.com/henrylee2cn/myrpc/client"
+	"github.com/henrylee2cn/myrpc/plugin"
+	"github.com/henrylee2cn/myrpc/server"
 )
 
 // CompressionPlugin can compress responses and decompress requests

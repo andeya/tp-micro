@@ -15,10 +15,10 @@ import (
 	"sync"
 	"time"
 
-	codecGob "github.com/henrylee2cn/rpc2/codec/gob"
-	"github.com/henrylee2cn/rpc2/common"
-	"github.com/henrylee2cn/rpc2/log"
-	"github.com/henrylee2cn/rpc2/plugin"
+	codecGob "github.com/henrylee2cn/myrpc/codec/gob"
+	"github.com/henrylee2cn/myrpc/common"
+	"github.com/henrylee2cn/myrpc/log"
+	"github.com/henrylee2cn/myrpc/plugin"
 )
 
 type (

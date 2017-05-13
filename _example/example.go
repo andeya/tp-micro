@@ -6,12 +6,12 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/henrylee2cn/rpc2/client"
-	"github.com/henrylee2cn/rpc2/client/selector"
-	"github.com/henrylee2cn/rpc2/log"
-	"github.com/henrylee2cn/rpc2/plugin/auth"
-	"github.com/henrylee2cn/rpc2/plugin/ip_whitelist"
-	"github.com/henrylee2cn/rpc2/server"
+	"github.com/henrylee2cn/myrpc/client"
+	"github.com/henrylee2cn/myrpc/client/selector"
+	"github.com/henrylee2cn/myrpc/log"
+	"github.com/henrylee2cn/myrpc/plugin/auth"
+	"github.com/henrylee2cn/myrpc/plugin/ip_whitelist"
+	"github.com/henrylee2cn/myrpc/server"
 )
 
 type Worker struct{}
@@ -70,7 +70,7 @@ func checkAuthorization(serviceMethod, tag, token string) error {
 	return errors.New("Illegal request!")
 }
 
-// rpc2
+// myrpc
 func main() {
 	// server
 	server.SetShutdown(60e9, func() error {

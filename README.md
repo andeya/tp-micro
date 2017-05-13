@@ -1,10 +1,10 @@
-# rpc2    [![GoDoc](https://godoc.org/github.com/tsuna/gohbase?status.png)](https://godoc.org/github.com/henrylee2cn/rpc2)
+# myrpc    [![GoDoc](https://godoc.org/github.com/tsuna/gohbase?status.png)](https://godoc.org/github.com/henrylee2cn/myrpc)
 
-RPC2 is upgraded version RPC that based on the standard package.
+MMyrpc is a high availability / high concurrent RPC micro service framework.
 
 It's added router Group, Plugin, Selector and customized ServiceMethod. 
 
-![rpc2_server](https://github.com/henrylee2cn/rpc2/raw/master/doc/rpc2_server.png)
+![myrpc_server](https://github.com/henrylee2cn/myrpc/raw/master/doc/myrpc_server.png)
 
 # Demo
 
@@ -17,12 +17,12 @@ import (
     "strconv"
     "time"
 
-    "github.com/henrylee2cn/rpc2/client"
-    "github.com/henrylee2cn/rpc2/client/selector"
-    "github.com/henrylee2cn/rpc2/log"
-    "github.com/henrylee2cn/rpc2/plugin/auth"
-    "github.com/henrylee2cn/rpc2/plugin/ip_whitelist"
-    "github.com/henrylee2cn/rpc2/server"
+    "github.com/henrylee2cn/myrpc/client"
+    "github.com/henrylee2cn/myrpc/client/selector"
+    "github.com/henrylee2cn/myrpc/log"
+    "github.com/henrylee2cn/myrpc/plugin/auth"
+    "github.com/henrylee2cn/myrpc/plugin/ip_whitelist"
+    "github.com/henrylee2cn/myrpc/server"
 )
 
 type Worker struct{}
@@ -79,7 +79,7 @@ func checkAuthorization(serviceMethod, tag, token string) error {
     return errors.New("Illegal request!")
 }
 
-// rpc2
+// myrpc
 func main() {
     // server
     srv := server.NewServer(server.Server{})

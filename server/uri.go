@@ -6,7 +6,7 @@ import (
 	"path"
 	"strings"
 
-	"github.com/henrylee2cn/rpc2/common"
+	"github.com/henrylee2cn/myrpc/common"
 )
 
 // URIFormator URI format tool

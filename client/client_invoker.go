@@ -6,8 +6,8 @@ import (
 	"net/rpc"
 	"sync"
 
-	"github.com/henrylee2cn/rpc2/common"
-	"github.com/henrylee2cn/rpc2/log"
+	"github.com/henrylee2cn/myrpc/common"
+	"github.com/henrylee2cn/myrpc/log"
 )
 
 var _ Invoker = new(invoker)

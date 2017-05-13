@@ -6,8 +6,8 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/henrylee2cn/rpc2/plugin"
-	"github.com/henrylee2cn/rpc2/server"
+	"github.com/henrylee2cn/myrpc/plugin"
+	"github.com/henrylee2cn/myrpc/server"
 )
 
 type IPWhitelistPlugin struct {

@@ -1,4 +1,4 @@
-package rpc2
+package myrpc
 
 import (
 	"net"
@@ -11,14 +11,14 @@ import (
 	"time"
 
 	"github.com/hashicorp/net-rpc-msgpackrpc"
-	cli "github.com/henrylee2cn/rpc2/client"
-	"github.com/henrylee2cn/rpc2/client/selector"
-	"github.com/henrylee2cn/rpc2/codec"
-	"github.com/henrylee2cn/rpc2/codec/gencode"
-	"github.com/henrylee2cn/rpc2/codec/gob"
-	"github.com/henrylee2cn/rpc2/codec/protobuf"
-	"github.com/henrylee2cn/rpc2/log"
-	srv "github.com/henrylee2cn/rpc2/server"
+	cli "github.com/henrylee2cn/myrpc/client"
+	"github.com/henrylee2cn/myrpc/client/selector"
+	"github.com/henrylee2cn/myrpc/codec"
+	"github.com/henrylee2cn/myrpc/codec/gencode"
+	"github.com/henrylee2cn/myrpc/codec/gob"
+	"github.com/henrylee2cn/myrpc/codec/protobuf"
+	"github.com/henrylee2cn/myrpc/log"
+	srv "github.com/henrylee2cn/myrpc/server"
 )
 
 // don't use it to test benchmark. It is only used to evaluate libs internally.
@@ -59,7 +59,7 @@ func benchmarkClient(client *rpc.Client, b *testing.B) {
 	b.StopTimer()
 }
 
-func benchmarkRPC2Client(client *cli.Client, b *testing.B) {
+func benchmarkMyrpcClient(client *cli.Client, b *testing.B) {
 	// Synchronous calls
 	args := &codec.Args{7, 8}
 	procs := runtime.GOMAXPROCS(-1)
@@ -87,7 +87,7 @@ func benchmarkRPC2Client(client *cli.Client, b *testing.B) {
 	b.StopTimer()
 }
 
-func benchmarkRPC2GencodeClient(client *cli.Client, b *testing.B) {
+func benchmarkMyrpcGencodeClient(client *cli.Client, b *testing.B) {
 	// Synchronous calls
 	args := &GencodeArgs{7, 8}
 	procs := runtime.GOMAXPROCS(-1)
@@ -115,7 +115,7 @@ func benchmarkRPC2GencodeClient(client *cli.Client, b *testing.B) {
 	b.StopTimer()
 }
 
-func benchmarkRPC2ProtobufClient(client *cli.Client, b *testing.B) {
+func benchmarkMyrpcProtobufClient(client *cli.Client, b *testing.B) {
 	// Synchronous calls
 	args := &ProtoArgs{7, 8}
 	procs := runtime.GOMAXPROCS(-1)
@@ -238,7 +238,7 @@ func BenchmarkNetRPC_msgp(b *testing.B) {
 	benchmarkClient(client, b)
 }
 
-func startRPC2WithGob() *srv.Server {
+func startMyrpcWithGob() *srv.Server {
 	server := srv.NewServer(srv.Server{
 		ServerCodecFunc: gob.NewGobServerCodec,
 	})
@@ -249,9 +249,9 @@ func startRPC2WithGob() *srv.Server {
 	return server
 }
 
-func BenchmarkRPC2_gob(b *testing.B) {
+func BenchmarkMyrpc_gob(b *testing.B) {
 	b.StopTimer()
-	server := startRPC2WithGob()
+	server := startMyrpcWithGob()
 	time.Sleep(5 * time.Second) //waiting for starting server
 
 	client := cli.NewClient(
@@ -267,10 +267,10 @@ func BenchmarkRPC2_gob(b *testing.B) {
 	)
 	defer client.Close()
 
-	benchmarkRPC2Client(client, b)
+	benchmarkMyrpcClient(client, b)
 }
 
-func startRPC2WithJson() *srv.Server {
+func startMyrpcWithJson() *srv.Server {
 	server := srv.NewServer(srv.Server{
 		ServerCodecFunc: jsonrpc.NewServerCodec,
 	})
@@ -281,9 +281,9 @@ func startRPC2WithJson() *srv.Server {
 	return server
 }
 
-func BenchmarkRPC2_jsonrpc(b *testing.B) {
+func BenchmarkMyrpc_jsonrpc(b *testing.B) {
 	b.StopTimer()
-	server := startRPC2WithJson()
+	server := startMyrpcWithJson()
 	time.Sleep(5 * time.Second) //waiting for starting server
 	client := cli.NewClient(
 		cli.Client{
@@ -298,10 +298,10 @@ func BenchmarkRPC2_jsonrpc(b *testing.B) {
 	)
 	defer client.Close()
 
-	benchmarkRPC2Client(client, b)
+	benchmarkMyrpcClient(client, b)
 }
 
-func startRPC2WithMsgP() *srv.Server {
+func startMyrpcWithMsgP() *srv.Server {
 	server := srv.NewServer(srv.Server{
 		ServerCodecFunc: msgpackrpc.NewServerCodec,
 	})
@@ -312,9 +312,9 @@ func startRPC2WithMsgP() *srv.Server {
 	return server
 }
 
-func BenchmarkRPC2_msgp(b *testing.B) {
+func BenchmarkMyrpc_msgp(b *testing.B) {
 	b.StopTimer()
-	server := startRPC2WithMsgP()
+	server := startMyrpcWithMsgP()
 	time.Sleep(5 * time.Second) //waiting for starting server
 	client := cli.NewClient(
 		cli.Client{
@@ -329,7 +329,7 @@ func BenchmarkRPC2_msgp(b *testing.B) {
 	)
 	defer client.Close()
 
-	benchmarkRPC2Client(client, b)
+	benchmarkMyrpcClient(client, b)
 }
 
 type GencodeArith int
@@ -343,7 +343,7 @@ func (t *GencodeArith) Error(args *GencodeArgs, reply *GencodeReply) error {
 	panic("ERROR")
 }
 
-func startRPC2WithGencodec() *srv.Server {
+func startMyrpcWithGencodec() *srv.Server {
 	server := srv.NewServer(srv.Server{
 		ServerCodecFunc: gencode.NewGencodeServerCodec,
 	})
@@ -354,9 +354,9 @@ func startRPC2WithGencodec() *srv.Server {
 	return server
 }
 
-func BenchmarkRPC2_gencodec(b *testing.B) {
+func BenchmarkMyrpc_gencodec(b *testing.B) {
 	b.StopTimer()
-	server := startRPC2WithGencodec()
+	server := startMyrpcWithGencodec()
 	time.Sleep(5 * time.Second) //waiting for starting server
 	client := cli.NewClient(
 		cli.Client{
@@ -371,7 +371,7 @@ func BenchmarkRPC2_gencodec(b *testing.B) {
 	)
 	defer client.Close()
 
-	benchmarkRPC2GencodeClient(client, b)
+	benchmarkMyrpcGencodeClient(client, b)
 }
 
 type ProtoArith int
@@ -385,7 +385,7 @@ func (t *ProtoArith) Error(args *ProtoArgs, reply *ProtoReply) error {
 	panic("ERROR")
 }
 
-func startRPC2WithProtobuf() *srv.Server {
+func startMyrpcWithProtobuf() *srv.Server {
 	server := srv.NewServer(srv.Server{
 		ServerCodecFunc: protobuf.NewProtobufServerCodec,
 	})
@@ -396,9 +396,9 @@ func startRPC2WithProtobuf() *srv.Server {
 	return server
 }
 
-func BenchmarkRPC2_protobuf(b *testing.B) {
+func BenchmarkMyrpc_protobuf(b *testing.B) {
 	b.StopTimer()
-	server := startRPC2WithProtobuf()
+	server := startMyrpcWithProtobuf()
 	time.Sleep(5 * time.Second) //waiting for starting server
 	client := cli.NewClient(
 		cli.Client{
@@ -413,5 +413,5 @@ func BenchmarkRPC2_protobuf(b *testing.B) {
 	)
 	defer client.Close()
 
-	benchmarkRPC2ProtobufClient(client, b)
+	benchmarkMyrpcProtobufClient(client, b)
 }

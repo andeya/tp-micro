@@ -4,7 +4,7 @@ import (
 	"net/rpc"
 	"time"
 
-	"github.com/henrylee2cn/rpc2/common"
+	"github.com/henrylee2cn/myrpc/common"
 )
 
 type clientCodecWrapper struct {
