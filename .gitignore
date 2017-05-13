@@ -27,4 +27,4 @@ _testmain.go
 *.sublime-project
 *.sublime-workspace
 
-/_example/*.exe
+_example/*.exe
