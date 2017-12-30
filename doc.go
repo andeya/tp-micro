@@ -1,4 +1,4 @@
-// Ants is a set of microservices-system based on [Teleport](https://github.com/henrylee2cn/teleport) framework and similar to lightweight service mesh.
+// Ants is a set of microservices-system based on Teleport framework and similar to lightweight service mesh.
 //
 // Copyright 2017 HenryLee. All Rights Reserved.
 //
