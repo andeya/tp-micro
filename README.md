@@ -2,6 +2,16 @@
 
 Ants is a set of microservices-system based on [Teleport](https://github.com/henrylee2cn/teleport) framework and similar to lightweight service mesh.
 
+## Install
+
+```
+go version ≥ 1.9
+```
+
+```sh
+go get -u github.com/henrylee2cn/ants/...
+```
+
 ## License
 
 Ants is under Apache v2 License. See the [LICENSE](https://github.com/henrylee2cn/ants/raw/master/LICENSE) file for the full license text

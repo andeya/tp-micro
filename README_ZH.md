@@ -3,6 +3,16 @@
 
 Ants 是一套基于 [Teleport](https://github.com/henrylee2cn/teleport) 框架，类似于轻量级服务网格的微服务系统。
 
+## 安装
+
+```
+go version ≥ 1.9
+```
+
+```sh
+go get -u github.com/henrylee2cn/ants/...
+```
+
 ## 开源协议
 
 Ant 项目采用商业应用友好的 [Apache2.0](https://github.com/henrylee2cn/ant/raw/master/LICENSE) 协议发布
