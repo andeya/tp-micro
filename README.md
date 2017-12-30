@@ -4,6 +4,8 @@ Ants is a set of microservices-system based on [Teleport](https://github.com/hen
 
 [简体中文](https://github.com/henrylee2cn/ants/blob/master/README_ZH.md)
 
+[![view Go网络编程群](https://img.shields.io/badge/官方QQ群-Go网络编程(42730308)-27a5ea.svg)](http://jq.qq.com/?_wv=1027&k=fzi4p1)
+
 ## Install
 
 ```

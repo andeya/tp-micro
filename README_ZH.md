@@ -3,6 +3,8 @@
 
 Ants 是一套基于 [Teleport](https://github.com/henrylee2cn/teleport) 框架，类似于轻量级服务网格的微服务系统。
 
+[![view Go网络编程群](https://img.shields.io/badge/官方QQ群-Go网络编程(42730308)-27a5ea.svg)](http://jq.qq.com/?_wv=1027&k=fzi4p1)
+
 ## 安装
 
 ```
