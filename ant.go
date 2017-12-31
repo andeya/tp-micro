@@ -26,8 +26,8 @@ func NewPeer(cfg *tp.PeerConfig, plugin ...tp.Plugin) *tp.Peer {
 }
 
 var (
-	antBindErrCode    int32
-	antBindErrMessage string
+	antBindErrCode    int32  = 10000
+	antBindErrMessage string = "Invalid parameter"
 )
 
 // SetBindErr custom settings error message after parameter binding or verification failed.
