@@ -19,7 +19,7 @@ import (
 )
 
 // NewPeer creates a peer that has the StructArgsBinder plugin.
-func NewPeer(cfg *tp.PeerConfig, plugin ...tp.Plugin) *tp.Peer {
+func NewPeer(cfg tp.PeerConfig, plugin ...tp.Plugin) *tp.Peer {
 	plugin = append([]tp.Plugin{NewStructArgsBinder(antBindErrCode, antBindErrMessage)}, plugin...)
 	peer := tp.NewPeer(cfg, plugin...)
 	return peer
