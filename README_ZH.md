@@ -9,9 +9,9 @@ Ants 是一套基于 [Teleport](https://github.com/henrylee2cn/teleport) 框架�
 
 ## 安装
 
-```
+<!-- ```
 go version ≥ 1.9
-```
+``` -->
 
 ```sh
 go get -u github.com/henrylee2cn/ants/...
