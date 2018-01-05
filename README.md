@@ -9,9 +9,10 @@ Ants is a set of microservices-system based on [Teleport](https://github.com/hen
 
 ## Install
 
+<!-- 
 ```
 go version ≥ 1.9
-```
+``` -->
 
 ```sh
 go get -u github.com/henrylee2cn/ants/...
