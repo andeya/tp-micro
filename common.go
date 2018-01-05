@@ -14,20 +14,9 @@
 
 package ants
 
-import (
-	tp "github.com/henrylee2cn/teleport"
-)
-
-// NewPeer creates a peer that has the StructArgsBinder plugin.
-func NewPeer(cfg tp.PeerConfig, plugin ...tp.Plugin) *tp.Peer {
-	plugin = append([]tp.Plugin{NewStructArgsBinder(antBindErrCode, antBindErrMessage)}, plugin...)
-	peer := tp.NewPeer(cfg, plugin...)
-	return peer
-}
-
 var (
 	antBindErrCode    int32  = 10000
-	antBindErrMessage string = "Invalid parameter"
+	antBindErrMessage string = "invalid parameter"
 )
 
 // SetBindErr custom settings error message after parameter binding or verification failed.
