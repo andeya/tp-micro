@@ -85,8 +85,14 @@ func NewClient(cfg CliConfig, plugin ...tp.Plugin) *Client {
 	}
 }
 
+// SetProtoFunc sets socket.ProtoFunc.
 func (c *Client) SetProtoFunc(protoFunc socket.ProtoFunc) {
 	c.protoFunc = protoFunc
+}
+
+// SetLinker sets Linker.
+func (c *Client) SetLinker(linker Linker) {
+	c.linker = linker
 }
 
 // AsyncPull sends a packet and receives reply asynchronously.

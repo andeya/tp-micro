@@ -65,7 +65,8 @@ func (s *SrvConfig) peerConfig() tp.PeerConfig {
 
 // Server server peer
 type Server struct {
-	peer *tp.Peer
+	peer                   *tp.Peer
+	PullRouter, PushRouter *tp.RootRouter
 }
 
 // NewServer creates a server peer.
@@ -79,7 +80,9 @@ func NewServer(cfg SrvConfig, plugin ...tp.Plugin) *Server {
 	}
 	peer := tp.NewPeer(cfg.peerConfig(), plugin...)
 	return &Server{
-		peer: peer,
+		peer:       peer,
+		PullRouter: peer.PullRouter,
+		PushRouter: peer.PushRouter,
 	}
 }
 

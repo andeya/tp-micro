@@ -34,44 +34,44 @@ func SetBindErr(bindErrCode int32, bindErrMessage string) {
 }
 
 // teleport types' alias
-// type (
-// 	BaseCtx                   = tp.BaseCtx
-// 	Plugin                    = tp.Plugin
-// 	PluginContainer           = tp.PluginContainer
-// 	PreNewPeerPlugin          = tp.PreNewPeerPlugin
-// 	PostNewPeerPlugin         = tp.PostNewPeerPlugin
-// 	PostAcceptPlugin          = tp.PostAcceptPlugin
-// 	PostDialPlugin            = tp.PostDialPlugin
-// 	PostDisconnectPlugin      = tp.PostDisconnectPlugin
-// 	PostReadPullBodyPlugin    = tp.PostReadPullBodyPlugin
-// 	PostReadPullHeaderPlugin  = tp.PostReadPullHeaderPlugin
-// 	PostReadPushBodyPlugin    = tp.PostReadPushBodyPlugin
-// 	PostReadPushHeaderPlugin  = tp.PostReadPushHeaderPlugin
-// 	PostReadReplyBodyPlugin   = tp.PostReadReplyBodyPlugin
-// 	PostReadReplyHeaderPlugin = tp.PostReadReplyHeaderPlugin
-// 	PostRegPlugin             = tp.PostRegPlugin
-// 	PostSession               = tp.PostSession
-// 	PostWritePullPlugin       = tp.PostWritePullPlugin
-// 	PostWritePushPlugin       = tp.PostWritePushPlugin
-// 	PostWriteReplyPlugin      = tp.PostWriteReplyPlugin
-// 	PreReadHeaderPlugin       = tp.PreReadHeaderPlugin
-// 	PreReadPullBodyPlugin     = tp.PreReadPullBodyPlugin
-// 	PreReadPushBodyPlugin     = tp.PreReadPushBodyPlugin
-// 	PreReadReplyBodyPlugin    = tp.PreReadReplyBodyPlugin
-// 	PreSession                = tp.PreSession
-// 	PreWritePullPlugin        = tp.PreWritePullPlugin
-// 	PreWritePushPlugin        = tp.PreWritePushPlugin
-// 	PreWriteReplyPlugin       = tp.PreWriteReplyPlugin
-// 	PullCmd                   = tp.PullCmd
-// 	PullCtx                   = tp.PullCtx
-// 	PushCtx                   = tp.PushCtx
-// 	ReadCtx                   = tp.ReadCtx
-// 	Rerror                    = tp.Rerror
-// 	Session                   = tp.Session
-// 	UnknownPullCtx            = tp.UnknownPullCtx
-// 	UnknownPushCtx            = tp.UnknownPushCtx
-// 	WriteCtx                  = tp.WriteCtx
-// )
+type (
+	BaseCtx                   = tp.BaseCtx
+	Plugin                    = tp.Plugin
+	PluginContainer           = tp.PluginContainer
+	PreNewPeerPlugin          = tp.PreNewPeerPlugin
+	PostNewPeerPlugin         = tp.PostNewPeerPlugin
+	PostAcceptPlugin          = tp.PostAcceptPlugin
+	PostDialPlugin            = tp.PostDialPlugin
+	PostDisconnectPlugin      = tp.PostDisconnectPlugin
+	PostReadPullBodyPlugin    = tp.PostReadPullBodyPlugin
+	PostReadPullHeaderPlugin  = tp.PostReadPullHeaderPlugin
+	PostReadPushBodyPlugin    = tp.PostReadPushBodyPlugin
+	PostReadPushHeaderPlugin  = tp.PostReadPushHeaderPlugin
+	PostReadReplyBodyPlugin   = tp.PostReadReplyBodyPlugin
+	PostReadReplyHeaderPlugin = tp.PostReadReplyHeaderPlugin
+	PostRegPlugin             = tp.PostRegPlugin
+	PostSession               = tp.PostSession
+	PostWritePullPlugin       = tp.PostWritePullPlugin
+	PostWritePushPlugin       = tp.PostWritePushPlugin
+	PostWriteReplyPlugin      = tp.PostWriteReplyPlugin
+	PreReadHeaderPlugin       = tp.PreReadHeaderPlugin
+	PreReadPullBodyPlugin     = tp.PreReadPullBodyPlugin
+	PreReadPushBodyPlugin     = tp.PreReadPushBodyPlugin
+	PreReadReplyBodyPlugin    = tp.PreReadReplyBodyPlugin
+	PreSession                = tp.PreSession
+	PreWritePullPlugin        = tp.PreWritePullPlugin
+	PreWritePushPlugin        = tp.PreWritePushPlugin
+	PreWriteReplyPlugin       = tp.PreWriteReplyPlugin
+	PullCmd                   = tp.PullCmd
+	PullCtx                   = tp.PullCtx
+	PushCtx                   = tp.PushCtx
+	ReadCtx                   = tp.ReadCtx
+	Rerror                    = tp.Rerror
+	Session                   = tp.Session
+	UnknownPullCtx            = tp.UnknownPullCtx
+	UnknownPushCtx            = tp.UnknownPushCtx
+	WriteCtx                  = tp.WriteCtx
+)
 
 // teleport functions
 var (

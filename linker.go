@@ -18,6 +18,22 @@ import (
 	tp "github.com/henrylee2cn/teleport"
 )
 
+// Linker linker for client.
 type Linker interface {
 	SelectAddr(uri string) (string, *tp.Rerror)
+}
+
+type directLinker struct {
+	srvAddr string
+}
+
+// NewDirectLinker creates a direct linker.
+func NewDirectLinker(srvAddr string) Linker {
+	return &directLinker{
+		srvAddr: srvAddr,
+	}
+}
+
+func (d *directLinker) SelectAddr(string) (string, *tp.Rerror) {
+	return d.srvAddr, nil
 }
