@@ -15,28 +15,17 @@
 package ants
 
 import (
+	"net"
 	"time"
 
 	"github.com/henrylee2cn/cfgo"
 	tp "github.com/henrylee2cn/teleport"
+	"github.com/henrylee2cn/teleport/socket"
 	binder "github.com/henrylee2cn/tp-ext/plugin-binder"
+	heartbeat "github.com/henrylee2cn/tp-ext/plugin-heartbeat"
 )
 
-// Server server peer
-type Server struct {
-	peer *tp.Peer
-}
-
-// NewServer creates a server peer.
-func NewServer(cfg SrvConfig, plugin ...tp.Plugin) *Server {
-	plugin = append([]tp.Plugin{binder.NewStructArgsBinder(antBindErrCode, antBindErrMessage)}, plugin...)
-	peer := tp.NewPeer(cfg.peerConfig(), plugin...)
-	return &Server{
-		peer: peer,
-	}
-}
-
-// CliConfig client config
+// SrvConfig server config
 // Note:
 //  yaml tag is used for github.com/henrylee2cn/cfgo
 //  ini tag is used for github.com/henrylee2cn/ini
@@ -51,6 +40,7 @@ type SrvConfig struct {
 	CountTime           bool          `yaml:"count_time"             ini:"count_time"             comment:"Is count cost time or not"`
 	Network             string        `yaml:"network"                ini:"network"                comment:"Network; tcp, tcp4, tcp6, unix or unixpacket"`
 	ListenAddress       string        `yaml:"listen_address"         ini:"listen_address"         comment:"Listen address; for server role"`
+	Heartbeat           time.Duration `yaml:"heartbeat"              ini:"heartbeat"              comment:"When the heartbeat interval is greater than 0, heartbeat is enabled; ns,µs,ms,s,m,h"`
 }
 
 // Reload Bi-directionally synchronizes config between YAML file and memory.
@@ -71,4 +61,54 @@ func (s *SrvConfig) peerConfig() tp.PeerConfig {
 		Network:             s.Network,
 		ListenAddress:       s.ListenAddress,
 	}
+}
+
+// Server server peer
+type Server struct {
+	peer *tp.Peer
+}
+
+// NewServer creates a server peer.
+func NewServer(cfg SrvConfig, plugin ...tp.Plugin) *Server {
+	plugin = append(
+		[]tp.Plugin{binder.NewStructArgsBinder(antBindErrCode, antBindErrMessage)},
+		plugin...,
+	)
+	if cfg.Heartbeat > 0 {
+		plugin = append(plugin, heartbeat.NewPong(cfg.Heartbeat))
+	}
+	peer := tp.NewPeer(cfg.peerConfig(), plugin...)
+	return &Server{
+		peer: peer,
+	}
+}
+
+// Close closes server.
+func (s *Server) Close() error {
+	return s.peer.Close()
+}
+
+// CountSession returns the number of sessions.
+func (s *Server) CountSession() int {
+	return s.peer.CountSession()
+}
+
+// GetSession gets the session by id.
+func (s *Server) GetSession(sessionId string) (tp.Session, bool) {
+	return s.peer.GetSession(sessionId)
+}
+
+// Listen turns on the listening service.
+func (s *Server) Listen(protoFunc ...socket.ProtoFunc) error {
+	return s.peer.Listen(protoFunc...)
+}
+
+// RangeSession ranges all sessions. If fn returns false, stop traversing.
+func (s *Server) RangeSession(fn func(sess tp.Session) bool) {
+	s.peer.RangeSession(fn)
+}
+
+// ServeConn serves the connection and returns a session.
+func (s *Server) ServeConn(conn net.Conn, protoFunc ...socket.ProtoFunc) (tp.Session, error) {
+	return s.peer.ServeConn(conn, protoFunc...)
 }
