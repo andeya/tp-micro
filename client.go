@@ -75,7 +75,7 @@ type Client struct {
 // NewClient creates a client peer.
 func NewClient(cfg CliConfig, plugin ...tp.Plugin) *Client {
 	if cfg.Heartbeat > 0 {
-		plugin = append(plugin, heartbeat.NewPong(cfg.Heartbeat))
+		plugin = append(plugin, heartbeat.NewPing(cfg.Heartbeat))
 	}
 	peer := tp.NewPeer(cfg.peerConfig(), plugin...)
 	return &Client{
