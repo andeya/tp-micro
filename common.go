@@ -22,16 +22,16 @@ func init() {
 	go tp.GraceSignal()
 }
 
-var (
-	antBindErrCode    int32  = 10000
-	antBindErrMessage string = "invalid parameter"
+// error codes
+const (
+	RerrCodeClientClosed int32 = 10000
+	RerrCodeBind         int32 = 10001
 )
 
-// SetBindErr custom settings error message after parameter binding or verification failed.
-func SetBindErr(bindErrCode int32, bindErrMessage string) {
-	antBindErrCode = bindErrCode
-	antBindErrMessage = bindErrMessage
-}
+// errors
+var (
+	RerrClosed = tp.NewRerror(RerrCodeClientClosed, "client is closed", "")
+)
 
 // teleport types' alias
 type (

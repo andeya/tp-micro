@@ -55,16 +55,17 @@ import (
 	"github.com/henrylee2cn/ants"
 )
 
-type Args struct {
-	A int
-	B int `param:"<range:1:>"`
-}
-
 func main() {
 	cli := ants.NewClient(
 		ants.CliConfig{},
 		ants.NewStaticLinker(":9090"),
 	)
+
+	type Args struct {
+		A int
+		B int
+	}
+
 	var reply int
 	rerr := cli.Pull("/p/divide", &Args{
 		A: 10,
@@ -81,7 +82,17 @@ func main() {
 	if rerr == nil {
 		ants.Fatalf("%v", rerr)
 	}
-	ants.Errorf("10/0 error:%v", rerr)
+	ants.Infof("test binding error: ok: %v", rerr)
+
+	cli.Close()
+	rerr = cli.Pull("/p/divide", &Args{
+		A: 10,
+		B: 5,
+	}, &reply).Rerror()
+	if rerr == nil {
+		ants.Fatalf("test closing client: fail")
+	}
+	ants.Infof("test closing client: ok: %v", rerr)
 }
 ```
 

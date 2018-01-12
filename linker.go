@@ -21,6 +21,7 @@ import (
 // Linker linker for client.
 type Linker interface {
 	Select(uriPath string) (string, *tp.Rerror)
+	Close()
 }
 
 // static linker
@@ -39,5 +40,7 @@ type staticLinker struct {
 func (d *staticLinker) Select(string) (string, *tp.Rerror) {
 	return d.srvAddr, nil
 }
+
+func (d *staticLinker) Close() {}
 
 // dynamic linker

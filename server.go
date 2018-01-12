@@ -70,7 +70,7 @@ type Server struct {
 // NewServer creates a server peer.
 func NewServer(cfg SrvConfig, plugin ...tp.Plugin) *Server {
 	plugin = append(
-		[]tp.Plugin{binder.NewStructArgsBinder(antBindErrCode, antBindErrMessage)},
+		[]tp.Plugin{binder.NewStructArgsBinder(RerrCodeBind, "invalid parameter")},
 		plugin...,
 	)
 	if cfg.Heartbeat > 0 {

@@ -16,6 +16,7 @@ package ants
 
 import (
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/henrylee2cn/cfgo"
@@ -87,6 +88,8 @@ type Client struct {
 	cliSessPool         goutil.Map
 	sessMaxQuota        int
 	sessMaxIdleDuration time.Duration
+	closeCh             chan struct{}
+	closeMu             sync.Mutex
 }
 
 // NewClient creates a client peer.
@@ -111,6 +114,7 @@ func NewClient(cfg CliConfig, linker Linker, plugin ...tp.Plugin) *Client {
 		cliSessPool:         goutil.AtomicMap(),
 		sessMaxQuota:        cfg.SessMaxQuota,
 		sessMaxIdleDuration: cfg.SessMaxIdleDuration,
+		closeCh:             make(chan struct{}),
 	}
 }
 
@@ -154,7 +158,26 @@ func (c *Client) Push(uri string, args interface{}, setting ...socket.PacketSett
 	return cliSess.Push(uri, args, setting...)
 }
 
+// Close closes client.
+func (c *Client) Close() {
+	c.closeMu.Lock()
+	defer c.closeMu.Unlock()
+	select {
+	case <-c.closeCh:
+		return
+	default:
+		close(c.closeCh)
+		c.peer.Close()
+		c.linker.Close()
+	}
+}
+
 func (c *Client) getCliSession(uri string) (*cliSession.CliSession, *tp.Rerror) {
+	select {
+	case <-c.closeCh:
+		return nil, RerrClosed
+	default:
+	}
 	if idx := strings.Index(uri, "?"); idx != -1 {
 		uri = uri[:idx]
 	}
