@@ -90,7 +90,7 @@ type Client struct {
 }
 
 // NewClient creates a client peer.
-func NewClient(cfg CliConfig, plugin ...tp.Plugin) *Client {
+func NewClient(cfg CliConfig, linker Linker, plugin ...tp.Plugin) *Client {
 	if err := cfg.check(); err != nil {
 		tp.Fatalf("%v", err)
 	}
@@ -107,6 +107,7 @@ func NewClient(cfg CliConfig, plugin ...tp.Plugin) *Client {
 	return &Client{
 		peer:                peer,
 		protoFunc:           socket.DefaultProtoFunc(),
+		linker:              linker,
 		cliSessPool:         goutil.AtomicMap(),
 		sessMaxQuota:        cfg.SessMaxQuota,
 		sessMaxIdleDuration: cfg.SessMaxIdleDuration,
@@ -116,11 +117,6 @@ func NewClient(cfg CliConfig, plugin ...tp.Plugin) *Client {
 // SetProtoFunc sets socket.ProtoFunc.
 func (c *Client) SetProtoFunc(protoFunc socket.ProtoFunc) {
 	c.protoFunc = protoFunc
-}
-
-// SetLinker sets Linker.
-func (c *Client) SetLinker(linker Linker) {
-	c.linker = linker
 }
 
 // AsyncPull sends a packet and receives reply asynchronously.

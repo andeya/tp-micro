@@ -61,8 +61,10 @@ type Args struct {
 }
 
 func main() {
-	cli := ants.NewClient(ants.CliConfig{})
-	cli.SetLinker(ants.NewStaticLinker(":9090"))
+	cli := ants.NewClient(
+		ants.CliConfig{},
+		ants.NewStaticLinker(":9090"),
+	)
 	var reply int
 	rerr := cli.Pull("/p/divide", &Args{
 		A: 10,
