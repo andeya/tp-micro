@@ -50,8 +50,6 @@ func (s *SrvConfig) Reload(bind cfgo.BindFunc) error {
 
 func (s *SrvConfig) peerConfig() tp.PeerConfig {
 	return tp.PeerConfig{
-		TlsCertFile:         s.TlsCertFile,
-		TlsKeyFile:          s.TlsKeyFile,
 		DefaultReadTimeout:  s.DefaultReadTimeout,
 		DefaultWriteTimeout: s.DefaultWriteTimeout,
 		SlowCometDuration:   s.SlowCometDuration,
@@ -79,6 +77,12 @@ func NewServer(cfg SrvConfig, plugin ...tp.Plugin) *Server {
 		plugin = append(plugin, heartbeat.NewPong(cfg.Heartbeat))
 	}
 	peer := tp.NewPeer(cfg.peerConfig(), plugin...)
+	if len(cfg.TlsCertFile) > 0 && len(cfg.TlsKeyFile) > 0 {
+		err := peer.SetTlsConfigFromFile(cfg.TlsCertFile, cfg.TlsKeyFile)
+		if err != nil {
+			tp.Fatalf("%v", err)
+		}
+	}
 	return &Server{
 		peer:       peer,
 		PullRouter: peer.PullRouter,

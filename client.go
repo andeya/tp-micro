@@ -15,6 +15,7 @@
 package ants
 
 import (
+	"strings"
 	"time"
 
 	"github.com/henrylee2cn/cfgo"
@@ -22,6 +23,7 @@ import (
 	tp "github.com/henrylee2cn/teleport"
 	"github.com/henrylee2cn/teleport/socket"
 	heartbeat "github.com/henrylee2cn/tp-ext/plugin-heartbeat"
+	cliSession "github.com/henrylee2cn/tp-ext/sundry-cliSession"
 )
 
 // CliConfig client config
@@ -41,17 +43,30 @@ type CliConfig struct {
 	CountTime           bool          `yaml:"count_time"             ini:"count_time"             comment:"Is count cost time or not"`
 	Network             string        `yaml:"network"                ini:"network"                comment:"Network; tcp, tcp4, tcp6, unix or unixpacket"`
 	Heartbeat           time.Duration `yaml:"heartbeat"              ini:"heartbeat"              comment:"When the heartbeat interval is greater than 0, heartbeat is enabled; ns,µs,ms,s,m,h"`
+	SessMaxQuota        int           `yaml:"sess_max_quota"         ini:"sess_max_quota"         comment:"The maximum number of sessions in the connection pool"`
+	SessMaxIdleDuration time.Duration `yaml:"sess_max_idle_duration" ini:"sess_max_idle_duration" comment:"The maximum time period for the idle session in the connection pool; ns,µs,ms,s,m,h"`
 }
 
 // Reload Bi-directionally synchronizes config between YAML file and memory.
 func (c *CliConfig) Reload(bind cfgo.BindFunc) error {
-	return bind()
+	err := bind()
+	if err != nil {
+		return err
+	}
+	return c.check()
+}
+func (c *CliConfig) check() error {
+	if c.SessMaxQuota <= 0 {
+		c.SessMaxQuota = 100
+	}
+	if c.SessMaxIdleDuration <= 0 {
+		c.SessMaxIdleDuration = time.Minute * 3
+	}
+	return nil
 }
 
 func (c *CliConfig) peerConfig() tp.PeerConfig {
 	return tp.PeerConfig{
-		TlsCertFile:         c.TlsCertFile,
-		TlsKeyFile:          c.TlsKeyFile,
 		DefaultReadTimeout:  c.DefaultReadTimeout,
 		DefaultWriteTimeout: c.DefaultWriteTimeout,
 		DefaultDialTimeout:  c.DefaultDialTimeout,
@@ -66,22 +81,35 @@ func (c *CliConfig) peerConfig() tp.PeerConfig {
 
 // Client client peer
 type Client struct {
-	peer         *tp.Peer
-	linker       Linker
-	cacheSession goutil.Map
-	protoFunc    socket.ProtoFunc
+	peer                *tp.Peer
+	linker              Linker
+	protoFunc           socket.ProtoFunc
+	cliSessPool         goutil.Map
+	sessMaxQuota        int
+	sessMaxIdleDuration time.Duration
 }
 
 // NewClient creates a client peer.
 func NewClient(cfg CliConfig, plugin ...tp.Plugin) *Client {
+	if err := cfg.check(); err != nil {
+		tp.Fatalf("%v", err)
+	}
 	if cfg.Heartbeat > 0 {
 		plugin = append(plugin, heartbeat.NewPing(cfg.Heartbeat))
 	}
 	peer := tp.NewPeer(cfg.peerConfig(), plugin...)
+	if len(cfg.TlsCertFile) > 0 && len(cfg.TlsKeyFile) > 0 {
+		err := peer.SetTlsConfigFromFile(cfg.TlsCertFile, cfg.TlsKeyFile)
+		if err != nil {
+			tp.Fatalf("%v", err)
+		}
+	}
 	return &Client{
-		peer:         peer,
-		protoFunc:    socket.DefaultProtoFunc(),
-		cacheSession: goutil.AtomicMap(),
+		peer:                peer,
+		protoFunc:           socket.DefaultProtoFunc(),
+		cliSessPool:         goutil.AtomicMap(),
+		sessMaxQuota:        cfg.SessMaxQuota,
+		sessMaxIdleDuration: cfg.SessMaxIdleDuration,
 	}
 }
 
@@ -98,12 +126,12 @@ func (c *Client) SetLinker(linker Linker) {
 // AsyncPull sends a packet and receives reply asynchronously.
 // If the args is []byte or *[]byte type, it can automatically fill in the body codec name.
 func (c *Client) AsyncPull(uri string, args interface{}, reply interface{}, done chan tp.PullCmd, setting ...socket.PacketSetting) {
-	sess, rerr := c.getSession(uri)
+	cliSess, rerr := c.getCliSession(uri)
 	if rerr != nil {
-		done <- c.fakePullCmd(uri, args, reply, rerr, setting...)
-	} else {
-		sess.AsyncPull(uri, args, reply, done, setting...)
+		done <- cliSession.NewFakePullCmd(c.peer, uri, args, reply, rerr, setting...)
+		return
 	}
+	cliSess.AsyncPull(uri, args, reply, done, setting...)
 }
 
 // Pull sends a packet and receives reply.
@@ -111,102 +139,11 @@ func (c *Client) AsyncPull(uri string, args interface{}, reply interface{}, done
 // If the args is []byte or *[]byte type, it can automatically fill in the body codec name;
 // If the session is a client role and PeerConfig.RedialTimes>0, it is automatically re-called once after a failure.
 func (c *Client) Pull(uri string, args interface{}, reply interface{}, setting ...socket.PacketSetting) tp.PullCmd {
-	sess, rerr := c.getSession(uri)
+	cliSess, rerr := c.getCliSession(uri)
 	if rerr != nil {
-		return c.fakePullCmd(uri, args, reply, rerr, setting...)
+		return cliSession.NewFakePullCmd(c.peer, uri, args, reply, rerr, setting...)
 	}
-	return sess.Pull(uri, args, reply, setting...)
-}
-
-func (c *Client) getSession(uri string) (tp.Session, *tp.Rerror) {
-	addr, rerr := c.linker.SelectAddr(uri)
-	if rerr != nil {
-		return nil, rerr
-	}
-	_sess, ok := c.cacheSession.Load(addr)
-	var sess tp.Session
-	if ok {
-		sess = _sess.(tp.Session)
-		if sess.Health() {
-			return sess, nil
-		}
-	}
-	sess, rerr = c.peer.Dial(addr, c.protoFunc)
-	if rerr != nil {
-		return nil, rerr
-	}
-	c.cacheSession.Store(addr, sess)
-	return sess, nil
-}
-
-func (c *Client) fakePullCmd(uri string, args, reply interface{}, rerr *tp.Rerror, setting ...socket.PacketSetting) tp.PullCmd {
-	output := socket.NewPacket(
-		socket.WithPtype(tp.TypePull),
-		socket.WithUri(uri),
-		socket.WithBody(args),
-	)
-	for _, fn := range setting {
-		fn(output)
-	}
-	return &fakePullCmd{
-		peer:   c.peer,
-		reply:  reply,
-		rerr:   rerr,
-		output: output,
-	}
-}
-
-type fakePullCmd struct {
-	peer   *tp.Peer
-	reply  interface{}
-	rerr   *tp.Rerror
-	output *socket.Packet
-}
-
-// Peer returns the peer.
-func (c *fakePullCmd) Peer() *tp.Peer {
-	return c.peer
-}
-
-// Session returns the session.
-func (c *fakePullCmd) Session() tp.Session {
-	return nil
-}
-
-// Ip returns the remote addr.
-func (c *fakePullCmd) Ip() string {
-	return ""
-}
-
-// Public returns temporary public data of context.
-func (c *fakePullCmd) Public() goutil.Map {
-	return nil
-}
-
-// PublicLen returns the length of public data of context.
-func (c *fakePullCmd) PublicLen() int {
-	return 0
-}
-
-// Output returns writed packet.
-func (c *fakePullCmd) Output() *socket.Packet {
-	return c.output
-}
-
-// Result returns the pull result.
-func (c *fakePullCmd) Result() (interface{}, *tp.Rerror) {
-	return c.reply, c.rerr
-}
-
-// *Rerror returns the pull error.
-func (c *fakePullCmd) Rerror() *tp.Rerror {
-	return c.rerr
-}
-
-// CostTime returns the pulled cost time.
-// If PeerConfig.CountTime=false, always returns 0.
-func (c *fakePullCmd) CostTime() time.Duration {
-	return 0
+	return cliSess.Pull(uri, args, reply, setting...)
 }
 
 // Push sends a packet, but do not receives reply.
@@ -214,9 +151,31 @@ func (c *fakePullCmd) CostTime() time.Duration {
 // If the args is []byte or *[]byte type, it can automatically fill in the body codec name;
 // If the session is a client role and PeerConfig.RedialTimes>0, it is automatically re-called once after a failure.
 func (c *Client) Push(uri string, args interface{}, setting ...socket.PacketSetting) *tp.Rerror {
-	sess, rerr := c.getSession(uri)
+	cliSess, rerr := c.getCliSession(uri)
 	if rerr != nil {
 		return rerr
 	}
-	return sess.Push(uri, args, setting...)
+	return cliSess.Push(uri, args, setting...)
+}
+
+func (c *Client) getCliSession(uri string) (*cliSession.CliSession, *tp.Rerror) {
+	if idx := strings.Index(uri, "?"); idx != -1 {
+		uri = uri[:idx]
+	}
+	addr, rerr := c.linker.Select(uri)
+	if rerr != nil {
+		return nil, rerr
+	}
+	_cliSess, ok := c.cliSessPool.Load(addr)
+	if ok {
+		return _cliSess.(*cliSession.CliSession), nil
+	}
+	cliSess := cliSession.New(
+		c.peer,
+		addr,
+		c.sessMaxQuota,
+		c.sessMaxIdleDuration,
+	)
+	c.cliSessPool.Store(addr, cliSess)
+	return cliSess, nil
 }

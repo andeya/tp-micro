@@ -20,20 +20,24 @@ import (
 
 // Linker linker for client.
 type Linker interface {
-	SelectAddr(uri string) (string, *tp.Rerror)
+	Select(uriPath string) (string, *tp.Rerror)
 }
 
-type directLinker struct {
-	srvAddr string
-}
+// static linker
 
-// NewDirectLinker creates a direct linker.
-func NewDirectLinker(srvAddr string) Linker {
-	return &directLinker{
+// NewStaticLinker creates a static linker.
+func NewStaticLinker(srvAddr string) Linker {
+	return &staticLinker{
 		srvAddr: srvAddr,
 	}
 }
 
-func (d *directLinker) SelectAddr(string) (string, *tp.Rerror) {
+type staticLinker struct {
+	srvAddr string
+}
+
+func (d *staticLinker) Select(string) (string, *tp.Rerror) {
 	return d.srvAddr, nil
 }
+
+// dynamic linker
