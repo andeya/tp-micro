@@ -16,7 +16,7 @@ func main() {
 	}
 
 	var reply int
-	rerr := cli.Pull("/p/divide", &Args{
+	rerr := cli.Pull("/static/p/divide", &Args{
 		A: 10,
 		B: 2,
 	}, &reply).Rerror()
@@ -27,7 +27,7 @@ func main() {
 		ants.Fatalf("%v", rerr)
 	}
 	ants.Infof("10/2=%d", reply)
-	rerr = cli.Pull("/p/divide", &Args{
+	rerr = cli.Pull("/static/p/divide", &Args{
 		A: 10,
 		B: 0,
 	}, &reply).Rerror()
@@ -40,7 +40,7 @@ func main() {
 	ants.Infof("test binding error: ok: %v", rerr)
 
 	cli.Close()
-	rerr = cli.Pull("/p/divide", &Args{
+	rerr = cli.Pull("/static/p/divide", &Args{
 		A: 10,
 		B: 5,
 	}, &reply).Rerror()

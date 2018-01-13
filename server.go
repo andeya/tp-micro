@@ -20,6 +20,7 @@ import (
 
 	"github.com/henrylee2cn/cfgo"
 	tp "github.com/henrylee2cn/teleport"
+	pluginPkg "github.com/henrylee2cn/teleport/plugin"
 	"github.com/henrylee2cn/teleport/socket"
 	binder "github.com/henrylee2cn/tp-ext/plugin-binder"
 	heartbeat "github.com/henrylee2cn/tp-ext/plugin-heartbeat"
@@ -59,20 +60,21 @@ func (s *SrvConfig) peerConfig() tp.PeerConfig {
 		CountTime:           s.CountTime,
 		Network:             s.Network,
 		ListenAddress:       s.ListenAddress,
-		RouterRoot:          s.RouterRoot,
 	}
 }
 
 // Server server peer
 type Server struct {
-	peer      *tp.Peer
-	rootGroup string
+	peer tp.Peer
 }
 
 // NewServer creates a server peer.
 func NewServer(cfg SrvConfig, plugin ...tp.Plugin) *Server {
 	plugin = append(
-		[]tp.Plugin{binder.NewStructArgsBinder(RerrCodeBind, "invalid parameter")},
+		[]tp.Plugin{
+			pluginPkg.NewRouterRootSetting(cfg.RouterRoot),
+			binder.NewStructArgsBinder(RerrCodeBind, "invalid parameter"),
+		},
 		plugin...,
 	)
 	if cfg.Heartbeat > 0 {

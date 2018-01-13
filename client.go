@@ -87,7 +87,7 @@ func (c *CliConfig) peerConfig() tp.PeerConfig {
 
 // Client client peer
 type Client struct {
-	peer                *tp.Peer
+	peer                tp.Peer
 	linker              Linker
 	protoFunc           socket.ProtoFunc
 	cliSessPool         goutil.Map

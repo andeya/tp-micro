@@ -36,10 +36,15 @@ var (
 // teleport types' alias
 type (
 	BaseCtx                   = tp.BaseCtx
+	PreCtx                    = tp.PreCtx
+	BaseSession               = tp.BaseSession
+	EarlySession              = tp.EarlySession
+	Session                   = tp.Session
 	Plugin                    = tp.Plugin
 	PluginContainer           = tp.PluginContainer
 	PreNewPeerPlugin          = tp.PreNewPeerPlugin
 	PostNewPeerPlugin         = tp.PostNewPeerPlugin
+	PostListenPlugin          = tp.PostListenPlugin
 	PostAcceptPlugin          = tp.PostAcceptPlugin
 	PostDialPlugin            = tp.PostDialPlugin
 	PostDisconnectPlugin      = tp.PostDisconnectPlugin
@@ -50,7 +55,6 @@ type (
 	PostReadReplyBodyPlugin   = tp.PostReadReplyBodyPlugin
 	PostReadReplyHeaderPlugin = tp.PostReadReplyHeaderPlugin
 	PostRegPlugin             = tp.PostRegPlugin
-	PostSession               = tp.PostSession
 	PostWritePullPlugin       = tp.PostWritePullPlugin
 	PostWritePushPlugin       = tp.PostWritePushPlugin
 	PostWriteReplyPlugin      = tp.PostWriteReplyPlugin
@@ -58,7 +62,6 @@ type (
 	PreReadPullBodyPlugin     = tp.PreReadPullBodyPlugin
 	PreReadPushBodyPlugin     = tp.PreReadPushBodyPlugin
 	PreReadReplyBodyPlugin    = tp.PreReadReplyBodyPlugin
-	PreSession                = tp.PreSession
 	PreWritePullPlugin        = tp.PreWritePullPlugin
 	PreWritePushPlugin        = tp.PreWritePushPlugin
 	PreWriteReplyPlugin       = tp.PreWriteReplyPlugin
@@ -67,7 +70,6 @@ type (
 	PushCtx                   = tp.PushCtx
 	ReadCtx                   = tp.ReadCtx
 	Rerror                    = tp.Rerror
-	Session                   = tp.Session
 	UnknownPullCtx            = tp.UnknownPullCtx
 	UnknownPushCtx            = tp.UnknownPushCtx
 	WriteCtx                  = tp.WriteCtx
