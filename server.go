@@ -41,6 +41,7 @@ type SrvConfig struct {
 	Network             string        `yaml:"network"                ini:"network"                comment:"Network; tcp, tcp4, tcp6, unix or unixpacket"`
 	ListenAddress       string        `yaml:"listen_address"         ini:"listen_address"         comment:"Listen address; for server role"`
 	Heartbeat           time.Duration `yaml:"heartbeat"              ini:"heartbeat"              comment:"When the heartbeat interval is greater than 0, heartbeat is enabled; ns,µs,ms,s,m,h"`
+	RouterRoot          string        `yaml:"router_root"            ini:"router_root"            comment:"The root router group"`
 }
 
 // Reload Bi-directionally synchronizes config between YAML file and memory.
@@ -58,13 +59,14 @@ func (s *SrvConfig) peerConfig() tp.PeerConfig {
 		CountTime:           s.CountTime,
 		Network:             s.Network,
 		ListenAddress:       s.ListenAddress,
+		RouterRoot:          s.RouterRoot,
 	}
 }
 
 // Server server peer
 type Server struct {
-	peer                   *tp.Peer
-	PullRouter, PushRouter *tp.RootRouter
+	peer      *tp.Peer
+	rootGroup string
 }
 
 // NewServer creates a server peer.
@@ -84,10 +86,35 @@ func NewServer(cfg SrvConfig, plugin ...tp.Plugin) *Server {
 		}
 	}
 	return &Server{
-		peer:       peer,
-		PullRouter: peer.PullRouter,
-		PushRouter: peer.PushRouter,
+		peer: peer,
 	}
+}
+
+// Group adds handler group.
+func (s *Server) Group(pathPrefix string, plugin ...tp.Plugin) *tp.Router {
+	return s.peer.Group(pathPrefix, plugin...)
+}
+
+// RegPull registers PULL handler.
+func (s *Server) RegPull(ctrlStruct interface{}, plugin ...tp.Plugin) {
+	s.peer.RegPull(ctrlStruct, plugin...)
+}
+
+// RegPush registers PUSH handler.
+func (s *Server) RegPush(ctrlStruct interface{}, plugin ...tp.Plugin) {
+	s.peer.RegPush(ctrlStruct, plugin...)
+}
+
+// SetUnknownPull sets the default handler,
+// which is called when no handler for PULL is found.
+func (s *Server) SetUnknownPull(fn func(UnknownPullCtx) (interface{}, *Rerror), plugin ...tp.Plugin) {
+	s.peer.SetUnknownPull(fn, plugin...)
+}
+
+// SetUnknownPush sets the default handler,
+// which is called when no handler for PUSH is found.
+func (s *Server) SetUnknownPush(fn func(UnknownPushCtx) *Rerror, plugin ...tp.Plugin) {
+	s.peer.SetUnknownPush(fn, plugin...)
 }
 
 // Close closes server.

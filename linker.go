@@ -57,5 +57,3 @@ func (d *staticLinker) EventDel() <-chan string {
 func (d *staticLinker) Close() {
 	close(d.ch)
 }
-
-// dynamic linker

@@ -17,6 +17,6 @@ func (p *P) Divide(args *Args) (int, *ants.Rerror) {
 
 func main() {
 	srv := ants.NewServer(ants.SrvConfig{ListenAddress: ":9090"})
-	srv.PullRouter.Reg(new(P))
+	srv.RegPull(new(P))
 	srv.Listen()
 }

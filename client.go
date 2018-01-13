@@ -57,6 +57,7 @@ func (c *CliConfig) Reload(bind cfgo.BindFunc) error {
 	}
 	return c.check()
 }
+
 func (c *CliConfig) check() error {
 	if c.SessMaxQuota <= 0 {
 		c.SessMaxQuota = 100
