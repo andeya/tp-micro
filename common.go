@@ -87,6 +87,10 @@ var (
 	// Reboot func Reboot(timeout ...time.Duration)
 	Reboot = tp.Reboot
 
+	// IsConnRerror determines whether the error is a connection error
+	//  func IsConnRerror(rerr *Rerror) bool
+	IsConnRerror = tp.IsConnRerror
+
 	// Go func Go(fn func()) bool
 	Go = tp.Go
 

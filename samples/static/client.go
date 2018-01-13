@@ -6,7 +6,7 @@ import (
 
 func main() {
 	cli := ants.NewClient(
-		ants.CliConfig{},
+		ants.CliConfig{Failover: 3},
 		ants.NewStaticLinker(":9090"),
 	)
 
@@ -20,6 +20,9 @@ func main() {
 		A: 10,
 		B: 2,
 	}, &reply).Rerror()
+	if ants.IsConnRerror(rerr) {
+		ants.Fatalf("has conn rerror: %v", rerr)
+	}
 	if rerr != nil {
 		ants.Fatalf("%v", rerr)
 	}
@@ -28,6 +31,9 @@ func main() {
 		A: 10,
 		B: 0,
 	}, &reply).Rerror()
+	if ants.IsConnRerror(rerr) {
+		ants.Fatalf("has conn rerror: %v", rerr)
+	}
 	if rerr == nil {
 		ants.Fatalf("%v", rerr)
 	}

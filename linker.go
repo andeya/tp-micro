@@ -20,7 +20,11 @@ import (
 
 // Linker linker for client.
 type Linker interface {
-	Select(uriPath string) (string, *tp.Rerror)
+	// Select selects a service address by URI path.
+	Select(uriPath string) (addr string, rerr *tp.Rerror)
+	// EventDel pushs service node offline notification.
+	EventDel() <-chan string
+	// Close closes the linker.
 	Close()
 }
 
@@ -30,17 +34,28 @@ type Linker interface {
 func NewStaticLinker(srvAddr string) Linker {
 	return &staticLinker{
 		srvAddr: srvAddr,
+		ch:      make(chan string),
 	}
 }
 
 type staticLinker struct {
 	srvAddr string
+	ch      chan string
 }
 
+// Select selects a service address by URI path.
 func (d *staticLinker) Select(string) (string, *tp.Rerror) {
 	return d.srvAddr, nil
 }
 
-func (d *staticLinker) Close() {}
+// EventDel pushs service node offline notification.
+func (d *staticLinker) EventDel() <-chan string {
+	return d.ch
+}
+
+// Close closes the linker.
+func (d *staticLinker) Close() {
+	close(d.ch)
+}
 
 // dynamic linker

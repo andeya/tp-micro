@@ -37,7 +37,8 @@ type CliConfig struct {
 	DefaultReadTimeout  time.Duration `yaml:"default_read_timeout"   ini:"default_read_timeout"   comment:"Default maximum duration for reading; ns,µs,ms,s,m,h"`
 	DefaultWriteTimeout time.Duration `yaml:"default_write_timeout"  ini:"default_write_timeout"  comment:"Default maximum duration for writing; ns,µs,ms,s,m,h"`
 	DefaultDialTimeout  time.Duration `yaml:"default_dial_timeout"   ini:"default_dial_timeout"   comment:"Default maximum duration for dialing; for client role; ns,µs,ms,s,m,h"`
-	RedialTimes         int32         `yaml:"redial_times"           ini:"redial_times"           comment:"The maximum times of attempts to redial, after the connection has been unexpectedly broken; for client role"`
+	RedialTimes         int           `yaml:"redial_times"           ini:"redial_times"           comment:"The maximum times of attempts to redial, after the connection has been unexpectedly broken; for client role"`
+	Failover            int           `yaml:"failover"               ini:"failover"               comment:"The maximum times of failover"`
 	SlowCometDuration   time.Duration `yaml:"slow_comet_duration"    ini:"slow_comet_duration"    comment:"Slow operation alarm threshold; ns,µs,ms,s ..."`
 	DefaultBodyCodec    string        `yaml:"default_body_codec"     ini:"default_body_codec"     comment:"Default body codec type id"`
 	PrintBody           bool          `yaml:"print_body"             ini:"print_body"             comment:"Is print body or not"`
@@ -63,6 +64,9 @@ func (c *CliConfig) check() error {
 	if c.SessMaxIdleDuration <= 0 {
 		c.SessMaxIdleDuration = time.Minute * 3
 	}
+	if c.Failover < 0 {
+		c.Failover = 0
+	}
 	return nil
 }
 
@@ -71,7 +75,7 @@ func (c *CliConfig) peerConfig() tp.PeerConfig {
 		DefaultReadTimeout:  c.DefaultReadTimeout,
 		DefaultWriteTimeout: c.DefaultWriteTimeout,
 		DefaultDialTimeout:  c.DefaultDialTimeout,
-		RedialTimes:         c.RedialTimes,
+		RedialTimes:         int32(c.RedialTimes),
 		SlowCometDuration:   c.SlowCometDuration,
 		DefaultBodyCodec:    c.DefaultBodyCodec,
 		PrintBody:           c.PrintBody,
@@ -90,6 +94,7 @@ type Client struct {
 	sessMaxIdleDuration time.Duration
 	closeCh             chan struct{}
 	closeMu             sync.Mutex
+	maxTry              int
 }
 
 // NewClient creates a client peer.
@@ -107,7 +112,7 @@ func NewClient(cfg CliConfig, linker Linker, plugin ...tp.Plugin) *Client {
 			tp.Fatalf("%v", err)
 		}
 	}
-	return &Client{
+	cli := &Client{
 		peer:                peer,
 		protoFunc:           socket.DefaultProtoFunc(),
 		linker:              linker,
@@ -115,7 +120,10 @@ func NewClient(cfg CliConfig, linker Linker, plugin ...tp.Plugin) *Client {
 		sessMaxQuota:        cfg.SessMaxQuota,
 		sessMaxIdleDuration: cfg.SessMaxIdleDuration,
 		closeCh:             make(chan struct{}),
+		maxTry:              cfg.Failover + 1,
 	}
+	go cli.watchEventDel()
+	return cli
 }
 
 // SetProtoFunc sets socket.ProtoFunc.
@@ -143,7 +151,17 @@ func (c *Client) Pull(uri string, args interface{}, reply interface{}, setting .
 	if rerr != nil {
 		return cliSession.NewFakePullCmd(c.peer, uri, args, reply, rerr, setting...)
 	}
-	return cliSess.Pull(uri, args, reply, setting...)
+	var r tp.PullCmd
+	for i := 0; i < c.maxTry; i++ {
+		r = cliSess.Pull(uri, args, reply, setting...)
+		if !tp.IsConnRerror(r.Rerror()) {
+			return r
+		}
+		if i > 0 {
+			tp.Debugf("the %dth failover is triggered because: %s", i, r.Rerror().String())
+		}
+	}
+	return r
 }
 
 // Push sends a packet, but do not receives reply.
@@ -155,7 +173,16 @@ func (c *Client) Push(uri string, args interface{}, setting ...socket.PacketSett
 	if rerr != nil {
 		return rerr
 	}
-	return cliSess.Push(uri, args, setting...)
+	for i := 0; i < c.maxTry; i++ {
+		rerr = cliSess.Push(uri, args, setting...)
+		if !tp.IsConnRerror(rerr) {
+			return nil
+		}
+		if i > 0 {
+			tp.Debugf("the %dth failover is triggered because: %s", i, rerr.String())
+		}
+	}
+	return rerr
 }
 
 // Close closes client.
@@ -197,4 +224,16 @@ func (c *Client) getCliSession(uri string) (*cliSession.CliSession, *tp.Rerror) 
 	)
 	c.cliSessPool.Store(addr, cliSess)
 	return cliSess, nil
+}
+
+func (c *Client) watchEventDel() {
+	ch := c.linker.EventDel()
+	for addr := range <-ch {
+		_cliSess, ok := c.cliSessPool.Load(addr)
+		if !ok {
+			continue
+		}
+		c.cliSessPool.Delete(addr)
+		tp.Go(_cliSess.(*cliSession.CliSession).Close)
+	}
 }
