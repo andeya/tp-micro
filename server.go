@@ -97,14 +97,14 @@ func (s *Server) SubRoute(pathPrefix string, plugin ...tp.Plugin) *tp.Router {
 	return s.peer.SubRoute(pathPrefix, plugin...)
 }
 
-// RegPull registers PULL handler.
-func (s *Server) RegPull(ctrlStruct interface{}, plugin ...tp.Plugin) {
-	s.peer.RegPull(ctrlStruct, plugin...)
+// RoutePull registers PULL handler.
+func (s *Server) RoutePull(ctrlStruct interface{}, plugin ...tp.Plugin) {
+	s.peer.RoutePull(ctrlStruct, plugin...)
 }
 
-// RegPush registers PUSH handler.
-func (s *Server) RegPush(ctrlStruct interface{}, plugin ...tp.Plugin) {
-	s.peer.RegPush(ctrlStruct, plugin...)
+// RoutePush registers PUSH handler.
+func (s *Server) RoutePush(ctrlStruct interface{}, plugin ...tp.Plugin) {
+	s.peer.RoutePush(ctrlStruct, plugin...)
 }
 
 // SetUnknownPull sets the default handler,

@@ -20,6 +20,6 @@ func main() {
 		ListenAddress: ":9090",
 		RouterRoot:    "/static",
 	})
-	srv.RegPull(new(P))
+	srv.RoutePull(new(P))
 	srv.Listen()
 }
