@@ -72,7 +72,7 @@ type Server struct {
 func NewServer(cfg SrvConfig, plugin ...tp.Plugin) *Server {
 	plugin = append(
 		[]tp.Plugin{
-			pluginPkg.NewRouterRootSetting(cfg.RouterRoot),
+			pluginPkg.RootRoute(cfg.RouterRoot),
 			binder.NewStructArgsBinder(RerrCodeBind, "invalid parameter"),
 		},
 		plugin...,
