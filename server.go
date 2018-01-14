@@ -92,9 +92,9 @@ func NewServer(cfg SrvConfig, plugin ...tp.Plugin) *Server {
 	}
 }
 
-// Group adds handler group.
-func (s *Server) Group(pathPrefix string, plugin ...tp.Plugin) *tp.Router {
-	return s.peer.Group(pathPrefix, plugin...)
+// SubRoute adds handler group.
+func (s *Server) SubRoute(pathPrefix string, plugin ...tp.Plugin) *tp.Router {
+	return s.peer.SubRoute(pathPrefix, plugin...)
 }
 
 // RegPull registers PULL handler.
