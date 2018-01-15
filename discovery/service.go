@@ -140,7 +140,7 @@ func (s *service) keepAlive() (<-chan *clientv3.LeaseKeepAliveResponse, error) {
 
 	ch, err := s.client.KeepAlive(context.TODO(), resp.ID)
 	if err == nil {
-		tp.Printf("%s: PUT (K: %s, V: %s)", s.Name(), s.serviceKey, info)
+		tp.Printf("%s: PUT %q : %q", s.Name(), s.serviceKey, info)
 	}
 	return ch, err
 }
