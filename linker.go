@@ -24,8 +24,8 @@ type Linker interface {
 	Select(uriPath string) (addr string, rerr *tp.Rerror)
 	// EventDel pushs service node offline notification.
 	EventDel() <-chan string
-	// Void voids this address.
-	Void(addr string)
+	// Sick marks the address status is unhealthy.
+	Sick(addr string)
 	// Close closes the linker.
 	Close()
 }
@@ -55,8 +55,8 @@ func (d *staticLinker) EventDel() <-chan string {
 	return d.ch
 }
 
-// Void voids this address.
-func (d *staticLinker) Void(string) {}
+// Sick marks the address status is unhealthy.
+func (d *staticLinker) Sick(string) {}
 
 // Close closes the linker.
 func (d *staticLinker) Close() {

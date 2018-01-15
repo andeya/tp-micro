@@ -249,7 +249,7 @@ func (c *Client) delCliSession(cliSess *cliSession.CliSession) {
 		return
 	default:
 	}
-	c.linker.Void(cliSess.Addr())
+	c.linker.Sick(cliSess.Addr())
 	c.cliSessPool.Delete(cliSess.Addr())
 	tp.Go(cliSess.Close)
 }
