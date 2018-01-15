@@ -17,13 +17,27 @@
 package discovery
 
 import (
+	"encoding/json"
+	"strings"
+	"sync"
+	"time"
+
 	"github.com/coreos/etcd/clientv3"
+	"github.com/henrylee2cn/goutil"
 )
 
 const (
 	// serviceNamespace the service prefix of ETCD key
 	serviceNamespace = "ANTS-SRV@"
 )
+
+func createServiceKey(addr string) string {
+	return serviceNamespace + addr
+}
+
+func getAddr(serviceKey string) string {
+	return strings.TrimPrefix(serviceKey, serviceNamespace)
+}
 
 func newEtcdClient(endpoints []string) (*clientv3.Client, error) {
 	return clientv3.New(clientv3.Config{
@@ -34,13 +48,21 @@ func newEtcdClient(endpoints []string) (*clientv3.Client, error) {
 
 // ServiceInfo serivce info
 type ServiceInfo struct {
-	Apis []string
-	mu   sync.RWMutex
+	UriPaths []string `json:"uri_paths"`
+	mu       sync.RWMutex
 }
 
+// String returns the JSON string.
 func (s *ServiceInfo) String() string {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	b, _ := json.Marshal(s)
 	return goutil.BytesToString(b)
+}
+
+// Append appends api
+func (s *ServiceInfo) Append(api ...string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.UriPaths = append(s.UriPaths, api...)
 }

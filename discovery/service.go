@@ -17,12 +17,9 @@ package discovery
 
 import (
 	"context"
-	"encoding/json"
-	"sync"
 	"time"
 
 	"github.com/coreos/etcd/clientv3"
-	"github.com/henrylee2cn/goutil"
 	tp "github.com/henrylee2cn/teleport"
 )
 
@@ -62,7 +59,7 @@ func ServicePlugin(addr string, endpoints []string, excludeApis ...string) tp.Pl
 func ServicePluginFromEtcd(addr string, etcdClient *clientv3.Client, excludeApis ...string) tp.Plugin {
 	return &service{
 		addr:        addr,
-		serviceKey:  serviceNamespace + addr,
+		serviceKey:  createServiceKey(addr),
 		excludeApis: excludeApis,
 		client:      etcdClient,
 		serviceInfo: new(ServiceInfo),
@@ -74,15 +71,13 @@ func (s *service) Name() string {
 }
 
 func (s *service) PostReg(handler *tp.Handler) error {
-	api := handler.Name()
+	uriPath := handler.Name()
 	for _, a := range s.excludeApis {
-		if a == api {
+		if a == uriPath {
 			return nil
 		}
 	}
-	s.apisMu.Lock()
-	s.apis = append(s.apis, api)
-	s.apisMu.Unlock()
+	s.serviceInfo.Append(uriPath)
 	return nil
 }
 
@@ -129,10 +124,12 @@ func (s *service) keepAlive() (<-chan *clientv3.LeaseKeepAliveResponse, error) {
 		return nil, err
 	}
 
+	info := s.serviceInfo.String()
+
 	_, err = s.client.Put(
 		context.TODO(),
 		s.serviceKey,
-		s.serviceInfo.String(),
+		info,
 		clientv3.WithLease(resp.ID),
 	)
 	if err != nil {
@@ -141,7 +138,11 @@ func (s *service) keepAlive() (<-chan *clientv3.LeaseKeepAliveResponse, error) {
 
 	s.leaseid = resp.ID
 
-	return s.client.KeepAlive(context.TODO(), resp.ID)
+	ch, err := s.client.KeepAlive(context.TODO(), resp.ID)
+	if err == nil {
+		tp.Printf("%s: PUT (K: %s, V: %s)", s.Name(), s.serviceKey, info)
+	}
+	return ch, err
 }
 
 func (s *service) revoke() {
