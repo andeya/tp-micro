@@ -34,8 +34,10 @@ type linker struct {
 
 const (
 	linkerName = "ETCD(ANTS-LINKER)"
-	Health     = 0
-	SubHealth  = -1
+	// health health state
+	health = 0
+	// subHealth sub-health state
+	subHealth = -1
 )
 
 // NewLinker creates a etct service linker.
@@ -68,7 +70,7 @@ func (l *linker) addNode(key string, info *ServiceInfo) {
 	node := &Node{
 		Addr:  addr,
 		Info:  *info,
-		State: Health,
+		State: health,
 	}
 	l.nodes.Store(addr, node)
 	var (
@@ -148,6 +150,7 @@ func getServiceInfo(value []byte) *ServiceInfo {
 	return info
 }
 
+// NotFoundService reply error: not found service
 var NotFoundService = tp.NewRerror(tp.CodeDialFailed, "Dial Failed", "not found service")
 
 // Select selects a service address by URI path.
@@ -163,7 +166,7 @@ func (l *linker) Select(uriPath string) (string, *tp.Rerror) {
 	var node *Node
 	for i := 0; i < nodes.Len(); i++ {
 		if _, iface, exist = nodes.Random(); exist {
-			if node = iface.(*Node); node.getState() == Health {
+			if node = iface.(*Node); node.getState() == health {
 				return node.Addr, nil
 			}
 		}
@@ -183,7 +186,7 @@ func (l *linker) EventDel() <-chan string {
 func (l *linker) Sick(addr string) {
 	_node, ok := l.nodes.Load(addr)
 	if ok {
-		_node.(*Node).setState(SubHealth)
+		_node.(*Node).setState(subHealth)
 	}
 }
 
