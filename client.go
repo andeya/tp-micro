@@ -148,16 +148,22 @@ func (c *Client) AsyncPull(uri string, args interface{}, reply interface{}, done
 // If the args is []byte or *[]byte type, it can automatically fill in the body codec name;
 // If the session is a client role and PeerConfig.RedialTimes>0, it is automatically re-called once after a failure.
 func (c *Client) Pull(uri string, args interface{}, reply interface{}, setting ...socket.PacketSetting) tp.PullCmd {
-	cliSess, rerr := c.getCliSession(uri)
-	if rerr != nil {
-		return cliSession.NewFakePullCmd(c.peer, uri, args, reply, rerr, setting...)
-	}
-	var r tp.PullCmd
+	var (
+		cliSess *cliSession.CliSession
+		rerr    *tp.Rerror
+		r       tp.PullCmd
+		uriPath = getUriPath(uri)
+	)
 	for i := 0; i < c.maxTry; i++ {
+		cliSess, rerr = c.getCliSession(uriPath)
+		if rerr != nil {
+			return cliSession.NewFakePullCmd(c.peer, uri, args, reply, rerr, setting...)
+		}
 		r = cliSess.Pull(uri, args, reply, setting...)
 		if !tp.IsConnRerror(r.Rerror()) {
 			return r
 		}
+		c.delCliSession(cliSess)
 		if i > 0 {
 			tp.Debugf("the %dth failover is triggered because: %s", i, r.Rerror().String())
 		}
@@ -170,15 +176,21 @@ func (c *Client) Pull(uri string, args interface{}, reply interface{}, setting .
 // If the args is []byte or *[]byte type, it can automatically fill in the body codec name;
 // If the session is a client role and PeerConfig.RedialTimes>0, it is automatically re-called once after a failure.
 func (c *Client) Push(uri string, args interface{}, setting ...socket.PacketSetting) *tp.Rerror {
-	cliSess, rerr := c.getCliSession(uri)
-	if rerr != nil {
-		return rerr
-	}
+	var (
+		cliSess *cliSession.CliSession
+		rerr    *tp.Rerror
+		uriPath = getUriPath(uri)
+	)
 	for i := 0; i < c.maxTry; i++ {
+		cliSess, rerr = c.getCliSession(uriPath)
+		if rerr != nil {
+			return rerr
+		}
 		rerr = cliSess.Push(uri, args, setting...)
 		if !tp.IsConnRerror(rerr) {
-			return nil
+			return rerr
 		}
+		c.delCliSession(cliSess)
 		if i > 0 {
 			tp.Debugf("the %dth failover is triggered because: %s", i, rerr.String())
 		}
@@ -200,16 +212,20 @@ func (c *Client) Close() {
 	}
 }
 
-func (c *Client) getCliSession(uri string) (*cliSession.CliSession, *tp.Rerror) {
+func getUriPath(uri string) string {
+	if idx := strings.Index(uri, "?"); idx != -1 {
+		return uri[:idx]
+	}
+	return uri
+}
+
+func (c *Client) getCliSession(uriPath string) (*cliSession.CliSession, *tp.Rerror) {
 	select {
 	case <-c.closeCh:
 		return nil, RerrClosed
 	default:
 	}
-	if idx := strings.Index(uri, "?"); idx != -1 {
-		uri = uri[:idx]
-	}
-	addr, rerr := c.linker.Select(uri)
+	addr, rerr := c.linker.Select(uriPath)
 	if rerr != nil {
 		return nil, rerr
 	}
@@ -225,6 +241,17 @@ func (c *Client) getCliSession(uri string) (*cliSession.CliSession, *tp.Rerror) 
 	)
 	c.cliSessPool.Store(addr, cliSess)
 	return cliSess, nil
+}
+
+func (c *Client) delCliSession(cliSess *cliSession.CliSession) {
+	select {
+	case <-c.closeCh:
+		return
+	default:
+	}
+	c.linker.Void(cliSess.Addr())
+	c.cliSessPool.Delete(cliSess.Addr())
+	tp.Go(cliSess.Close)
 }
 
 func (c *Client) watchEventDel() {
