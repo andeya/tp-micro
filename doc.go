@@ -1,4 +1,4 @@
-// Ants is a set of microservices-system based on Teleport framework and similar to lightweight service mesh.
+// Package ants is a set of microservices-system based on Teleport framework and similar to lightweight service mesh.
 //
 // Copyright 2017 HenryLee. All Rights Reserved.
 //
@@ -13,4 +13,5 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+//
 package ants

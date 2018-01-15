@@ -1,5 +1,3 @@
-// Package discovery is the service discovery module implemented by ETCD.
-//
 // Copyright 2017 HenryLee. All Rights Reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");

@@ -1,5 +1,3 @@
-// Package discovery is the service discovery module implemented by ETCD.
-//
 // Copyright 2017 HenryLee. All Rights Reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -50,7 +48,7 @@ func NewLinker(endpoints []string) ants.Linker {
 	return NewLinkerFromEtcd(etcdClient)
 }
 
-// NewLinker creates a etct service linker.
+// NewLinkerFromEtcd creates a etct service linker.
 func NewLinkerFromEtcd(etcdClient *clientv3.Client) ants.Linker {
 	l := &linker{
 		client:   etcdClient,
