@@ -163,7 +163,7 @@ func (c *Client) Pull(uri string, args interface{}, reply interface{}, setting .
 		if !tp.IsConnRerror(r.Rerror()) {
 			return r
 		}
-		c.delCliSession(cliSess)
+		c.linker.Sick(cliSess.Addr())
 		if i > 0 {
 			tp.Debugf("the %dth failover is triggered because: %s", i, r.Rerror().String())
 		}
@@ -190,7 +190,7 @@ func (c *Client) Push(uri string, args interface{}, setting ...socket.PacketSett
 		if !tp.IsConnRerror(rerr) {
 			return rerr
 		}
-		c.delCliSession(cliSess)
+		c.linker.Sick(cliSess.Addr())
 		if i > 0 {
 			tp.Debugf("the %dth failover is triggered because: %s", i, rerr.String())
 		}
@@ -243,17 +243,6 @@ func (c *Client) getCliSession(uriPath string) (*cliSession.CliSession, *tp.Rerr
 	return cliSess, nil
 }
 
-func (c *Client) delCliSession(cliSess *cliSession.CliSession) {
-	select {
-	case <-c.closeCh:
-		return
-	default:
-	}
-	c.linker.Sick(cliSess.Addr())
-	c.cliSessPool.Delete(cliSess.Addr())
-	tp.Go(cliSess.Close)
-}
-
 func (c *Client) watchEventDel() {
 	ch := c.linker.EventDel()
 	for addr := range <-ch {
@@ -265,3 +254,14 @@ func (c *Client) watchEventDel() {
 		tp.Go(_cliSess.(*cliSession.CliSession).Close)
 	}
 }
+
+// func (c *Client) delCliSession(cliSess *cliSession.CliSession) {
+// 	select {
+// 	case <-c.closeCh:
+// 		return
+// 	default:
+// 	}
+// 	c.linker.Sick(cliSess.Addr())
+// 	c.cliSessPool.Delete(cliSess.Addr())
+// 	tp.Go(cliSess.Close)
+// }
