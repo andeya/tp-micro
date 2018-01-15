@@ -60,9 +60,9 @@ func (s *ServiceInfo) String() string {
 	return goutil.BytesToString(b)
 }
 
-// Append appends api
-func (s *ServiceInfo) Append(api ...string) {
+// Append appends uri path
+func (s *ServiceInfo) Append(uriPath ...string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.UriPaths = append(s.UriPaths, api...)
+	s.UriPaths = append(s.UriPaths, uriPath...)
 }

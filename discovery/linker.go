@@ -28,10 +28,10 @@ import (
 )
 
 type linker struct {
-	client *clientv3.Client
-	nodes  goutil.Map
-	apis   goutil.Map
-	delCh  chan string
+	client   *clientv3.Client
+	nodes    goutil.Map
+	uriPaths goutil.Map
+	delCh    chan string
 }
 
 const (
@@ -53,10 +53,10 @@ func NewLinker(endpoints []string) ants.Linker {
 // NewLinker creates a etct service linker.
 func NewLinkerFromEtcd(etcdClient *clientv3.Client) ants.Linker {
 	l := &linker{
-		client: etcdClient,
-		nodes:  goutil.AtomicMap(),
-		apis:   goutil.AtomicMap(),
-		delCh:  make(chan string, 256),
+		client:   etcdClient,
+		nodes:    goutil.AtomicMap(),
+		uriPaths: goutil.AtomicMap(),
+		delCh:    make(chan string, 256),
 	}
 	if err := l.initNodes(); err != nil {
 		tp.Fatalf("%s: %v", linkerName, err)
@@ -74,18 +74,18 @@ func (l *linker) addNode(key string, info *ServiceInfo) {
 	}
 	l.nodes.Store(addr, node)
 	var (
-		v      interface{}
-		ok     bool
-		apiMap goutil.Map
+		v          interface{}
+		ok         bool
+		uriPathMap goutil.Map
 	)
 	for _, uriPath := range info.UriPaths {
-		if v, ok = l.apis.Load(uriPath); !ok {
-			apiMap = goutil.RwMap(1)
-			apiMap.Store(addr, node)
-			l.apis.Store(uriPath, apiMap)
+		if v, ok = l.uriPaths.Load(uriPath); !ok {
+			uriPathMap = goutil.RwMap(1)
+			uriPathMap.Store(addr, node)
+			l.uriPaths.Store(uriPath, uriPathMap)
 		} else {
-			apiMap = v.(goutil.Map)
-			apiMap.Store(addr, node)
+			uriPathMap = v.(goutil.Map)
+			uriPathMap.Store(addr, node)
 		}
 	}
 }
@@ -98,15 +98,15 @@ func (l *linker) delNode(key string) {
 	}
 	l.nodes.Delete(addr)
 	for _, uriPath := range _node.(*Node).Info.UriPaths {
-		_apiMap, ok := l.apis.Load(uriPath)
+		_uriPathMap, ok := l.uriPaths.Load(uriPath)
 		if !ok {
 			continue
 		}
-		apiMap := _apiMap.(goutil.Map)
-		if _, ok := apiMap.Load(addr); ok {
-			apiMap.Delete(addr)
-			if apiMap.Len() == 0 {
-				l.apis.Delete(uriPath)
+		uriPathMap := _uriPathMap.(goutil.Map)
+		if _, ok := uriPathMap.Load(addr); ok {
+			uriPathMap.Delete(addr)
+			if uriPathMap.Len() == 0 {
+				l.uriPaths.Delete(uriPath)
 			}
 		}
 	}
@@ -154,7 +154,7 @@ var NotFoundService = tp.NewRerror(tp.CodeDialFailed, "Dial Failed", "not found 
 
 // Select selects a service address by URI path.
 func (l *linker) Select(uriPath string) (string, *tp.Rerror) {
-	iface, exist := l.apis.Load(uriPath)
+	iface, exist := l.uriPaths.Load(uriPath)
 	if !exist {
 		return "", NotFoundService
 	}
