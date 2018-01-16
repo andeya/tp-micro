@@ -60,6 +60,7 @@ func main() {
 		ants.CliConfig{},
 		ants.NewStaticLinker(":9090"),
 	)
+	defer	cli.Close()
 
 	type Args struct {
 		A int
@@ -83,17 +84,6 @@ func main() {
 		ants.Fatalf("%v", rerr)
 	}
 	ants.Infof("test binding error: ok: %v", rerr)
-
-	cli.Close()
-	rerr = cli.Pull("/p/divide", &Args{
-		A: 10,
-		B: 5,
-	}, &reply).Rerror()
-	if rerr == nil {
-		ants.Fatalf("test closing client: fail")
-	}
-	ants.Infof("test closing client: ok: %v", rerr)
-}
 ```
 
 [More](https://github.com/henrylee2cn/ants/tree/master/samples)
