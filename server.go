@@ -109,13 +109,13 @@ func (s *Server) RoutePush(ctrlStruct interface{}, plugin ...tp.Plugin) {
 
 // SetUnknownPull sets the default handler,
 // which is called when no handler for PULL is found.
-func (s *Server) SetUnknownPull(fn func(UnknownPullCtx) (interface{}, *Rerror), plugin ...tp.Plugin) {
+func (s *Server) SetUnknownPull(fn func(tp.UnknownPullCtx) (interface{}, *tp.Rerror), plugin ...tp.Plugin) {
 	s.peer.SetUnknownPull(fn, plugin...)
 }
 
 // SetUnknownPush sets the default handler,
 // which is called when no handler for PUSH is found.
-func (s *Server) SetUnknownPush(fn func(UnknownPushCtx) *Rerror, plugin ...tp.Plugin) {
+func (s *Server) SetUnknownPush(fn func(tp.UnknownPushCtx) *tp.Rerror, plugin ...tp.Plugin) {
 	s.peer.SetUnknownPush(fn, plugin...)
 }
 
