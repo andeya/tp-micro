@@ -23,8 +23,8 @@ import (
 	"github.com/henrylee2cn/goutil"
 	tp "github.com/henrylee2cn/teleport"
 	"github.com/henrylee2cn/teleport/socket"
+	cliSession "github.com/henrylee2cn/tp-ext/mod-cliSession"
 	heartbeat "github.com/henrylee2cn/tp-ext/plugin-heartbeat"
-	cliSession "github.com/henrylee2cn/tp-ext/sundry-cliSession"
 )
 
 // CliConfig client config
