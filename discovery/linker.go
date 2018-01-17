@@ -33,7 +33,7 @@ type linker struct {
 }
 
 const (
-	linkerName = "ETCD(ANTS-LINKER)"
+	linkerName = "ETCD(ANT-LINKER)"
 	// health health state
 	health = 0
 	// subHealth sub-health state
@@ -69,7 +69,7 @@ func (l *linker) addNode(key string, info *ServiceInfo) {
 	addr := getAddr(key)
 	node := &Node{
 		Addr:  addr,
-		Info:  *info,
+		Info:  info,
 		State: health,
 	}
 	l.nodes.Store(addr, node)
@@ -199,7 +199,7 @@ func (l *linker) Close() {
 // Node a service node info.
 type Node struct {
 	Addr  string
-	Info  ServiceInfo
+	Info  *ServiceInfo
 	State int8
 	mu    sync.RWMutex
 }

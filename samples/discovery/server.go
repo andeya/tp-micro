@@ -6,13 +6,18 @@ import (
 	tp "github.com/henrylee2cn/teleport"
 )
 
+// Args args
 type Args struct {
 	A int
 	B int `param:"<range:1:>"`
 }
 
-type P struct{ tp.PullCtx }
+// P handler
+type P struct {
+	tp.PullCtx
+}
 
+// Divide divide API
 func (p *P) Divide(args *Args) (int, *tp.Rerror) {
 	return args.A / args.B, nil
 }

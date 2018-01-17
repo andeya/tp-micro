@@ -26,7 +26,7 @@ import (
 
 const (
 	// serviceNamespace the service prefix of ETCD key
-	serviceNamespace = "ANTS-SRV@"
+	serviceNamespace = "ANT-SRV@"
 )
 
 func createServiceKey(addr string) string {
