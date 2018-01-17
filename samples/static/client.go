@@ -1,13 +1,13 @@
 package main
 
 import (
-	"github.com/henrylee2cn/ants"
+	"github.com/henrylee2cn/ant"
 )
 
 func main() {
-	cli := ants.NewClient(
-		ants.CliConfig{Failover: 3},
-		ants.NewStaticLinker(":9090"),
+	cli := ant.NewClient(
+		ant.CliConfig{Failover: 3},
+		ant.NewStaticLinker(":9090"),
 	)
 
 	type Args struct {
@@ -20,24 +20,24 @@ func main() {
 		A: 10,
 		B: 2,
 	}, &reply).Rerror()
-	if ants.IsConnRerror(rerr) {
-		ants.Fatalf("has conn rerror: %v", rerr)
+	if ant.IsConnRerror(rerr) {
+		ant.Fatalf("has conn rerror: %v", rerr)
 	}
 	if rerr != nil {
-		ants.Fatalf("%v", rerr)
+		ant.Fatalf("%v", rerr)
 	}
-	ants.Infof("10/2=%d", reply)
+	ant.Infof("10/2=%d", reply)
 	rerr = cli.Pull("/static/p/divide", &Args{
 		A: 10,
 		B: 0,
 	}, &reply).Rerror()
-	if ants.IsConnRerror(rerr) {
-		ants.Fatalf("has conn rerror: %v", rerr)
+	if ant.IsConnRerror(rerr) {
+		ant.Fatalf("has conn rerror: %v", rerr)
 	}
 	if rerr == nil {
-		ants.Fatalf("%v", rerr)
+		ant.Fatalf("%v", rerr)
 	}
-	ants.Infof("test binding error: ok: %v", rerr)
+	ant.Infof("test binding error: ok: %v", rerr)
 
 	cli.Close()
 	rerr = cli.Pull("/static/p/divide", &Args{
@@ -45,7 +45,7 @@ func main() {
 		B: 5,
 	}, &reply).Rerror()
 	if rerr == nil {
-		ants.Fatalf("test closing client: fail")
+		ant.Fatalf("test closing client: fail")
 	}
-	ants.Infof("test closing client: ok: %v", rerr)
+	ant.Infof("test closing client: ok: %v", rerr)
 }

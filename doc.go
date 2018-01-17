@@ -1,4 +1,4 @@
-// Package ants is a set of microservices-system based on Teleport framework and similar to lightweight service mesh.
+// Package ant is a simple and flexible microservice framework based on Teleport.
 //
 // Copyright 2018 HenryLee. All Rights Reserved.
 //
@@ -14,4 +14,4 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-package ants
+package ant

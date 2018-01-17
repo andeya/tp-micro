@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/henrylee2cn/ants"
+	"github.com/henrylee2cn/ant"
 	tp "github.com/henrylee2cn/teleport"
 )
 
@@ -17,7 +17,7 @@ func (p *P) Divide(args *Args) (int, *tp.Rerror) {
 }
 
 func main() {
-	srv := ants.NewServer(ants.SrvConfig{
+	srv := ant.NewServer(ant.SrvConfig{
 		ListenAddress: ":9090",
 		RouterRoot:    "/static",
 	})

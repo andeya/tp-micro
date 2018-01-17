@@ -3,13 +3,13 @@ package main
 import (
 	"time"
 
-	"github.com/henrylee2cn/ants"
-	"github.com/henrylee2cn/ants/discovery"
+	"github.com/henrylee2cn/ant"
+	"github.com/henrylee2cn/ant/discovery"
 )
 
 func main() {
-	cli := ants.NewClient(
-		ants.CliConfig{Failover: 3},
+	cli := ant.NewClient(
+		ant.CliConfig{Failover: 3},
 		discovery.NewLinker([]string{"http://127.0.0.1:2379"}),
 	)
 
@@ -25,18 +25,18 @@ func main() {
 
 	rerr := cli.Pull("/static/p/divide", arg, &reply).Rerror()
 	if rerr != nil {
-		ants.Fatalf("%v", rerr)
+		ant.Fatalf("%v", rerr)
 	}
-	ants.Infof("10/2=%d", reply)
+	ant.Infof("10/2=%d", reply)
 
 	time.Sleep(time.Second * 15)
 
 	arg.B = 5
 	rerr = cli.Pull("/static/p/divide", arg, &reply).Rerror()
 	if rerr != nil {
-		ants.Fatalf("%v", rerr)
+		ant.Fatalf("%v", rerr)
 	}
-	ants.Infof("10/5=%d", reply)
+	ant.Infof("10/5=%d", reply)
 
 	time.Sleep(time.Second * 15)
 }
