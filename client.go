@@ -34,8 +34,8 @@ import (
 type CliConfig struct {
 	TlsCertFile         string        `yaml:"tls_cert_file"          ini:"tls_cert_file"          comment:"TLS certificate file path"`
 	TlsKeyFile          string        `yaml:"tls_key_file"           ini:"tls_key_file"           comment:"TLS key file path"`
-	DefaultReadTimeout  time.Duration `yaml:"default_read_timeout"   ini:"default_read_timeout"   comment:"Default maximum duration for reading; ns,µs,ms,s,m,h"`
-	DefaultWriteTimeout time.Duration `yaml:"default_write_timeout"  ini:"default_write_timeout"  comment:"Default maximum duration for writing; ns,µs,ms,s,m,h"`
+	DefaultSessionAge   time.Duration `yaml:"default_session_age"    ini:"default_session_age"    comment:"Default session max age, if less than or equal to 0, no time limit; ns,µs,ms,s,m,h"`
+	DefaultContextAge   time.Duration `yaml:"default_context_age"    ini:"default_context_age"    comment:"Default PULL or PUSH context max age, if less than or equal to 0, no time limit; ns,µs,ms,s,m,h"`
 	DefaultDialTimeout  time.Duration `yaml:"default_dial_timeout"   ini:"default_dial_timeout"   comment:"Default maximum duration for dialing; for client role; ns,µs,ms,s,m,h"`
 	RedialTimes         int           `yaml:"redial_times"           ini:"redial_times"           comment:"The maximum times of attempts to redial, after the connection has been unexpectedly broken; for client role"`
 	Failover            int           `yaml:"failover"               ini:"failover"               comment:"The maximum times of failover"`
@@ -73,15 +73,15 @@ func (c *CliConfig) check() error {
 
 func (c *CliConfig) peerConfig() tp.PeerConfig {
 	return tp.PeerConfig{
-		DefaultReadTimeout:  c.DefaultReadTimeout,
-		DefaultWriteTimeout: c.DefaultWriteTimeout,
-		DefaultDialTimeout:  c.DefaultDialTimeout,
-		RedialTimes:         int32(c.RedialTimes),
-		SlowCometDuration:   c.SlowCometDuration,
-		DefaultBodyCodec:    c.DefaultBodyCodec,
-		PrintBody:           c.PrintBody,
-		CountTime:           c.CountTime,
-		Network:             c.Network,
+		DefaultSessionAge:  c.DefaultSessionAge,
+		DefaultContextAge:  c.DefaultContextAge,
+		DefaultDialTimeout: c.DefaultDialTimeout,
+		RedialTimes:        int32(c.RedialTimes),
+		SlowCometDuration:  c.SlowCometDuration,
+		DefaultBodyCodec:   c.DefaultBodyCodec,
+		PrintBody:          c.PrintBody,
+		CountTime:          c.CountTime,
+		Network:            c.Network,
 	}
 }
 
@@ -137,7 +137,7 @@ func (c *Client) SetProtoFunc(protoFunc socket.ProtoFunc) {
 func (c *Client) AsyncPull(uri string, args interface{}, reply interface{}, done chan tp.PullCmd, setting ...socket.PacketSetting) {
 	cliSess, rerr := c.getCliSession(uri)
 	if rerr != nil {
-		done <- cliSession.NewFakePullCmd(c.peer, uri, args, reply, rerr, setting...)
+		done <- tp.NewFakePullCmd(c.peer, uri, args, reply, rerr)
 		return
 	}
 	cliSess.AsyncPull(uri, args, reply, done, setting...)
@@ -157,7 +157,7 @@ func (c *Client) Pull(uri string, args interface{}, reply interface{}, setting .
 	for i := 0; i < c.maxTry; i++ {
 		cliSess, rerr = c.getCliSession(uriPath)
 		if rerr != nil {
-			return cliSession.NewFakePullCmd(c.peer, uri, args, reply, rerr, setting...)
+			return tp.NewFakePullCmd(c.peer, uri, args, reply, rerr)
 		}
 		r = cliSess.Pull(uri, args, reply, setting...)
 		if !tp.IsConnRerror(r.Rerror()) {

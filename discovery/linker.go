@@ -20,7 +20,7 @@ import (
 	"sync"
 
 	"github.com/coreos/etcd/clientv3"
-	"github.com/henrylee2cn/ants"
+	"github.com/henrylee2cn/ant"
 	"github.com/henrylee2cn/goutil"
 	tp "github.com/henrylee2cn/teleport"
 )
@@ -41,7 +41,7 @@ const (
 )
 
 // NewLinker creates a etct service linker.
-func NewLinker(endpoints []string) ants.Linker {
+func NewLinker(endpoints []string) ant.Linker {
 	etcdClient, err := newEtcdClient(endpoints)
 	if err != nil {
 		tp.Fatalf("%s: %v", linkerName, err)
@@ -51,7 +51,7 @@ func NewLinker(endpoints []string) ants.Linker {
 }
 
 // NewLinkerFromEtcd creates a etct service linker.
-func NewLinkerFromEtcd(etcdClient *clientv3.Client) ants.Linker {
+func NewLinkerFromEtcd(etcdClient *clientv3.Client) ant.Linker {
 	l := &linker{
 		client:   etcdClient,
 		nodes:    goutil.AtomicMap(),

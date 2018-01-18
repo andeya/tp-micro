@@ -31,18 +31,18 @@ import (
 //  yaml tag is used for github.com/henrylee2cn/cfgo
 //  ini tag is used for github.com/henrylee2cn/ini
 type SrvConfig struct {
-	TlsCertFile         string        `yaml:"tls_cert_file"          ini:"tls_cert_file"          comment:"TLS certificate file path"`
-	TlsKeyFile          string        `yaml:"tls_key_file"           ini:"tls_key_file"           comment:"TLS key file path"`
-	DefaultReadTimeout  time.Duration `yaml:"default_read_timeout"   ini:"default_read_timeout"   comment:"Default maximum duration for reading; ns,µs,ms,s,m,h"`
-	DefaultWriteTimeout time.Duration `yaml:"default_write_timeout"  ini:"default_write_timeout"  comment:"Default maximum duration for writing; ns,µs,ms,s,m,h"`
-	SlowCometDuration   time.Duration `yaml:"slow_comet_duration"    ini:"slow_comet_duration"    comment:"Slow operation alarm threshold; ns,µs,ms,s ..."`
-	DefaultBodyCodec    string        `yaml:"default_body_codec"     ini:"default_body_codec"     comment:"Default body codec type id"`
-	PrintBody           bool          `yaml:"print_body"             ini:"print_body"             comment:"Is print body or not"`
-	CountTime           bool          `yaml:"count_time"             ini:"count_time"             comment:"Is count cost time or not"`
-	Network             string        `yaml:"network"                ini:"network"                comment:"Network; tcp, tcp4, tcp6, unix or unixpacket"`
-	ListenAddress       string        `yaml:"listen_address"         ini:"listen_address"         comment:"Listen address; for server role"`
-	Heartbeat           time.Duration `yaml:"heartbeat"              ini:"heartbeat"              comment:"When the heartbeat interval is greater than 0, heartbeat is enabled; ns,µs,ms,s,m,h"`
-	RouterRoot          string        `yaml:"router_root"            ini:"router_root"            comment:"The root router group"`
+	TlsCertFile       string        `yaml:"tls_cert_file"        ini:"tls_cert_file"        comment:"TLS certificate file path"`
+	TlsKeyFile        string        `yaml:"tls_key_file"         ini:"tls_key_file"         comment:"TLS key file path"`
+	DefaultSessionAge time.Duration `yaml:"default_session_age"  ini:"default_session_age"  comment:"Default session max age, if less than or equal to 0, no time limit; ns,µs,ms,s,m,h"`
+	DefaultContextAge time.Duration `yaml:"default_context_age"  ini:"default_context_age"  comment:"Default PULL or PUSH context max age, if less than or equal to 0, no time limit; ns,µs,ms,s,m,h"`
+	SlowCometDuration time.Duration `yaml:"slow_comet_duration"  ini:"slow_comet_duration"  comment:"Slow operation alarm threshold; ns,µs,ms,s ..."`
+	DefaultBodyCodec  string        `yaml:"default_body_codec"   ini:"default_body_codec"   comment:"Default body codec type id"`
+	PrintBody         bool          `yaml:"print_body"           ini:"print_body"           comment:"Is print body or not"`
+	CountTime         bool          `yaml:"count_time"           ini:"count_time"           comment:"Is count cost time or not"`
+	Network           string        `yaml:"network"              ini:"network"              comment:"Network; tcp, tcp4, tcp6, unix or unixpacket"`
+	ListenAddress     string        `yaml:"listen_address"       ini:"listen_address"       comment:"Listen address; for server role"`
+	Heartbeat         time.Duration `yaml:"heartbeat"            ini:"heartbeat"            comment:"When the heartbeat interval is greater than 0, heartbeat is enabled; ns,µs,ms,s,m,h"`
+	RouterRoot        string        `yaml:"router_root"          ini:"router_root"          comment:"The root router group"`
 }
 
 // Reload Bi-directionally synchronizes config between YAML file and memory.
@@ -52,14 +52,14 @@ func (s *SrvConfig) Reload(bind cfgo.BindFunc) error {
 
 func (s *SrvConfig) peerConfig() tp.PeerConfig {
 	return tp.PeerConfig{
-		DefaultReadTimeout:  s.DefaultReadTimeout,
-		DefaultWriteTimeout: s.DefaultWriteTimeout,
-		SlowCometDuration:   s.SlowCometDuration,
-		DefaultBodyCodec:    s.DefaultBodyCodec,
-		PrintBody:           s.PrintBody,
-		CountTime:           s.CountTime,
-		Network:             s.Network,
-		ListenAddress:       s.ListenAddress,
+		DefaultSessionAge: s.DefaultSessionAge,
+		DefaultContextAge: s.DefaultContextAge,
+		SlowCometDuration: s.SlowCometDuration,
+		DefaultBodyCodec:  s.DefaultBodyCodec,
+		PrintBody:         s.PrintBody,
+		CountTime:         s.CountTime,
+		Network:           s.Network,
+		ListenAddress:     s.ListenAddress,
 	}
 }
 
