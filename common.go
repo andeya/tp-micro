@@ -141,3 +141,10 @@ var SetSocketReadBuffer = socket.SetReadBuffer
 // Note: if using the system default value, bytes=-1 and isDefault=true.
 //  func WriteBuffer() (bytes int, isDefault bool)
 var SocketWriteBuffer = socket.WriteBuffer
+
+// SetSocketNoDelay controls whether the operating system should delay
+// packet transmission in hopes of sending fewer packets (Nagle's
+// algorithm).  The default is true (no delay), meaning that data is
+// sent as soon as possible after a Write.
+//  func SetNoDelay(noDelay bool)
+var SetSocketNoDelay = socket.SetNoDelay
