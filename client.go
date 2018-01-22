@@ -129,6 +129,9 @@ func NewClient(cfg CliConfig, linker Linker, plugin ...tp.Plugin) *Client {
 
 // SetProtoFunc sets socket.ProtoFunc.
 func (c *Client) SetProtoFunc(protoFunc socket.ProtoFunc) {
+	if protoFunc == nil {
+		protoFunc = socket.DefaultProtoFunc()
+	}
 	c.protoFunc = protoFunc
 }
 
@@ -238,6 +241,7 @@ func (c *Client) getCliSession(uriPath string) (*cliSession.CliSession, *tp.Rerr
 		addr,
 		c.sessMaxQuota,
 		c.sessMaxIdleDuration,
+		c.protoFunc,
 	)
 	c.cliSessPool.Store(addr, cliSess)
 	return cliSess, nil
