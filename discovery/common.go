@@ -37,10 +37,13 @@ func getAddr(serviceKey string) string {
 	return strings.TrimPrefix(serviceKey, serviceNamespace)
 }
 
-func newEtcdClient(endpoints []string) (*clientv3.Client, error) {
+// NewEtcdClient creates simple ETCD client.
+func NewEtcdClient(endpoints []string, username, password string) (*clientv3.Client, error) {
 	return clientv3.New(clientv3.Config{
 		Endpoints:   endpoints,
 		DialTimeout: 15 * time.Second,
+		Username:    username,
+		Password:    password,
 	})
 }
 

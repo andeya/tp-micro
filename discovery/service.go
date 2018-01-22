@@ -48,7 +48,7 @@ var (
 func ServicePlugin(addr string, endpoints []string, excludeApis ...string) tp.Plugin {
 	s := ServicePluginFromEtcd(addr, nil, excludeApis...)
 	var err error
-	s.(*service).client, err = newEtcdClient(endpoints)
+	s.(*service).client, err = NewEtcdClient(endpoints, "", "")
 	if err != nil {
 		tp.Fatalf("%v: %v", err, s.Name())
 		return s

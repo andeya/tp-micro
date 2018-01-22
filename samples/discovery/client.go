@@ -9,7 +9,9 @@ import (
 
 func main() {
 	cli := ant.NewClient(
-		ant.CliConfig{Failover: 3},
+		ant.CliConfig{
+			Failover: 3,
+		},
 		discovery.NewLinker([]string{"http://127.0.0.1:2379"}),
 	)
 
@@ -29,7 +31,8 @@ func main() {
 	}
 	ant.Infof("10/2=%d", reply)
 
-	time.Sleep(time.Second * 15)
+	ant.Debugf("waiting for 10s...")
+	time.Sleep(time.Second * 10)
 
 	arg.B = 5
 	rerr = cli.Pull("/static/p/divide", arg, &reply).Rerror()
@@ -38,5 +41,6 @@ func main() {
 	}
 	ant.Infof("10/5=%d", reply)
 
-	time.Sleep(time.Second * 15)
+	ant.Debugf("waiting for 10s...")
+	time.Sleep(time.Second * 10)
 }
