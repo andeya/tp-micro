@@ -23,9 +23,10 @@ func (p *P) Divide(args *Args) (int, *tp.Rerror) {
 
 func main() {
 	srv := ant.NewServer(ant.SrvConfig{
-		ListenAddress: ":9090",
-		RouterRoot:    "/static",
+		ListenAddress:   ":9090",
+		EnableHeartbeat: true,
 	})
-	srv.RoutePull(new(P))
+	group := srv.SubRoute("/static")
+	group.RoutePull(new(P))
 	srv.Listen()
 }

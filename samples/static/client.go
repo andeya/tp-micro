@@ -1,12 +1,17 @@
 package main
 
 import (
+	"time"
+
 	"github.com/henrylee2cn/ant"
 )
 
 func main() {
 	cli := ant.NewClient(
-		ant.CliConfig{Failover: 3},
+		ant.CliConfig{
+			Failover:  3,
+			Heartbeat: time.Second,
+		},
 		ant.NewStaticLinker(":9090"),
 	)
 
@@ -38,6 +43,8 @@ func main() {
 		ant.Fatalf("%v", rerr)
 	}
 	ant.Infof("test binding error: ok: %v", rerr)
+
+	time.Sleep(time.Second * 5)
 
 	cli.Close()
 	rerr = cli.Pull("/static/p/divide", &Args{

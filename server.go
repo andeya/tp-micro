@@ -20,7 +20,6 @@ import (
 
 	"github.com/henrylee2cn/cfgo"
 	tp "github.com/henrylee2cn/teleport"
-	pluginPkg "github.com/henrylee2cn/teleport/plugin"
 	"github.com/henrylee2cn/teleport/socket"
 	binder "github.com/henrylee2cn/tp-ext/plugin-binder"
 	heartbeat "github.com/henrylee2cn/tp-ext/plugin-heartbeat"
@@ -41,8 +40,7 @@ type SrvConfig struct {
 	CountTime         bool          `yaml:"count_time"           ini:"count_time"           comment:"Is count cost time or not"`
 	Network           string        `yaml:"network"              ini:"network"              comment:"Network; tcp, tcp4, tcp6, unix or unixpacket"`
 	ListenAddress     string        `yaml:"listen_address"       ini:"listen_address"       comment:"Listen address; for server role"`
-	Heartbeat         time.Duration `yaml:"heartbeat"            ini:"heartbeat"            comment:"When the heartbeat interval is greater than 0, heartbeat is enabled; ns,µs,ms,s,m,h"`
-	RouterRoot        string        `yaml:"router_root"          ini:"router_root"          comment:"The root router group"`
+	EnableHeartbeat   bool          `yaml:"enable_heartbeat"     ini:"enable_heartbeat"     comment:"enable heartbeat"`
 }
 
 // Reload Bi-directionally synchronizes config between YAML file and memory.
@@ -72,13 +70,12 @@ type Server struct {
 func NewServer(cfg SrvConfig, plugin ...tp.Plugin) *Server {
 	plugin = append(
 		[]tp.Plugin{
-			pluginPkg.RootRoute(cfg.RouterRoot),
 			binder.NewStructArgsBinder(RerrCodeBind, "invalid parameter"),
 		},
 		plugin...,
 	)
-	if cfg.Heartbeat > 0 {
-		plugin = append(plugin, heartbeat.NewPong(cfg.Heartbeat))
+	if cfg.EnableHeartbeat {
+		plugin = append(plugin, heartbeat.NewPong())
 	}
 	peer := tp.NewPeer(cfg.peerConfig(), plugin...)
 	if len(cfg.TlsCertFile) > 0 && len(cfg.TlsKeyFile) > 0 {

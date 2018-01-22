@@ -11,6 +11,7 @@ func main() {
 	cli := ant.NewClient(
 		ant.CliConfig{
 			Failover: 3,
+			// Heartbeat: time.Second,
 		},
 		discovery.NewLinker([]string{"http://127.0.0.1:2379"}),
 	)
@@ -25,7 +26,7 @@ func main() {
 
 	var reply int
 
-	rerr := cli.Pull("/static/p/divide", arg, &reply).Rerror()
+	rerr := cli.Pull("/p/divide", arg, &reply).Rerror()
 	if rerr != nil {
 		ant.Fatalf("%v", rerr)
 	}
@@ -35,7 +36,7 @@ func main() {
 	time.Sleep(time.Second * 10)
 
 	arg.B = 5
-	rerr = cli.Pull("/static/p/divide", arg, &reply).Rerror()
+	rerr = cli.Pull("/p/divide", arg, &reply).Rerror()
 	if rerr != nil {
 		ant.Fatalf("%v", rerr)
 	}

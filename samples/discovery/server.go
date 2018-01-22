@@ -25,7 +25,7 @@ func (p *P) Divide(args *Args) (int, *tp.Rerror) {
 func main() {
 	srv := ant.NewServer(ant.SrvConfig{
 		ListenAddress: ":9090",
-		RouterRoot:    "/static",
+		// EnableHeartbeat: true,
 	},
 		discovery.ServicePlugin(":9090", []string{"http://127.0.0.1:2379"}),
 	)
