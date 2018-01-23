@@ -55,10 +55,10 @@ func (c *CliConfig) Reload(bind cfgo.BindFunc) error {
 	if err != nil {
 		return err
 	}
-	return c.check()
+	return c.Check()
 }
 
-func (c *CliConfig) check() error {
+func (c *CliConfig) Check() error {
 	if c.SessMaxQuota <= 0 {
 		c.SessMaxQuota = 100
 	}
@@ -105,7 +105,7 @@ type Client struct {
 
 // NewClient creates a client peer.
 func NewClient(cfg CliConfig, linker Linker, plugin ...tp.Plugin) *Client {
-	if err := cfg.check(); err != nil {
+	if err := cfg.Check(); err != nil {
 		tp.Fatalf("%v", err)
 	}
 	if cfg.HeartbeatSecond > 0 {
