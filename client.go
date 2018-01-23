@@ -44,7 +44,7 @@ type CliConfig struct {
 	PrintBody           bool          `yaml:"print_body"             ini:"print_body"             comment:"Is print body or not"`
 	CountTime           bool          `yaml:"count_time"             ini:"count_time"             comment:"Is count cost time or not"`
 	Network             string        `yaml:"network"                ini:"network"                comment:"Network; tcp, tcp4, tcp6, unix or unixpacket"`
-	Heartbeat           time.Duration `yaml:"heartbeat"              ini:"heartbeat"              comment:"When the heartbeat interval is greater than 0, heartbeat is enabled; ns,µs,ms,s,m,h"`
+	HeartbeatSecond     int           `yaml:"heartbeat_second"       ini:"heartbeat_second"       comment:"When the heartbeat interval(second) is greater than 0, heartbeat is enabled; if it's smaller than 3, change to 3 default"`
 	SessMaxQuota        int           `yaml:"sess_max_quota"         ini:"sess_max_quota"         comment:"The maximum number of sessions in the connection pool"`
 	SessMaxIdleDuration time.Duration `yaml:"sess_max_idle_duration" ini:"sess_max_idle_duration" comment:"The maximum time period for the idle session in the connection pool; ns,µs,ms,s,m,h"`
 }
@@ -67,6 +67,11 @@ func (c *CliConfig) check() error {
 	}
 	if c.Failover < 0 {
 		c.Failover = 0
+	}
+	if c.HeartbeatSecond <= 0 {
+		c.HeartbeatSecond = 0
+	} else if c.HeartbeatSecond < 3 {
+		c.HeartbeatSecond = 3
 	}
 	return nil
 }
@@ -103,8 +108,8 @@ func NewClient(cfg CliConfig, linker Linker, plugin ...tp.Plugin) *Client {
 	if err := cfg.check(); err != nil {
 		tp.Fatalf("%v", err)
 	}
-	if cfg.Heartbeat > 0 {
-		plugin = append(plugin, heartbeat.NewPing(cfg.Heartbeat))
+	if cfg.HeartbeatSecond > 0 {
+		plugin = append(plugin, heartbeat.NewPing(cfg.HeartbeatSecond))
 	}
 	peer := tp.NewPeer(cfg.peerConfig(), plugin...)
 	if len(cfg.TlsCertFile) > 0 && len(cfg.TlsKeyFile) > 0 {

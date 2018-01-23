@@ -9,8 +9,8 @@ import (
 func main() {
 	cli := ant.NewClient(
 		ant.CliConfig{
-			Failover:  3,
-			Heartbeat: time.Second,
+			Failover:        3,
+			HeartbeatSecond: 4,
 		},
 		ant.NewStaticLinker(":9090"),
 	)

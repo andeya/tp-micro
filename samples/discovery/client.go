@@ -11,7 +11,7 @@ func main() {
 	cli := ant.NewClient(
 		ant.CliConfig{
 			Failover: 3,
-			// Heartbeat: time.Second,
+			// HeartbeatSecond: 30,
 		},
 		discovery.NewLinker([]string{"http://127.0.0.1:2379"}),
 	)
