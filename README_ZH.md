@@ -4,7 +4,7 @@
 Ant 是一套简单、灵活的基于 [Teleport](https://github.com/henrylee2cn/teleport) 的微服务框架。
 
 
-## 安装
+## 1. 安装
 
 ```
 go version ≥ 1.7
@@ -14,7 +14,25 @@ go version ≥ 1.7
 go get -u github.com/henrylee2cn/ant
 ```
 
-## 示例
+## 2. 特性
+
+- 支持服务自动发现
+- 支持自定义服务链接选择器
+- 支持负载均衡
+- 支持多路复用IO及其连接池
+- 支持自定义协议
+- 支持自定义Body的编解码类型
+- 支持插件扩展
+- 支持心跳机制
+- 日志信息详尽，支持打印输入、输出消息的详细信息（状态码、消息头、消息体）
+- 支持设置慢操作报警阈值
+- 支持自定义日志
+- 支持平滑关闭与更新
+- 支持推送
+- 支持的网络类型：`tcp`、`tcp4`、`tcp6`、`unix`、`unixpacket`等
+- 客户端支持断线后自动重连
+
+## 3. 示例
 
 - 服务端
 
@@ -89,10 +107,15 @@ func main() {
 		ant.Fatalf("%v", rerr)
 	}
 	ant.Infof("test binding error: ok: %v", rerr)
+}
 ```
 
 [更多](https://github.com/henrylee2cn/ant/tree/master/samples)
 
-## 开源协议
+## 4. 平台架构
+
+[Ants](https://github.com/xiaoenai/ants): 一套基于 [Ant](https://github.com/henrylee2cn/ant) 和 [Teleport](https://github.com/henrylee2cn/teleport) 的高可用的微服务平台解决方案。
+
+## 5. 开源协议
 
 Ant 项目采用商业应用友好的 [Apache2.0](https://github.com/henrylee2cn/ant/raw/master/LICENSE) 协议发布
