@@ -89,8 +89,13 @@ func NewServer(cfg SrvConfig, plugin ...tp.Plugin) *Server {
 	}
 }
 
+// Router returns the root router of pull or push handlers.
+func (s *Server) Router() *tp.Router {
+	return s.peer.Router()
+}
+
 // SubRoute adds handler group.
-func (s *Server) SubRoute(pathPrefix string, plugin ...tp.Plugin) *tp.Router {
+func (s *Server) SubRoute(pathPrefix string, plugin ...tp.Plugin) *tp.SubRouter {
 	return s.peer.SubRoute(pathPrefix, plugin...)
 }
 
