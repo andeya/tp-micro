@@ -35,8 +35,33 @@ go get -u github.com/henrylee2cn/ant
 - Support network list: `tcp`, `tcp4`, `tcp6`, `unix`, `unixpacket` and so on
 - Client support automatically redials after disconnection
 
+## 3. Project Structure(RCMD)
 
-## 3. Demo
+```
+├── README.md
+├── main.go
+├── api
+│   ├── handlers.gen.go
+│   ├── handlers.go
+│   ├── router.gen.go
+│   └── router.go
+├── logic
+│   └── xxx.go
+├── sdk
+│   ├── rpc.gen.go
+│   ├── rpc.gen_test.go
+│   ├── rpc.go
+│   └── rpc_test.go
+└── types
+    ├── types.gen.go
+    └── types.go
+```
+
+Desc:
+
+- add `.gen` suffix to the file name of the automatically generated file
+
+## 4. Demo
 
 - server
 
@@ -116,10 +141,10 @@ func main() {
 
 [More](https://github.com/henrylee2cn/ant/tree/master/samples)
 
-## 4. Platform
+## 5. Platform
 
 [Ants](https://github.com/xiaoenai/ants): a highly available microservice platform based on [Ant](https://github.com/henrylee2cn/ant) and [Teleport](https://github.com/henrylee2cn/teleport).
 
-## 5. License
+## 6. License
 
 Ant is under Apache v2 License. See the [LICENSE](https://github.com/henrylee2cn/ant/raw/master/LICENSE) file for the full license text

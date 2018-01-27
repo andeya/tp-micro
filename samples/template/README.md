@@ -13,7 +13,7 @@ The template for using ant development project.
 │   ├── router.gen.go
 │   └── router.go
 ├── logic
-│   └── math.go
+│   └── xxx.go
 ├── sdk
 │   ├── rpc.gen.go
 │   ├── rpc.gen_test.go
@@ -23,3 +23,7 @@ The template for using ant development project.
     ├── types.gen.go
     └── types.go
 ```
+
+Desc:
+
+- add `.gen` suffix to the file name of the automatically generated file
