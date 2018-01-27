@@ -1,4 +1,4 @@
-package model
+package logic
 
 import (
 	"github.com/henrylee2cn/ant/samples/template/types"

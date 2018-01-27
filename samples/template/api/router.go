@@ -1,4 +1,4 @@
-package controller
+package api
 
 import (
 	tp "github.com/henrylee2cn/teleport"

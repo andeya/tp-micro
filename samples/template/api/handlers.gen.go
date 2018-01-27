@@ -1,7 +1,7 @@
-package controller
+package api
 
 import (
-	"github.com/henrylee2cn/ant/samples/template/model"
+	"github.com/henrylee2cn/ant/samples/template/logic"
 	"github.com/henrylee2cn/ant/samples/template/types"
 	tp "github.com/henrylee2cn/teleport"
 )
@@ -13,5 +13,5 @@ type Math struct {
 
 // Divide division
 func (m *Math) Divide(args *types.MathDivideArgs) (*types.MathDivideReply, *tp.Rerror) {
-	return model.MathDivide(args)
+	return logic.MathDivide(args)
 }

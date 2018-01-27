@@ -2,7 +2,7 @@ package main
 
 import (
 	"github.com/henrylee2cn/ant"
-	"github.com/henrylee2cn/ant/samples/template/controller"
+	"github.com/henrylee2cn/ant/samples/template/api"
 )
 
 func main() {
@@ -10,6 +10,6 @@ func main() {
 		ListenAddress:   ":9090",
 		EnableHeartbeat: true,
 	})
-	controller.Route("/root", srv.Router())
+	api.Route("/root", srv.Router())
 	srv.Listen()
 }
