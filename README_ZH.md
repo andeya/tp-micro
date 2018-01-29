@@ -32,7 +32,35 @@ go get -u github.com/henrylee2cn/ant
 - 支持的网络类型：`tcp`、`tcp4`、`tcp6`、`unix`、`unixpacket`等
 - 客户端支持断线后自动重连
 
-## 3. 示例
+## 3. 项目结构
+
+（推荐）
+
+```
+├── README.md
+├── main.go
+├── api
+│   ├── handlers.gen.go
+│   ├── handlers.go
+│   ├── router.gen.go
+│   └── router.go
+├── logic
+│   └── xxx.go
+├── sdk
+│   ├── rpc.gen.go
+│   ├── rpc.gen_test.go
+│   ├── rpc.go
+│   └── rpc_test.go
+└── types
+    ├── types.gen.go
+    └── types.go
+```
+
+说明：
+
+- 在自动生成的文件的文件名中增加 `.gen` 后缀进行标记
+
+## 4. 示例
 
 - 服务端
 
@@ -112,10 +140,10 @@ func main() {
 
 [更多](https://github.com/henrylee2cn/ant/tree/master/samples)
 
-## 4. 平台架构
+## 5. 平台架构
 
 [Ants](https://github.com/xiaoenai/ants): 一套基于 [Ant](https://github.com/henrylee2cn/ant) 和 [Teleport](https://github.com/henrylee2cn/teleport) 的高可用的微服务平台解决方案。
 
-## 5. 开源协议
+## 6. 开源协议
 
 Ant 项目采用商业应用友好的 [Apache2.0](https://github.com/henrylee2cn/ant/raw/master/LICENSE) 协议发布

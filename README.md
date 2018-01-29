@@ -35,7 +35,9 @@ go get -u github.com/henrylee2cn/ant
 - Support network list: `tcp`, `tcp4`, `tcp6`, `unix`, `unixpacket` and so on
 - Client support automatically redials after disconnection
 
-## 3. Project Structure(RCMD)
+## 3. Project Structure
+
+(recommend)
 
 ```
 ├── README.md
