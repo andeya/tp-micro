@@ -161,7 +161,7 @@ Command ant is deployment tools of ant microservice frameware.
 
 - new project
 
-```sh
+```
 NAME:
    ant new - Create a new ant project
 
@@ -176,7 +176,7 @@ OPTIONS:
 
 - run project
 
-```sh
+```
 NAME:
    ant run - Compile and run gracefully (monitor changes) an any existing go project
 

@@ -17,7 +17,7 @@ Command ant is a deployment tools of [ant](https://github.com/henrylee2cn/ant) m
 
 - new project
 
-```sh
+```
 NAME:
    ant new - Create a new ant project
 
@@ -32,7 +32,7 @@ OPTIONS:
 
 - run project
 
-```sh
+```
 NAME:
    ant run - Compile and run gracefully (monitor changes) an any existing go project
 

@@ -156,7 +156,7 @@ func main() {
 
 - 新建项目
 
-```sh
+```
 NAME:
    ant new - Create a new ant project
 
@@ -171,7 +171,7 @@ OPTIONS:
 
 - 热编译运行
 
-```sh
+```
 NAME:
    ant run - Compile and run gracefully (monitor changes) an any existing go project
 
