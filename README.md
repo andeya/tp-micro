@@ -143,10 +143,59 @@ func main() {
 
 [More](https://github.com/henrylee2cn/ant/tree/master/samples)
 
-## 5. Platform
+
+## 5. Command
+
+Command ant is deployment tools of ant microservice frameware.
+
+- Quickly create a ant project
+- Run ant project with hot compilation
+
+### 1. Install
+
+	```sh
+	go install
+	```
+
+### 2. Usage
+
+- new project
+
+```sh
+NAME:
+   ant new - Create a new ant project
+
+USAGE:
+   ant new [options] [arguments...]
+ or
+   ant new {app_path} [options except -app_path] [arguments...]
+
+OPTIONS:
+   --app_path value, -a value  Specifies the path(relative/absolute) of the project
+```
+
+- run project
+
+```sh
+NAME:
+   ant run - Compile and run gracefully (monitor changes) an any existing go project
+
+USAGE:
+   ant run [options] [arguments...]
+ or
+   ant run [options except -app_path] [arguments...] {app_path}
+
+OPTIONS:
+   --watch_exts value, -x value  Specified to increase the listening file suffix (default: ".go", ".ini", ".yaml", ".toml", ".xml")
+   --app_path value, -a value    Specifies the path(relative/absolute) of the project
+```
+
+[ant command](https://github.com/henrylee2cn/ant/tree/master/cmd/ant)
+
+## 6. Platform
 
 [Ants](https://github.com/xiaoenai/ants): a highly available microservice platform based on [Ant](https://github.com/henrylee2cn/ant) and [Teleport](https://github.com/henrylee2cn/teleport).
 
-## 6. License
+## 7. License
 
 Ant is under Apache v2 License. See the [LICENSE](https://github.com/henrylee2cn/ant/raw/master/LICENSE) file for the full license text

@@ -15,7 +15,7 @@ Command ant is a deployment tools of [ant](https://github.com/henrylee2cn/ant) m
 
 ## 3. Usage
 
-1. new project
+- new project
 
 ```sh
 NAME:
@@ -30,8 +30,7 @@ OPTIONS:
    --app_path value, -a value  Specifies the path(relative/absolute) of the project
 ```
 
-
-2. run project
+- run project
 
 ```sh
 NAME:

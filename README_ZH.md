@@ -140,10 +140,57 @@ func main() {
 
 [更多](https://github.com/henrylee2cn/ant/tree/master/samples)
 
-## 5. 平台架构
+
+## 5. 命令行工具
+
+- 快速创建ant项目
+- 热编译模式运行ant项目
+
+### 1. 安装
+
+	```sh
+	go install
+	```
+
+### 2. 用法
+
+- 新建项目
+
+```sh
+NAME:
+   ant new - Create a new ant project
+
+USAGE:
+   ant new [options] [arguments...]
+ or
+   ant new {app_path} [options except -app_path] [arguments...]
+
+OPTIONS:
+   --app_path value, -a value  Specifies the path(relative/absolute) of the project
+```
+
+- 热编译运行
+
+```sh
+NAME:
+   ant run - Compile and run gracefully (monitor changes) an any existing go project
+
+USAGE:
+   ant run [options] [arguments...]
+ or
+   ant run [options except -app_path] [arguments...] {app_path}
+
+OPTIONS:
+   --watch_exts value, -x value  Specified to increase the listening file suffix (default: ".go", ".ini", ".yaml", ".toml", ".xml")
+   --app_path value, -a value    Specifies the path(relative/absolute) of the project
+```
+
+[ant command](https://github.com/henrylee2cn/ant/tree/master/cmd/ant)
+
+## 6. 平台架构
 
 [Ants](https://github.com/xiaoenai/ants): 一套基于 [Ant](https://github.com/henrylee2cn/ant) 和 [Teleport](https://github.com/henrylee2cn/teleport) 的高可用的微服务平台解决方案。
 
-## 6. 开源协议
+## 7. 开源协议
 
 Ant 项目采用商业应用友好的 [Apache2.0](https://github.com/henrylee2cn/ant/raw/master/LICENSE) 协议发布
