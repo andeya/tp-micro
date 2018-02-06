@@ -24,7 +24,7 @@ NAME:
 USAGE:
    ant new [options] [arguments...]
  or
-   ant new {app_path} [options except -app_path] [arguments...]
+   ant new [options except -app_path] [arguments...] {app_path}
 
 OPTIONS:
    --app_path value, -a value  Specifies the path(relative/absolute) of the project
