@@ -105,6 +105,7 @@ type Client struct {
 
 // NewClient creates a client peer.
 func NewClient(cfg CliConfig, linker Linker, plugin ...tp.Plugin) *Client {
+	doInit()
 	if err := cfg.Check(); err != nil {
 		tp.Fatalf("%v", err)
 	}

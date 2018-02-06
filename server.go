@@ -68,6 +68,7 @@ type Server struct {
 
 // NewServer creates a server peer.
 func NewServer(cfg SrvConfig, plugin ...tp.Plugin) *Server {
+	doInit()
 	plugin = append(
 		[]tp.Plugin{
 			binder.NewStructArgsBinder(RerrCodeBind, "invalid parameter"),

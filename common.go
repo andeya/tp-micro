@@ -15,12 +15,18 @@
 package ant
 
 import (
+	"sync"
+
 	tp "github.com/henrylee2cn/teleport"
 	"github.com/henrylee2cn/teleport/socket"
 )
 
-func init() {
-	go tp.GraceSignal()
+var initOnce sync.Once
+
+func doInit() {
+	initOnce.Do(func() {
+		go tp.GraceSignal()
+	})
 }
 
 // error codes
