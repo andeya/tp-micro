@@ -13,7 +13,9 @@ func main() {
 			Failover: 3,
 			// HeartbeatSecond: 30,
 		},
-		discovery.NewLinker([]string{"http://127.0.0.1:2379"}),
+		discovery.NewLinker(discovery.EtcdConfig{
+			Endpoints: []string{"http://127.0.0.1:2379"},
+		}),
 	)
 
 	var arg = &struct {

@@ -43,8 +43,8 @@ const (
 )
 
 // NewLinker creates a etct service linker.
-func NewLinker(endpoints []string) ant.Linker {
-	etcdClient, err := NewEtcdClient(endpoints, "", "")
+func NewLinker(etcdConfig EtcdConfig) ant.Linker {
+	etcdClient, err := NewEtcdClient(etcdConfig)
 	if err != nil {
 		tp.Fatalf("%s: %v", linkerName, err)
 		return nil

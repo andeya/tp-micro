@@ -45,10 +45,10 @@ var (
 )
 
 // ServicePlugin creates a teleport plugin which automatically registered api info to etcd.
-func ServicePlugin(addr string, endpoints []string, excludeApis ...string) tp.Plugin {
+func ServicePlugin(addr string, etcdConfig EtcdConfig, excludeApis ...string) tp.Plugin {
 	s := ServicePluginFromEtcd(addr, nil, excludeApis...)
 	var err error
-	s.(*service).client, err = NewEtcdClient(endpoints, "", "")
+	s.(*service).client, err = NewEtcdClient(etcdConfig)
 	if err != nil {
 		tp.Fatalf("%v: %v", err, s.Name())
 		return s

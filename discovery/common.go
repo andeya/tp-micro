@@ -37,13 +37,33 @@ func getAddr(serviceKey string) string {
 	return strings.TrimPrefix(serviceKey, serviceNamespace)
 }
 
-// NewEtcdClient creates simple ETCD client.
-func NewEtcdClient(endpoints []string, username, password string) (*clientv3.Client, error) {
+// EtcdConfig ETCD client config
+type EtcdConfig struct {
+	// Endpoints is a list of URLs.
+	Endpoints []string `json:"endpoints"`
+	// DialTimeout is the timeout for failing to establish a connection.
+	DialTimeout time.Duration `json:"dial-timeout"`
+	// Username is a user name for authentication.
+	Username string `json:"username"`
+	// Password is a password for authentication.
+	Password string `json:"password"`
+}
+
+// NewEtcdClient creates ETCD client.
+// Note:
+// If cfg.DialTimeout<0, it means unlimit;
+// If cfg.DialTimeout=0, use the default value(15s).
+func NewEtcdClient(cfg EtcdConfig) (*clientv3.Client, error) {
+	if cfg.DialTimeout == 0 {
+		cfg.DialTimeout = 15 * time.Second
+	} else if cfg.DialTimeout < 0 {
+		cfg.DialTimeout = 0
+	}
 	return clientv3.New(clientv3.Config{
-		Endpoints:   endpoints,
-		DialTimeout: 15 * time.Second,
-		Username:    username,
-		Password:    password,
+		Endpoints:   cfg.Endpoints,
+		DialTimeout: cfg.DialTimeout,
+		Username:    cfg.Username,
+		Password:    cfg.Password,
 	})
 }
 
