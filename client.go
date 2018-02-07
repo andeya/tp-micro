@@ -151,7 +151,7 @@ func (c *Client) Peer() tp.Peer {
 func (c *Client) AsyncPull(uri string, args interface{}, reply interface{}, done chan tp.PullCmd, setting ...socket.PacketSetting) {
 	cliSess, rerr := c.getCliSession(uri)
 	if rerr != nil {
-		done <- tp.NewFakePullCmd(c.peer, uri, args, reply, rerr)
+		done <- tp.NewFakePullCmd(uri, args, reply, rerr)
 		return
 	}
 	cliSess.AsyncPull(uri, args, reply, done, setting...)
@@ -171,7 +171,7 @@ func (c *Client) Pull(uri string, args interface{}, reply interface{}, setting .
 	for i := 0; i < c.maxTry; i++ {
 		cliSess, rerr = c.getCliSession(uriPath)
 		if rerr != nil {
-			return tp.NewFakePullCmd(c.peer, uri, args, reply, rerr)
+			return tp.NewFakePullCmd(uri, args, reply, rerr)
 		}
 		r = cliSess.Pull(uri, args, reply, setting...)
 		if !tp.IsConnRerror(r.Rerror()) {
