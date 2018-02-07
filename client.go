@@ -141,6 +141,11 @@ func (c *Client) SetProtoFunc(protoFunc socket.ProtoFunc) {
 	c.protoFunc = protoFunc
 }
 
+// Peer returns the peer
+func (c *Client) Peer() tp.Peer {
+	return c.peer
+}
+
 // AsyncPull sends a packet and receives reply asynchronously.
 // If the args is []byte or *[]byte type, it can automatically fill in the body codec name.
 func (c *Client) AsyncPull(uri string, args interface{}, reply interface{}, done chan tp.PullCmd, setting ...socket.PacketSetting) {
@@ -264,14 +269,3 @@ func (c *Client) watchEventDel() {
 		tp.Go(_cliSess.(*cliSession.CliSession).Close)
 	}
 }
-
-// func (c *Client) delCliSession(cliSess *cliSession.CliSession) {
-// 	select {
-// 	case <-c.closeCh:
-// 		return
-// 	default:
-// 	}
-// 	c.linker.Sick(cliSess.Addr())
-// 	c.cliSessPool.Delete(cliSess.Addr())
-// 	tp.Go(cliSess.Close)
-// }
