@@ -17,6 +17,7 @@ package discovery
 import (
 	"context"
 	"encoding/json"
+	"net"
 	"sync"
 
 	"github.com/coreos/etcd/clientv3"
@@ -30,6 +31,7 @@ type linker struct {
 	nodes    goutil.Map
 	uriPaths goutil.Map
 	delCh    chan string
+	innerIp  string
 }
 
 const (
@@ -52,11 +54,16 @@ func NewLinker(endpoints []string) ant.Linker {
 
 // NewLinkerFromEtcd creates a etct service linker.
 func NewLinkerFromEtcd(etcdClient *clientv3.Client) ant.Linker {
+	innerIp, err := goutil.IntranetIP()
+	if err != nil {
+		tp.Fatalf("%s: %v", linkerName, err)
+	}
 	l := &linker{
 		client:   etcdClient,
 		nodes:    goutil.AtomicMap(),
 		uriPaths: goutil.AtomicMap(),
 		delCh:    make(chan string, 256),
+		innerIp:  innerIp,
 	}
 	if err := l.initNodes(); err != nil {
 		tp.Fatalf("%s: %v", linkerName, err)
@@ -65,8 +72,24 @@ func NewLinkerFromEtcd(etcdClient *clientv3.Client) ant.Linker {
 	return l
 }
 
-func (l *linker) addNode(key string, info *ServiceInfo) {
+func (l *linker) getAddr(key string) (string, error) {
 	addr := getAddr(key)
+	host, port, err := net.SplitHostPort(addr)
+	if err != nil {
+		return "", err
+	}
+	// Use the loopback address when on the same host
+	if host == l.innerIp {
+		return "127.0.0.1:" + port, nil
+	}
+	return addr, nil
+}
+
+func (l *linker) addNode(key string, info *ServiceInfo) {
+	addr, err := l.getAddr(key)
+	if err != nil {
+		return
+	}
 	node := &Node{
 		Addr:  addr,
 		Info:  info,
@@ -91,7 +114,7 @@ func (l *linker) addNode(key string, info *ServiceInfo) {
 }
 
 func (l *linker) delNode(key string) {
-	addr := getAddr(key)
+	addr, _ := l.getAddr(key)
 	_node, ok := l.nodes.Load(addr)
 	if !ok {
 		return
