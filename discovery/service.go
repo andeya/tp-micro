@@ -45,6 +45,9 @@ var (
 )
 
 // ServicePlugin creates a teleport plugin which automatically registered api info to etcd.
+// Note:
+// If etcdConfig.DialTimeout<0, it means unlimit;
+// If etcdConfig.DialTimeout=0, use the default value(15s).
 func ServicePlugin(addr string, etcdConfig EtcdConfig, excludeApis ...string) tp.Plugin {
 	s := ServicePluginFromEtcd(addr, nil, excludeApis...)
 	var err error

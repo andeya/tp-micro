@@ -43,6 +43,9 @@ const (
 )
 
 // NewLinker creates a etct service linker.
+// Note:
+// If etcdConfig.DialTimeout<0, it means unlimit;
+// If etcdConfig.DialTimeout=0, use the default value(15s).
 func NewLinker(etcdConfig EtcdConfig) ant.Linker {
 	etcdClient, err := NewEtcdClient(etcdConfig)
 	if err != nil {

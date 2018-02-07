@@ -47,19 +47,19 @@ type EtcdConfig struct {
 
 // NewEtcdClient creates ETCD client.
 // Note:
-// If cfg.DialTimeout<0, it means unlimit;
-// If cfg.DialTimeout=0, use the default value(15s).
-func NewEtcdClient(cfg EtcdConfig) (*clientv3.Client, error) {
-	if cfg.DialTimeout == 0 {
-		cfg.DialTimeout = 15 * time.Second
-	} else if cfg.DialTimeout < 0 {
-		cfg.DialTimeout = 0
+// If etcdConfig.DialTimeout<0, it means unlimit;
+// If etcdConfig.DialTimeout=0, use the default value(15s).
+func NewEtcdClient(etcdConfig EtcdConfig) (*clientv3.Client, error) {
+	if etcdConfig.DialTimeout == 0 {
+		etcdConfig.DialTimeout = 15 * time.Second
+	} else if etcdConfig.DialTimeout < 0 {
+		etcdConfig.DialTimeout = 0
 	}
 	return clientv3.New(clientv3.Config{
-		Endpoints:   cfg.Endpoints,
-		DialTimeout: cfg.DialTimeout,
-		Username:    cfg.Username,
-		Password:    cfg.Password,
+		Endpoints:   etcdConfig.Endpoints,
+		DialTimeout: etcdConfig.DialTimeout,
+		Username:    etcdConfig.Username,
+		Password:    etcdConfig.Password,
 	})
 }
 
