@@ -174,6 +174,8 @@ OPTIONS:
    --app_path value, -a value  Specifies the path(relative/absolute) of the project
 ```
 
+example: `ant new -a myant` or `ant new myant`
+
 - run project
 
 ```
@@ -189,6 +191,8 @@ OPTIONS:
    --watch_exts value, -x value  Specified to increase the listening file suffix (default: ".go", ".ini", ".yaml", ".toml", ".xml")
    --app_path value, -a value    Specifies the path(relative/absolute) of the project
 ```
+
+example: `ant run -x .yaml -a myant` or `ant run -x .yaml myant`
 
 [ant command](https://github.com/henrylee2cn/ant/tree/master/cmd/ant)
 

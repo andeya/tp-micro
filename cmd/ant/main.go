@@ -86,5 +86,8 @@ func initProject(c *cli.Context) error {
 	if len(appPath) == 0 {
 		appPath = c.Args().First()
 	}
+	if len(appPath) == 0 {
+		appPath = "./"
+	}
 	return info.Init(appPath)
 }
