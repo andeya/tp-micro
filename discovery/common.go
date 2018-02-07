@@ -39,14 +39,10 @@ func getAddr(serviceKey string) string {
 
 // EtcdConfig ETCD client config
 type EtcdConfig struct {
-	// Endpoints is a list of URLs.
-	Endpoints []string `json:"endpoints"`
-	// DialTimeout is the timeout for failing to establish a connection.
-	DialTimeout time.Duration `json:"dial-timeout"`
-	// Username is a user name for authentication.
-	Username string `json:"username"`
-	// Password is a password for authentication.
-	Password string `json:"password"`
+	Endpoints   []string      `yaml:"endpoints"    ini:"endpoints"    comment:"list of URLs"`
+	DialTimeout time.Duration `yaml:"dial_timeout" ini:"dial_timeout" comment:"timeout for failing to establish a connection"`
+	Username    string        `yaml:"username"     ini:"username"     comment:"user name for authentication"`
+	Password    string        `yaml:"password"     ini:"password"     comment:"password for authentication"`
 }
 
 // NewEtcdClient creates ETCD client.
