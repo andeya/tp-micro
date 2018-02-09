@@ -153,9 +153,9 @@ Command ant is deployment tools of ant microservice frameware.
 
 ### 1. Install
 
-	```sh
-	go install
-	```
+```sh
+go install
+```
 
 ### 2. Usage
 
