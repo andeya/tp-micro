@@ -9,9 +9,9 @@ Command ant is a deployment tools of [ant](https://github.com/henrylee2cn/ant) m
 
 ## 2. Install
 
-	```sh
-	go install
-	```
+```sh
+go install
+```
 
 ## 3. Usage
 
