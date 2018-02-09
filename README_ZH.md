@@ -138,7 +138,7 @@ func main() {
 }
 ```
 
-[更多](https://github.com/henrylee2cn/ant/tree/master/samples)
+[更多示例](https://github.com/henrylee2cn/ant/tree/master/samples)
 
 
 ## 5. 命令行工具
@@ -148,9 +148,9 @@ func main() {
 
 ### 1. 安装
 
-	```sh
-	go install
-	```
+```sh
+go install
+```
 
 ### 2. 用法
 
@@ -189,7 +189,7 @@ OPTIONS:
 
 示例：`ant run -x .yaml -a myant` or `ant run -x .yaml myant`
 
-[ant command](https://github.com/henrylee2cn/ant/tree/master/cmd/ant)
+[更多 ant command](https://github.com/henrylee2cn/ant/tree/master/cmd/ant)
 
 ## 6. 平台架构
 
