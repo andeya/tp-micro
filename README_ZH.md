@@ -7,7 +7,7 @@ Ant 是一套简单、灵活的基于 [Teleport](https://github.com/henrylee2cn/
 ## 1. 安装
 
 ```
-go version ≥ 1.7
+go version ≥ 1.9
 ```
 
 ```sh

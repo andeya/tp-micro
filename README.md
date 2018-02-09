@@ -10,7 +10,7 @@ Ant is a simple and flexible microservice framework based on [Teleport](https://
 
 
 ```
-go version ≥ 1.7
+go version ≥ 1.9
 ```
 
 ```sh
