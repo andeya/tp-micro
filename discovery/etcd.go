@@ -20,9 +20,6 @@ import (
 	"github.com/coreos/etcd/clientv3"
 )
 
-// EtcdClient ETCD v3 client
-type EtcdClient = clientv3.Client
-
 // EtcdConfig ETCD client config
 type EtcdConfig struct {
 	Endpoints   []string      `yaml:"endpoints"    ini:"endpoints"    comment:"list of URLs"`
@@ -50,6 +47,9 @@ func NewEtcdClient(etcdConfig EtcdConfig) (*clientv3.Client, error) {
 }
 
 // types that migrated from etcd 'github.com/coreos/etcd/clientv3'
+
+// EtcdClient ETCD v3 client
+type EtcdClient = clientv3.Client
 
 // OpOption configures Operations like Get, Put, Delete.
 type OpOption = clientv3.OpOption
