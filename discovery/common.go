@@ -29,13 +29,8 @@ const (
 	serviceNamespace = "ANT-SRV@"
 )
 
-func createServiceKey(addr string) string {
-	return serviceNamespace + addr
-}
-
-func getAddr(serviceKey string) string {
-	return strings.TrimPrefix(serviceKey, serviceNamespace)
-}
+// EtcdClient ETCD v3 client
+type EtcdClient = clientv3.Client
 
 // EtcdConfig ETCD client config
 type EtcdConfig struct {
@@ -82,4 +77,12 @@ func (s *ServiceInfo) Append(uriPath ...string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.UriPaths = append(s.UriPaths, uriPath...)
+}
+
+func createServiceKey(addr string) string {
+	return serviceNamespace + addr
+}
+
+func getAddr(serviceKey string) string {
+	return strings.TrimPrefix(serviceKey, serviceNamespace)
 }
