@@ -25,8 +25,8 @@ import (
 )
 
 const (
-	// serviceNamespace the service prefix of ETCD key
-	serviceNamespace = "ANT-SRV@"
+	// ServiceNamespace the service prefix of ETCD key
+	ServiceNamespace = "ANT-SRV@"
 )
 
 // EtcdClient ETCD v3 client
@@ -80,9 +80,9 @@ func (s *ServiceInfo) Append(uriPath ...string) {
 }
 
 func createServiceKey(addr string) string {
-	return serviceNamespace + addr
+	return ServiceNamespace + addr
 }
 
 func getAddr(serviceKey string) string {
-	return strings.TrimPrefix(serviceKey, serviceNamespace)
+	return strings.TrimPrefix(serviceKey, ServiceNamespace)
 }

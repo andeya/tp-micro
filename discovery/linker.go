@@ -140,7 +140,7 @@ func (l *linker) delNode(key string) {
 }
 
 func (l *linker) initNodes() error {
-	resp, err := l.client.Get(context.TODO(), serviceNamespace, clientv3.WithPrefix())
+	resp, err := l.client.Get(context.TODO(), ServiceNamespace, clientv3.WithPrefix())
 	if err != nil || len(resp.Kvs) == 0 {
 		return err
 	}
@@ -152,7 +152,7 @@ func (l *linker) initNodes() error {
 }
 
 func (l *linker) watchNodes() {
-	rch := l.client.Watch(context.TODO(), serviceNamespace, clientv3.WithPrefix())
+	rch := l.client.Watch(context.TODO(), ServiceNamespace, clientv3.WithPrefix())
 	for wresp := range rch {
 		for _, ev := range wresp.Events {
 			switch ev.Type {
