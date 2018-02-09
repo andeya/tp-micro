@@ -18,9 +18,7 @@ import (
 	"encoding/json"
 	"strings"
 	"sync"
-	"time"
 
-	"github.com/coreos/etcd/clientv3"
 	"github.com/henrylee2cn/goutil"
 )
 
@@ -28,35 +26,6 @@ const (
 	// ServiceNamespace the service prefix of ETCD key
 	ServiceNamespace = "ANT-SRV@"
 )
-
-// EtcdClient ETCD v3 client
-type EtcdClient = clientv3.Client
-
-// EtcdConfig ETCD client config
-type EtcdConfig struct {
-	Endpoints   []string      `yaml:"endpoints"    ini:"endpoints"    comment:"list of URLs"`
-	DialTimeout time.Duration `yaml:"dial_timeout" ini:"dial_timeout" comment:"timeout for failing to establish a connection"`
-	Username    string        `yaml:"username"     ini:"username"     comment:"user name for authentication"`
-	Password    string        `yaml:"password"     ini:"password"     comment:"password for authentication"`
-}
-
-// NewEtcdClient creates ETCD client.
-// Note:
-// If etcdConfig.DialTimeout<0, it means unlimit;
-// If etcdConfig.DialTimeout=0, use the default value(15s).
-func NewEtcdClient(etcdConfig EtcdConfig) (*clientv3.Client, error) {
-	if etcdConfig.DialTimeout == 0 {
-		etcdConfig.DialTimeout = 15 * time.Second
-	} else if etcdConfig.DialTimeout < 0 {
-		etcdConfig.DialTimeout = 0
-	}
-	return clientv3.New(clientv3.Config{
-		Endpoints:   etcdConfig.Endpoints,
-		DialTimeout: etcdConfig.DialTimeout,
-		Username:    etcdConfig.Username,
-		Password:    etcdConfig.Password,
-	})
-}
 
 // ServiceInfo serivce info
 type ServiceInfo struct {
