@@ -141,7 +141,7 @@ func main() {
 }
 ```
 
-[More](https://github.com/henrylee2cn/ant/tree/master/samples)
+[More Samples](https://github.com/henrylee2cn/ant/tree/master/samples)
 
 
 ## 5. Command
@@ -153,9 +153,9 @@ Command ant is deployment tools of ant microservice frameware.
 
 ### 1. Install
 
-	```sh
-	go install
-	```
+```sh
+go install
+```
 
 ### 2. Usage
 
@@ -194,7 +194,7 @@ OPTIONS:
 
 example: `ant run -x .yaml -a myant` or `ant run -x .yaml myant`
 
-[ant command](https://github.com/henrylee2cn/ant/tree/master/cmd/ant)
+[More Ant command](https://github.com/henrylee2cn/ant/tree/master/cmd/ant)
 
 ## 6. Platform
 
