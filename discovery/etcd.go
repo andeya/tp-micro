@@ -46,7 +46,7 @@ func NewEtcdClient(etcdConfig EtcdConfig) (*clientv3.Client, error) {
 	})
 }
 
-// types that migrated from etcd 'github.com/coreos/etcd/clientv3'
+// migrated from etcd 'github.com/coreos/etcd/clientv3'
 
 // EtcdClient ETCD v3 client
 type EtcdClient = clientv3.Client
@@ -56,8 +56,6 @@ type OpOption = clientv3.OpOption
 
 // LeaseID etcd lease ID
 type LeaseID = clientv3.LeaseID
-
-// functions that migrated from etcd 'github.com/coreos/etcd/clientv3'
 
 // WithLease attaches a lease ID to a key in 'Put' request.
 //  func WithLease(leaseID clientv3.LeaseID) clientv3.OpOption
@@ -198,3 +196,28 @@ var WithCompactPhysical = clientv3.WithCompactPhysical
 // when the cluster has a leader.
 //  func WithRequireLeader(ctx context.Context) context.Context
 var WithRequireLeader = clientv3.WithRequireLeader
+
+// SortOrder etcd SortOrder type
+type SortOrder = clientv3.SortOrder
+
+// SortOrder types
+const (
+	SortNone    SortOrder = clientv3.SortNone
+	SortAscend            = clientv3.SortAscend
+	SortDescend           = clientv3.SortDescend
+)
+
+// SortTarget etcd SortTarget type
+type SortTarget = clientv3.SortTarget
+
+// SortTarget types
+const (
+	SortByKey            SortTarget = clientv3.SortByKey
+	SortByVersion                   = clientv3.SortByVersion
+	SortByCreateRevision            = clientv3.SortByCreateRevision
+	SortByModRevision               = clientv3.SortByModRevision
+	SortByValue                     = clientv3.SortByValue
+)
+
+// SortOption etcd SortOption type
+type SortOption = clientv3.SortOption
