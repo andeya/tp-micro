@@ -176,18 +176,15 @@ func getServiceInfo(value []byte) *ServiceInfo {
 	return info
 }
 
-// NotFoundService reply error: not found service
-var NotFoundService = tp.NewRerror(tp.CodeDialFailed, "Dial Failed", "not found service")
-
 // Select selects a service address by URI path.
 func (l *linker) Select(uriPath string) (string, *tp.Rerror) {
 	iface, exist := l.uriPaths.Load(uriPath)
 	if !exist {
-		return "", NotFoundService
+		return "", ant.NotFoundService
 	}
 	nodes := iface.(goutil.Map)
 	if nodes.Len() == 0 {
-		return "", NotFoundService
+		return "", ant.NotFoundService
 	}
 	var node *Node
 	for i := 0; i < nodes.Len(); i++ {
@@ -198,7 +195,7 @@ func (l *linker) Select(uriPath string) (string, *tp.Rerror) {
 		}
 	}
 	if node == nil {
-		return "", NotFoundService
+		return "", ant.NotFoundService
 	}
 	return node.Addr, nil
 }
