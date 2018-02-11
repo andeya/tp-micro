@@ -221,3 +221,15 @@ const (
 
 // SortOption etcd SortOption type
 type SortOption = clientv3.SortOption
+
+// LeaseGrantResponse wraps the protobuf message LeaseGrantResponse.
+type LeaseGrantResponse = clientv3.LeaseGrantResponse
+
+// LeaseKeepAliveResponse wraps the protobuf message LeaseKeepAliveResponse.
+type LeaseKeepAliveResponse = clientv3.LeaseKeepAliveResponse
+
+// LeaseTimeToLiveResponse wraps the protobuf message LeaseTimeToLiveResponse.
+type LeaseTimeToLiveResponse = clientv3.LeaseTimeToLiveResponse
+
+// LeaseStatus represents a lease status.
+type LeaseStatus = clientv3.LeaseStatus
