@@ -27,7 +27,12 @@ func main() {
 		ListenAddress: ":9090",
 		// EnableHeartbeat: true,
 	},
-		discovery.ServicePlugin(":9090", []string{"http://127.0.0.1:2379"}),
+		discovery.ServicePlugin(
+			":9090",
+			discovery.EtcdConfig{
+				Endpoints: []string{"http://127.0.0.1:2379"},
+			},
+		),
 	)
 	srv.RoutePull(new(P))
 	srv.Listen()

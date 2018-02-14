@@ -17,6 +17,7 @@ package discovery
 import (
 	"context"
 	"encoding/json"
+	"net"
 	"sync"
 
 	"github.com/coreos/etcd/clientv3"
@@ -30,6 +31,7 @@ type linker struct {
 	nodes    goutil.Map
 	uriPaths goutil.Map
 	delCh    chan string
+	innerIp  string
 }
 
 const (
@@ -41,8 +43,11 @@ const (
 )
 
 // NewLinker creates a etct service linker.
-func NewLinker(endpoints []string) ant.Linker {
-	etcdClient, err := NewEtcdClient(endpoints, "", "")
+// Note:
+// If etcdConfig.DialTimeout<0, it means unlimit;
+// If etcdConfig.DialTimeout=0, use the default value(15s).
+func NewLinker(etcdConfig EtcdConfig) ant.Linker {
+	etcdClient, err := NewEtcdClient(etcdConfig)
 	if err != nil {
 		tp.Fatalf("%s: %v", linkerName, err)
 		return nil
@@ -52,11 +57,16 @@ func NewLinker(endpoints []string) ant.Linker {
 
 // NewLinkerFromEtcd creates a etct service linker.
 func NewLinkerFromEtcd(etcdClient *clientv3.Client) ant.Linker {
+	innerIp, err := goutil.IntranetIP()
+	if err != nil {
+		tp.Fatalf("%s: %v", linkerName, err)
+	}
 	l := &linker{
 		client:   etcdClient,
 		nodes:    goutil.AtomicMap(),
 		uriPaths: goutil.AtomicMap(),
 		delCh:    make(chan string, 256),
+		innerIp:  innerIp,
 	}
 	if err := l.initNodes(); err != nil {
 		tp.Fatalf("%s: %v", linkerName, err)
@@ -65,8 +75,24 @@ func NewLinkerFromEtcd(etcdClient *clientv3.Client) ant.Linker {
 	return l
 }
 
-func (l *linker) addNode(key string, info *ServiceInfo) {
+func (l *linker) getAddr(key string) (string, error) {
 	addr := getAddr(key)
+	host, port, err := net.SplitHostPort(addr)
+	if err != nil {
+		return "", err
+	}
+	// Use the loopback address when on the same host
+	if host == l.innerIp {
+		return "127.0.0.1:" + port, nil
+	}
+	return addr, nil
+}
+
+func (l *linker) addNode(key string, info *ServiceInfo) {
+	addr, err := l.getAddr(key)
+	if err != nil {
+		return
+	}
 	node := &Node{
 		Addr:  addr,
 		Info:  info,
@@ -91,7 +117,7 @@ func (l *linker) addNode(key string, info *ServiceInfo) {
 }
 
 func (l *linker) delNode(key string) {
-	addr := getAddr(key)
+	addr, _ := l.getAddr(key)
 	_node, ok := l.nodes.Load(addr)
 	if !ok {
 		return
@@ -114,28 +140,28 @@ func (l *linker) delNode(key string) {
 }
 
 func (l *linker) initNodes() error {
-	resp, err := l.client.Get(context.TODO(), serviceNamespace, clientv3.WithPrefix())
+	resp, err := l.client.Get(context.TODO(), ServiceNamespace, clientv3.WithPrefix())
 	if err != nil || len(resp.Kvs) == 0 {
 		return err
 	}
 	for _, kv := range resp.Kvs {
 		l.addNode(string(kv.Key), getServiceInfo(kv.Value))
-		tp.Printf("%s: INIT %q : %q\n", linkerName, kv.Key, kv.Value)
+		tp.Infof("%s: INIT %q : %q\n", linkerName, kv.Key, kv.Value)
 	}
 	return nil
 }
 
 func (l *linker) watchNodes() {
-	rch := l.client.Watch(context.TODO(), serviceNamespace, clientv3.WithPrefix())
+	rch := l.client.Watch(context.TODO(), ServiceNamespace, clientv3.WithPrefix())
 	for wresp := range rch {
 		for _, ev := range wresp.Events {
 			switch ev.Type {
 			case clientv3.EventTypePut:
 				l.addNode(string(ev.Kv.Key), getServiceInfo(ev.Kv.Value))
-				tp.Printf("%s: %s %q : %q\n", linkerName, ev.Type, ev.Kv.Key, ev.Kv.Value)
+				tp.Infof("%s: %s %q : %q\n", linkerName, ev.Type, ev.Kv.Key, ev.Kv.Value)
 			case clientv3.EventTypeDelete:
 				l.delNode(string(ev.Kv.Key))
-				tp.Printf("%s: %s %q\n", linkerName, ev.Type, ev.Kv.Key)
+				tp.Infof("%s: %s %q\n", linkerName, ev.Type, ev.Kv.Key)
 			}
 		}
 	}
@@ -150,18 +176,15 @@ func getServiceInfo(value []byte) *ServiceInfo {
 	return info
 }
 
-// NotFoundService reply error: not found service
-var NotFoundService = tp.NewRerror(tp.CodeDialFailed, "Dial Failed", "not found service")
-
 // Select selects a service address by URI path.
 func (l *linker) Select(uriPath string) (string, *tp.Rerror) {
 	iface, exist := l.uriPaths.Load(uriPath)
 	if !exist {
-		return "", NotFoundService
+		return "", ant.NotFoundService
 	}
 	nodes := iface.(goutil.Map)
 	if nodes.Len() == 0 {
-		return "", NotFoundService
+		return "", ant.NotFoundService
 	}
 	var node *Node
 	for i := 0; i < nodes.Len(); i++ {
@@ -172,7 +195,7 @@ func (l *linker) Select(uriPath string) (string, *tp.Rerror) {
 		}
 	}
 	if node == nil {
-		return "", NotFoundService
+		return "", ant.NotFoundService
 	}
 	return node.Addr, nil
 }

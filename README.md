@@ -10,7 +10,7 @@ Ant is a simple and flexible microservice framework based on [Teleport](https://
 
 
 ```
-go version ≥ 1.7
+go version ≥ 1.9
 ```
 
 ```sh
@@ -35,7 +35,9 @@ go get -u github.com/henrylee2cn/ant
 - Support network list: `tcp`, `tcp4`, `tcp6`, `unix`, `unixpacket` and so on
 - Client support automatically redials after disconnection
 
-## 3. Project Structure(RCMD)
+## 3. Project Structure
+
+(recommend)
 
 ```
 ├── README.md
@@ -139,12 +141,65 @@ func main() {
 }
 ```
 
-[More](https://github.com/henrylee2cn/ant/tree/master/samples)
+[More Samples](https://github.com/henrylee2cn/ant/tree/master/samples)
 
-## 5. Platform
+
+## 5. Command
+
+Command ant is deployment tools of ant microservice frameware.
+
+- Quickly create a ant project
+- Run ant project with hot compilation
+
+### 1. Install
+
+```sh
+go install
+```
+
+### 2. Usage
+
+- new project
+
+```
+NAME:
+   ant new - Create a new ant project
+
+USAGE:
+   ant new [options] [arguments...]
+ or
+   ant new [options except -app_path] [arguments...] {app_path}
+
+OPTIONS:
+   --app_path value, -a value  Specifies the path(relative/absolute) of the project
+```
+
+example: `ant new -a myant` or `ant new myant`
+
+- run project
+
+```
+NAME:
+   ant run - Compile and run gracefully (monitor changes) an any existing go project
+
+USAGE:
+   ant run [options] [arguments...]
+ or
+   ant run [options except -app_path] [arguments...] {app_path}
+
+OPTIONS:
+   --watch_exts value, -x value  Specified to increase the listening file suffix (default: ".go", ".ini", ".yaml", ".toml", ".xml")
+   --app_path value, -a value    Specifies the path(relative/absolute) of the project
+```
+
+example: `ant run -x .yaml -a myant` or `ant run -x .yaml myant`
+
+[More Ant Command](https://github.com/henrylee2cn/ant/tree/master/cmd/ant)
+
+## 6. Platform
 
 [Ants](https://github.com/xiaoenai/ants): a highly available microservice platform based on [Ant](https://github.com/henrylee2cn/ant) and [Teleport](https://github.com/henrylee2cn/teleport).
 
-## 6. License
+## 7. License
 
 Ant is under Apache v2 License. See the [LICENSE](https://github.com/henrylee2cn/ant/raw/master/LICENSE) file for the full license text

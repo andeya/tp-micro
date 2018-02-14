@@ -7,7 +7,7 @@ Ant 是一套简单、灵活的基于 [Teleport](https://github.com/henrylee2cn/
 ## 1. 安装
 
 ```
-go version ≥ 1.7
+go version ≥ 1.9
 ```
 
 ```sh
@@ -32,7 +32,35 @@ go get -u github.com/henrylee2cn/ant
 - 支持的网络类型：`tcp`、`tcp4`、`tcp6`、`unix`、`unixpacket`等
 - 客户端支持断线后自动重连
 
-## 3. 示例
+## 3. 项目结构
+
+（推荐）
+
+```
+├── README.md
+├── main.go
+├── api
+│   ├── handlers.gen.go
+│   ├── handlers.go
+│   ├── router.gen.go
+│   └── router.go
+├── logic
+│   └── xxx.go
+├── sdk
+│   ├── rpc.gen.go
+│   ├── rpc.gen_test.go
+│   ├── rpc.go
+│   └── rpc_test.go
+└── types
+    ├── types.gen.go
+    └── types.go
+```
+
+说明：
+
+- 在自动生成的文件的文件名中增加 `.gen` 后缀进行标记
+
+## 4. 示例
 
 - 服务端
 
@@ -110,12 +138,63 @@ func main() {
 }
 ```
 
-[更多](https://github.com/henrylee2cn/ant/tree/master/samples)
+[更多示例](https://github.com/henrylee2cn/ant/tree/master/samples)
 
-## 4. 平台架构
+
+## 5. 命令行工具
+
+- 快速创建ant项目
+- 热编译模式运行ant项目
+
+### 1. 安装
+
+```sh
+go install
+```
+
+### 2. 用法
+
+- 新建项目
+
+```
+NAME:
+   ant new - Create a new ant project
+
+USAGE:
+   ant new [options] [arguments...]
+ or
+   ant new [options except -app_path] [arguments...] {app_path}
+
+OPTIONS:
+   --app_path value, -a value  Specifies the path(relative/absolute) of the project
+```
+
+示例：`ant new -a myant` or `ant new myant`
+
+- 热编译运行
+
+```
+NAME:
+   ant run - Compile and run gracefully (monitor changes) an any existing go project
+
+USAGE:
+   ant run [options] [arguments...]
+ or
+   ant run [options except -app_path] [arguments...] {app_path}
+
+OPTIONS:
+   --watch_exts value, -x value  Specified to increase the listening file suffix (default: ".go", ".ini", ".yaml", ".toml", ".xml")
+   --app_path value, -a value    Specifies the path(relative/absolute) of the project
+```
+
+示例：`ant run -x .yaml -a myant` or `ant run -x .yaml myant`
+
+[更多 ant command](https://github.com/henrylee2cn/ant/tree/master/cmd/ant)
+
+## 6. 平台架构
 
 [Ants](https://github.com/xiaoenai/ants): 一套基于 [Ant](https://github.com/henrylee2cn/ant) 和 [Teleport](https://github.com/henrylee2cn/teleport) 的高可用的微服务平台解决方案。
 
-## 5. 开源协议
+## 7. 开源协议
 
 Ant 项目采用商业应用友好的 [Apache2.0](https://github.com/henrylee2cn/ant/raw/master/LICENSE) 协议发布

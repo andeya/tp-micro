@@ -45,10 +45,13 @@ var (
 )
 
 // ServicePlugin creates a teleport plugin which automatically registered api info to etcd.
-func ServicePlugin(addr string, endpoints []string, excludeApis ...string) tp.Plugin {
+// Note:
+// If etcdConfig.DialTimeout<0, it means unlimit;
+// If etcdConfig.DialTimeout=0, use the default value(15s).
+func ServicePlugin(addr string, etcdConfig EtcdConfig, excludeApis ...string) tp.Plugin {
 	s := ServicePluginFromEtcd(addr, nil, excludeApis...)
 	var err error
-	s.(*service).client, err = NewEtcdClient(endpoints, "", "")
+	s.(*service).client, err = NewEtcdClient(etcdConfig)
 	if err != nil {
 		tp.Fatalf("%v: %v", err, s.Name())
 		return s
@@ -141,7 +144,7 @@ func (s *service) keepAlive() (<-chan *clientv3.LeaseKeepAliveResponse, error) {
 
 	ch, err := s.client.KeepAlive(context.TODO(), resp.ID)
 	if err == nil {
-		tp.Printf("%s: PUT %q : %q", s.Name(), s.serviceKey, info)
+		tp.Infof("%s: PUT %q : %q", s.Name(), s.serviceKey, info)
 	}
 	return ch, err
 }

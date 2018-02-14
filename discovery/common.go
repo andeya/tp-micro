@@ -18,34 +18,14 @@ import (
 	"encoding/json"
 	"strings"
 	"sync"
-	"time"
 
-	"github.com/coreos/etcd/clientv3"
 	"github.com/henrylee2cn/goutil"
 )
 
 const (
-	// serviceNamespace the service prefix of ETCD key
-	serviceNamespace = "ANT-SRV@"
+	// ServiceNamespace the service prefix of ETCD key
+	ServiceNamespace = "ANT-SRV@"
 )
-
-func createServiceKey(addr string) string {
-	return serviceNamespace + addr
-}
-
-func getAddr(serviceKey string) string {
-	return strings.TrimPrefix(serviceKey, serviceNamespace)
-}
-
-// NewEtcdClient creates simple ETCD client.
-func NewEtcdClient(endpoints []string, username, password string) (*clientv3.Client, error) {
-	return clientv3.New(clientv3.Config{
-		Endpoints:   endpoints,
-		DialTimeout: 15 * time.Second,
-		Username:    username,
-		Password:    password,
-	})
-}
 
 // ServiceInfo serivce info
 type ServiceInfo struct {
@@ -66,4 +46,12 @@ func (s *ServiceInfo) Append(uriPath ...string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.UriPaths = append(s.UriPaths, uriPath...)
+}
+
+func createServiceKey(addr string) string {
+	return ServiceNamespace + addr
+}
+
+func getAddr(serviceKey string) string {
+	return strings.TrimPrefix(serviceKey, ServiceNamespace)
 }

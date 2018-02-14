@@ -68,6 +68,7 @@ type Server struct {
 
 // NewServer creates a server peer.
 func NewServer(cfg SrvConfig, plugin ...tp.Plugin) *Server {
+	doInit()
 	plugin = append(
 		[]tp.Plugin{
 			binder.NewStructArgsBinder(RerrCodeBind, "invalid parameter"),
@@ -87,6 +88,11 @@ func NewServer(cfg SrvConfig, plugin ...tp.Plugin) *Server {
 	return &Server{
 		peer: peer,
 	}
+}
+
+// Peer returns the peer
+func (s *Server) Peer() tp.Peer {
+	return s.peer
 }
 
 // Router returns the root router of pull or push handlers.
