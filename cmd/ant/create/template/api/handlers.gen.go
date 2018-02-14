@@ -1,17 +1,23 @@
+
 package api
 
 import (
-	"{{PROJ_PATH}}/logic"
-	"{{PROJ_PATH}}/types"
-	tp "github.com/henrylee2cn/teleport"
+    "logic"
+    "types"
+    tp "github.com/henrylee2cn/teleport"
 )
 
-// Math mathematical calculation controller
-type Math struct {
-	tp.PullCtx
+type ApiHandlers struct {
+    tp.PullCtx
 }
 
-// Divide division
-func (m *Math) Divide(args *types.MathDivideArgs) (*types.MathDivideReply, *tp.Rerror) {
-	return logic.MathDivide(args)
+func (handlers *ApiHandlers) getUserList(args *RpcArgs) (*RpcReply, *tp.Rerror) {
+    return logic.getUserList(args)
 }
+
+func (handlers *ApiHandlers) getUserList2(a int, b string, args *RpcArgs, args2 *RpcArgs) (*RpcReply, *tp.Rerror) {
+    return logic.getUserList2(a, b, args, args2)
+}
+
+
+
