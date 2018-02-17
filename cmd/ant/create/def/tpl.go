@@ -18,17 +18,20 @@
 // types/types.go
 // DO NOT EDIT!
 
-package create
+package def
 
 import (
 	"bytes"
 	"compress/gzip"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/henrylee2cn/ant/cmd/ant/info"
 )
 
 func bindataRead(data []byte, name string) ([]byte, error) {
@@ -542,4 +545,62 @@ var _bintree = &bintree{nil, map[string]*bintree{
 func _filePath(dir, name string) string {
 	cannonicalName := strings.Replace(name, "\\", "/", -1)
 	return filepath.Join(append([]string{dir}, strings.Split(cannonicalName, "/")...)...)
+}
+
+// RestoreAsset restores an asset under the given directory
+func RestoreAsset(dir, name string) error {
+	data, err := Asset(name)
+	if err != nil {
+		return err
+	}
+	info, err := AssetInfo(name)
+	if err != nil {
+		return err
+	}
+	data = bytes.Replace(data, projNameTpl, projNameBytes, -1)
+	data = bytes.Replace(data, projPathTpl, projPathBytes, -1)
+	err = os.MkdirAll(_filePath(dir, filepath.Dir(name)), os.FileMode(0755))
+	if err != nil {
+		return err
+	}
+	err = ioutil.WriteFile(_filePath(dir, name), data, info.Mode())
+	if err != nil {
+		return err
+	}
+	err = os.Chtimes(_filePath(dir, name), info.ModTime(), info.ModTime())
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// RestoreAssets restores an asset under the given directory recursively
+func RestoreAssets(dir, name string) error {
+	children, err := AssetDir(name)
+	// File
+	if err != nil {
+		return RestoreAsset(dir, name)
+	}
+	// Dir
+	for _, child := range children {
+		err = RestoreAssets(dir, filepath.Join(name, child))
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+var (
+	projNameBytes []byte
+	projPathBytes []byte
+	projNameTpl   = []byte("{{PROJ_NAME}}")
+	projPathTpl   = []byte("{{PROJ_PATH}}")
+)
+
+// Create creates base files.
+func Create() {
+	projNameBytes = []byte(info.ProjName())
+	projPathBytes = []byte(info.ProjPath())
+	RestoreAssets("./", "")
 }

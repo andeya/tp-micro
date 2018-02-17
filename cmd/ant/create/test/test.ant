@@ -4,14 +4,13 @@ type User {
     nickname : string
     m1 : int
     m2 : float
-
     m3 : long
     m4 : double
     m5 : string
     m6 : string
     m7 : string
-
 }
+
 // test commet
 type RpcArgs {
     a:int

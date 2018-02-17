@@ -161,15 +161,14 @@ NAME:
    ant new - Create a new ant project
 
 USAGE:
-   ant new [options] [arguments...]
- or
-   ant new [options except -app_path] [arguments...] {app_path}
+   ant new [command options] [arguments...]
 
 OPTIONS:
-   --app_path value, -a value  Specifies the path(relative/absolute) of the project
+   --script value, -s value    The script for code generation(relative/absolute)
+   --app_path value, -p value  The path(relative/absolute) of the project
 ```
 
-示例：`ant new -a myant` or `ant new myant`
+示例：`ant new -p ./myant -s ./test.ant`
 
 - 热编译运行
 
@@ -184,7 +183,7 @@ USAGE:
 
 OPTIONS:
    --watch_exts value, -x value  Specified to increase the listening file suffix (default: ".go", ".ini", ".yaml", ".toml", ".xml")
-   --app_path value, -a value    Specifies the path(relative/absolute) of the project
+   --app_path value, -p value    Specifies the path(relative/absolute) of the project
 ```
 
 示例：`ant run -x .yaml -a myant` or `ant run -x .yaml myant`

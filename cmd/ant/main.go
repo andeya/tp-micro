@@ -36,18 +36,19 @@ func main() {
 	newCom := cli.Command{
 		Name:  "new",
 		Usage: "Create a new ant project",
-		UsageText: `ant new [options] [arguments...]
- or
-   ant new [options except -app_path] [arguments...] {app_path}`,
 		Flags: []cli.Flag{
 			cli.StringFlag{
-				Name:  "app_path, a",
-				Usage: "Specifies the path(relative/absolute) of the project",
+				Name:  "script, s",
+				Usage: "The script for code generation(relative/absolute)",
+			},
+			cli.StringFlag{
+				Name:  "app_path, p",
+				Usage: "The path(relative/absolute) of the project",
 			},
 		},
 		Before: initProject,
 		Action: func(c *cli.Context) error {
-			create.CreateProject()
+			create.CreateProject(c.String("script"))
 			return nil
 		},
 	}
@@ -66,8 +67,8 @@ func main() {
 				Usage: "Specified to increase the listening file suffix",
 			},
 			cli.StringFlag{
-				Name:  "app_path, a",
-				Usage: "Specifies the path(relative/absolute) of the project",
+				Name:  "app_path, p",
+				Usage: "The path(relative/absolute) of the project",
 			},
 		},
 		Before: initProject,

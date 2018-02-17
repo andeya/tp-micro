@@ -1,13 +1,15 @@
-package main
+package create
 
 import (
-	"fmt"
-	//"github.com/urfave/cli"
 	"bufio"
-	"log"
+	"fmt"
+	"io"
 	"os"
 	"regexp"
 	"strings"
+
+	"github.com/henrylee2cn/ant"
+	"github.com/henrylee2cn/ant/cmd/ant/info"
 )
 
 const (
@@ -73,7 +75,7 @@ type Lexer struct {
 	currTokenIdx int
 }
 
-func (lexer *Lexer) init(filePath string) {
+func (lexer *Lexer) init(tplReader io.Reader) {
 	lexer.currTokenIdx = 0
 	lexer.rules = map[int]*regexp.Regexp{}
 	for k, v := range token_rules {
@@ -81,12 +83,7 @@ func (lexer *Lexer) init(filePath string) {
 		lexer.rules[k] = reg
 	}
 
-	file, err := os.Open(filePath)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer file.Close()
-	scanner := bufio.NewScanner(file)
+	scanner := bufio.NewScanner(tplReader)
 	for scanner.Scan() {
 		line := scanner.Text()
 		lexer.lines = append(lexer.lines, line)
@@ -96,7 +93,7 @@ func (lexer *Lexer) init(filePath string) {
 	}
 
 	//for _, v := range lexer.tokens {
-	//	fmt.Println("line ", v.lineno, ": ", v.text)
+	//	fmt.Println("line ", v.lineno,  v.text)
 	//}
 }
 
@@ -123,7 +120,7 @@ func (lexer *Lexer) parseLine(lineno int, lineText string) {
 			}
 		}
 		if isMatch == false {
-			log.Panic("There is some error in config file with line ", lineno, ": ", line)
+			ant.Fatalf("[ant] There is some error in config file with line %v: %v", lineno, line)
 			break
 		}
 	}
@@ -206,18 +203,18 @@ func (parser *Parser) type_define() {
 	//fmt.Println("\n------ type define begin ------")
 	//fmt.Println("type: ", identifier.text)
 	if identifier.tokenType != TOKEN_SYMBOL {
-		log.Panic("invaid identifier in line ", identifier.lineno, ": ", identifier.text)
+		ant.Fatalf("[ant] invaid identifier in line %v: %v", identifier.lineno, identifier.text)
 	}
 
 	braceLeft := parser.lexer.takeToken()
 	if braceLeft.tokenType != TOKEN_BRACE_LEFT {
-		log.Panic("expect '{' in line ", braceLeft.lineno, ": ", braceLeft.text)
+		ant.Fatalf("[ant] expect '{' in line %v: %v", braceLeft.lineno, braceLeft.text)
 	}
 	members := []*Variable{}
 	parser.variable_declare(&members)
 	braceRight := parser.lexer.takeToken()
 	if braceRight.tokenType != TOKEN_BRACE_RIGHT {
-		log.Panic("expect '}' in line ", braceRight.lineno, ": ", braceRight.text)
+		ant.Fatalf("[ant] expect '}' in line %v: %v", braceRight.lineno, braceRight.text)
 	}
 	//fmt.Println("------------ end ----------\n")
 	customType := &CustomType{typeName: identifier.text, members: members}
@@ -230,11 +227,11 @@ func (parser *Parser) variable_declare(members *[]*Variable) {
 	}
 	identifier := parser.lexer.takeToken()
 	if identifier.tokenType != TOKEN_SYMBOL {
-		log.Panic("invaid identifier in line ", identifier.lineno, ": ", identifier.text)
+		ant.Fatalf("[ant] invaid identifier in line %v: %v", identifier.lineno, identifier.text)
 	}
 	colon := parser.lexer.takeToken()
 	if colon.tokenType != TOKEN_COLON {
-		log.Panic("expect ':' in line ", colon.lineno, ": ", colon.text)
+		ant.Fatalf("[ant] expect ':' in line %v: %v", colon.lineno, colon.text)
 	}
 	type_identifier := parser.lexer.takeToken()
 	if type_identifier.tokenType == TOKEN_KEYWORD_LIST {
@@ -255,7 +252,7 @@ func (parser *Parser) variable_declare(members *[]*Variable) {
 		})
 	} else {
 		if parser.isDeclaredType(type_identifier.text) == false {
-			log.Panic("undeclared type in line ", type_identifier.lineno, ": ", type_identifier.text)
+			ant.Fatalf("[ant] undeclared type in line %v: %v", type_identifier.lineno, type_identifier.text)
 		}
 		*members = append(*members, &Variable{
 			variableName: identifier.text,
@@ -275,12 +272,12 @@ func (parser *Parser) api_define() {
 
 	braceLeft := parser.lexer.takeToken()
 	if braceLeft.tokenType != TOKEN_BRACE_LEFT {
-		log.Panic("expect '{' in line ", braceLeft.lineno, ": ", braceLeft.text)
+		ant.Fatalf("[ant] expect '{' in line %v: %v", braceLeft.lineno, braceLeft.text)
 	}
 	parser.api_declare()
 	braceRight := parser.lexer.takeToken()
 	if braceRight.tokenType != TOKEN_BRACE_RIGHT {
-		log.Panic("expect '}' in line ", braceRight.lineno, ": ", braceRight.text)
+		ant.Fatalf("[ant] expect '}' in line %v: %v", braceRight.lineno, braceRight.text)
 	}
 
 }
@@ -293,13 +290,13 @@ func (parser *Parser) api_declare() {
 	// 1. api function name
 	function := parser.lexer.takeToken()
 	if function.tokenType != TOKEN_SYMBOL {
-		log.Panic("invaid api name dentifier in line ", function.lineno, ": ", function.text)
+		ant.Fatalf("[ant] invaid api name dentifier in line %v: %v", function.lineno, function.text)
 	}
 
 	// 2. function '('
 	bracketsLeft := parser.lexer.takeToken()
 	if bracketsLeft.tokenType != TOKEN_BRACKETS_LEFT {
-		log.Panic("expect '(' in line ", bracketsLeft.lineno, ": ", bracketsLeft.text)
+		ant.Fatalf("[ant] expect '(' in line %v: %v", bracketsLeft.lineno, bracketsLeft.text)
 	}
 
 	// 3. function parameter
@@ -309,17 +306,17 @@ func (parser *Parser) api_declare() {
 	// 4. function ')'
 	bracketsRight := parser.lexer.takeToken()
 	if bracketsRight.tokenType != TOKEN_BRACKETS_RIGHT {
-		log.Panic("expect ')' in line ", bracketsRight.lineno, ": ", bracketsRight.text)
+		ant.Fatalf("[ant] expect ')' in line %v: %v", bracketsRight.lineno, bracketsRight.text)
 	}
 
 	// 5. function -> return type
 	retTagToken := parser.lexer.takeToken()
 	if retTagToken.tokenType != TOKEN_RETURN {
-		log.Panic("expect function return tag '->' in line ", retTagToken.lineno, ": ", retTagToken.text)
+		ant.Fatalf("[ant] expect function return tag '->' in line %v: %v", retTagToken.lineno, retTagToken.text)
 	}
 	retToken := parser.lexer.takeToken()
 	if parser.isDeclaredType(retToken.text) == false {
-		log.Panic("undefined ret type in line ", retToken.lineno, ": ", retToken.text)
+		ant.Fatalf("[ant] undefined ret type in line %v: %v", retToken.lineno, retToken.text)
 	}
 	api := &CustomAPI{name: function.text, params: params, ret: retToken.text}
 	parser.apis = append(parser.apis, api)
@@ -331,11 +328,11 @@ func (parser *Parser) api_declare() {
 func (parser *Parser) parameter_declare(params *[]*Variable) {
 	paramName := parser.lexer.takeToken()
 	if paramName.tokenType != TOKEN_SYMBOL {
-		log.Panic("invaid parameter name dentifier in line ", paramName.lineno, ": ", paramName.text)
+		ant.Fatalf("[ant] invaid parameter name dentifier in line %v: %v", paramName.lineno, paramName.text)
 	}
 	colon := parser.lexer.takeToken()
 	if colon.tokenType != TOKEN_COLON {
-		log.Panic("expect ':' in line ", colon.lineno, ": ", colon.text)
+		ant.Fatalf("[ant] expect ':' in line %v: %v", colon.lineno, colon.text)
 	}
 	paramType := parser.lexer.takeToken()
 	if paramType.tokenType == TOKEN_KEYWORD_LIST {
@@ -356,7 +353,7 @@ func (parser *Parser) parameter_declare(params *[]*Variable) {
 		})
 	} else {
 		if parser.isDeclaredType(paramType.text) == false {
-			log.Panic("undeclared param type in line ", paramType.lineno, ": ", paramType.text)
+			ant.Fatalf("[ant] undeclared param type in line %v: %v", paramType.lineno, paramType.text)
 		}
 		*params = append(*params, &Variable{
 			variableName: paramName.text,
@@ -368,7 +365,7 @@ func (parser *Parser) parameter_declare(params *[]*Variable) {
 	if tokenType := parser.lexer.nextTokenType(); tokenType == TOKEN_COMMA {
 		commaToken := parser.lexer.takeToken()
 		if commaToken.tokenType != TOKEN_COMMA {
-			log.Panic("expect ',' in line ", paramType.lineno, ": ", paramType.text)
+			ant.Fatalf("[ant] expect ',' in line %v: %v", paramType.lineno, paramType.text)
 		}
 		parser.parameter_declare(params)
 	}
@@ -377,15 +374,15 @@ func (parser *Parser) parameter_declare(params *[]*Variable) {
 func (parser *Parser) parseListType() string {
 	bracketsLeft := parser.lexer.takeToken() // '<'
 	if bracketsLeft.tokenType != TOKEN_ANGLE_BRACKETS_LEFT {
-		log.Panic("expect '<' in line ", bracketsLeft.lineno, ": ", bracketsLeft.text)
+		ant.Fatalf("[ant] expect '<' in line %v: %v", bracketsLeft.lineno, bracketsLeft.text)
 	}
 	listType := parser.lexer.takeToken()
 	if parser.isDeclaredType(listType.text) == false {
-		log.Panic("undeclared type in line ", listType.lineno, ": ", listType.text)
+		ant.Fatalf("[ant] undeclared type in line %v: %v", listType.lineno, listType.text)
 	}
 	bracketsRight := parser.lexer.takeToken() // '>'
 	if bracketsRight.tokenType != TOKEN_ANGLE_BRACKETS_RIGHT {
-		log.Panic("expect '>' in line ", bracketsRight.lineno, ": ", bracketsRight.text)
+		ant.Fatalf("[ant] expect '>' in line %v: %v", bracketsRight.lineno, bracketsRight.text)
 	}
 	return listType.text
 }
@@ -393,24 +390,24 @@ func (parser *Parser) parseListType() string {
 func (parser *Parser) parseMapType() (string, string) {
 	bracketsLeft := parser.lexer.takeToken() // '<'
 	if bracketsLeft.tokenType != TOKEN_ANGLE_BRACKETS_LEFT {
-		log.Panic("expect '<' in line ", bracketsLeft.lineno, ": ", bracketsLeft.text)
+		ant.Fatalf("[ant] expect '<' in line %v: %v", bracketsLeft.lineno, bracketsLeft.text)
 	}
 	mapKeyType := parser.lexer.takeToken()
 	if mapKeyType.tokenType != TOKEN_KEYWORD_INT && mapKeyType.tokenType != TOKEN_KEYWORD_STRING &&
 		mapKeyType.tokenType != TOKEN_KEYWORD_LONG {
-		log.Panic("undeclared type in line ", mapKeyType.lineno, ": ", mapKeyType.text)
+		ant.Fatalf("[ant] undeclared type in line %v: %v", mapKeyType.lineno, mapKeyType.text)
 	}
 	comma := parser.lexer.takeToken() // ','
 	if comma.tokenType != TOKEN_COMMA {
-		log.Panic("expect ',' for map define in line ", comma.lineno, ": ", comma.text)
+		ant.Fatalf("[ant] expect ',' for map define in line %v: %v", comma.lineno, comma.text)
 	}
 	mapValueType := parser.lexer.takeToken()
 	if parser.isDeclaredType(mapValueType.text) == false {
-		log.Panic("undeclared type in line ", mapValueType.lineno, ": ", mapValueType.text)
+		ant.Fatalf("[ant] undeclared type in line %v: %v", mapValueType.lineno, mapValueType.text)
 	}
 	bracketsRight := parser.lexer.takeToken() // '>'
 	if bracketsRight.tokenType != TOKEN_ANGLE_BRACKETS_RIGHT {
-		log.Panic("expect '>' in line ", bracketsRight.lineno, ": ", bracketsRight.text)
+		ant.Fatalf("[ant] expect '>' in line %v: %v", bracketsRight.lineno, bracketsRight.text)
 	}
 	return mapKeyType.text, mapValueType.text
 }
@@ -467,7 +464,6 @@ func (parser *Parser) printApis() {
 	fmt.Println("------------------ end --------------------\n")
 }
 
-
 var types_tpl = `
 package types
 
@@ -479,8 +475,8 @@ var handler_tpl = `
 package api
 
 import (
-    "logic"
-    "types"
+    "${app_path}/logic"
+    "${app_path}/types"
     tp "github.com/henrylee2cn/teleport"
 )
 
@@ -516,7 +512,6 @@ var sdk_rpc_tpl = ``
 
 var sdk_rpc_test_tpl = ``
 
-
 type CodeGen struct {
 	parser *Parser
 }
@@ -525,7 +520,20 @@ func (codeGen *CodeGen) init(parser *Parser) {
 	codeGen.parser = parser
 }
 
+func mustMkdirAll(dir string) {
+	err := os.MkdirAll(dir, os.ModePerm)
+	if err != nil {
+		ant.Fatalf("[ant] %v", err)
+	}
+}
+
 func (codeGen *CodeGen) genForGolang() {
+	// make all directory
+	mustMkdirAll("./types")
+	mustMkdirAll("./api")
+	mustMkdirAll("./logic")
+	mustMkdirAll("./sdk")
+
 	parser := codeGen.parser
 
 	// 1. gen types/types.gen.go
@@ -560,7 +568,7 @@ func (codeGen *CodeGen) genForGolang() {
 		typeDefines += typeHeader + typeMember + typeTail
 	}
 	fileContent := strings.Replace(types_tpl, "${type_define_list}", typeDefines, 1)
-	codeGen.saveFile("../types/types.gen.go", &fileContent)
+	codeGen.saveFile("./types/types.gen.go", &fileContent)
 
 	// 2. gen api/handlers.gen.go
 	apiDefines := ""
@@ -609,32 +617,19 @@ func (codeGen *CodeGen) genForGolang() {
 		apiDefines += apiHeaderStr + apiParamsStr + replyStr + bodyStr + "\n"
 	}
 	fileContent = strings.Replace(handler_tpl, "${api_define_list}", apiDefines, 1)
-	codeGen.saveFile("../api/handlers.gen.go", &fileContent)
+	codeGen.saveFile("./api/handlers.gen.go", &fileContent)
 
 	// 3. gen api/router.gen.go
 	fileContent = router_tpl
-	codeGen.saveFile("../api/router.gen.go", &fileContent)
+	codeGen.saveFile("./api/router.gen.go", &fileContent)
 }
 
 func (codeGen *CodeGen) saveFile(fileName string, txt *string) {
 	f, err := os.OpenFile(fileName, os.O_WRONLY|os.O_TRUNC|os.O_CREATE, os.ModePerm)
 	if err != nil {
-		log.Panic(err)
+		ant.Fatalf("[ant] Create files error: %v", err)
 	}
-	defer  f.Close()
-	f.WriteString(*txt)
-}
-
-func main() {
-	lexer := Lexer{}
-	lexer.init("../api.proto")
-
-	parser := Parser{}
-	parser.init(&lexer)
-	parser.parse()
-
-	codeGen := CodeGen{}
-	codeGen.init(&parser)
-	codeGen.genForGolang()
-	fmt.Println("winer winer chicken dinner!")
+	defer f.Close()
+	fileContent := strings.Replace(*txt, "${app_path}", info.ProjPath(), -1)
+	f.WriteString(fileContent)
 }
