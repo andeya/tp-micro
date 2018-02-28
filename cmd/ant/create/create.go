@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"path/filepath"
 
 	"github.com/henrylee2cn/ant"
 	"github.com/henrylee2cn/ant/cmd/ant/create/def"
@@ -15,13 +16,22 @@ import (
 
 // CreateProject creates a project.
 func CreateProject(scriptFile string) {
+	noScriptFile := len(scriptFile) == 0
+	if !noScriptFile {
+		var err error
+		scriptFile, err = filepath.Abs(scriptFile)
+		if err != nil {
+			ant.Fatalf("[ant] Invalid script file path")
+		}
+	}
+
 	os.MkdirAll(info.AbsPath(), os.FileMode(0755))
 	err := os.Chdir(info.AbsPath())
 	if err != nil {
 		ant.Fatalf("[ant] Jump working directory failed: %v", err)
 	}
 
-	if len(scriptFile) == 0 {
+	if noScriptFile {
 		def.Create()
 		format()
 		return
@@ -31,7 +41,7 @@ func CreateProject(scriptFile string) {
 	tpl.Create()
 
 	var r io.Reader
-	if len(scriptFile) == 0 {
+	if noScriptFile {
 		b := test.MustAsset("test.ant")
 		r = bytes.NewReader(b)
 	} else {
