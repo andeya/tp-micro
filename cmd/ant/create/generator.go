@@ -10,6 +10,7 @@ import (
 
 	"github.com/henrylee2cn/ant"
 	"github.com/henrylee2cn/ant/cmd/ant/info"
+	"github.com/henrylee2cn/goutil"
 )
 
 const (
@@ -777,10 +778,10 @@ func (codeGen *CodeGen) genForGolang() {
 		bodyStr := " {\n"
 		if currApi.access == "pull" {
 			bodyStr += fmt.Sprintf("    reply := new(types.%s)\n", currApi.ret)
-			bodyStr += fmt.Sprintf("    rerr := client.Pull(\"/root/%s/%s\", %s, reply, setting...).Rerror()\n", strings.ToLower(currApi.group), strings.ToLower(currApi.name), currApi.params[0].variableName)
+			bodyStr += fmt.Sprintf("    rerr := client.Pull(\"/root/%s/%s\", %s, reply, setting...).Rerror()\n", goutil.SnakeString(currApi.group), goutil.SnakeString(currApi.name), currApi.params[0].variableName)
 			bodyStr += "    return reply, rerr\n"
 		} else if currApi.access == "push" {
-			bodyStr += fmt.Sprintf("    rerr := client.Push(\"/root/%s/%s\", %s, setting...).Rerror()\n", strings.ToLower(currApi.group), strings.ToLower(currApi.name), currApi.params[0].variableName)
+			bodyStr += fmt.Sprintf("    rerr := client.Push(\"/root/%s/%s\", %s, setting...).Rerror()\n", goutil.SnakeString(currApi.group), goutil.SnakeString(currApi.name), currApi.params[0].variableName)
 			bodyStr += "    return rerr\n"
 		}
 		
