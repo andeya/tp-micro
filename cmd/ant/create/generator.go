@@ -17,6 +17,8 @@ const (
 	TOKEN_ASSIGN               // =
 	TOKEN_KEYWORD_TYPE         // type
 	TOKEN_KEYWORD_API          // api
+	TOKEN_KEYWORD_PULL          // pull
+	TOKEN_KEYWORD_PUSH          // push
 	TOKEN_KEYWORD_STRING       // string
 	TOKEN_KEYWORD_INT          // int
 	TOKEN_KEYWORD_LONG         // long
@@ -40,26 +42,28 @@ const (
 
 var token_rules = map[int]string{
 	//TOKEN_ASSIGN : 					"=",
-	TOKEN_COMMENT:              "\\s*//\\s*",
-	TOKEN_KEYWORD_TYPE:         "^\\s*type\\s+",
-	TOKEN_KEYWORD_API:          "^\\s*api\\s+",
-	TOKEN_COLON:                "\\s*:\\s*",
-	TOKEN_COMMA:                "\\s*\\,\\s*",
-	TOKEN_RETURN:               "\\s*->\\s*",
-	TOKEN_BRACE_LEFT:           "\\s*\\{\\s*",
-	TOKEN_BRACE_RIGHT:          "\\s*\\}\\s*",
-	TOKEN_BRACKETS_LEFT:        "\\s*\\(\\s*",
-	TOKEN_BRACKETS_RIGHT:       "\\s*\\)\\s*",
-	TOKEN_ANGLE_BRACKETS_LEFT:  "\\s*<\\s*",
-	TOKEN_ANGLE_BRACKETS_RIGHT: "\\s*>\\s*",
-	TOKEN_KEYWORD_STRING:       "\\s*string\\s*",
-	TOKEN_KEYWORD_INT:          "\\s*int\\s*",
-	TOKEN_KEYWORD_LONG:         "\\s*long\\s*",
-	TOKEN_KEYWORD_FLOAT:        "\\s*float\\s*",
-	TOKEN_KEYWORD_DOUBLE:       "\\s*double\\s*",
-	TOKEN_KEYWORD_LIST:         "\\s*list\\s*",
-	TOKEN_KEYWORD_MAP:          "\\s*map\\s*",
-	TOKEN_SYMBOL:               "\\s*[\\w]+\\s*",
+	TOKEN_COMMENT:              `\s*//\s*`,
+	TOKEN_KEYWORD_TYPE:         `^\s*type\s+`,
+	TOKEN_KEYWORD_API:          `^\s*api\s+`,
+	TOKEN_KEYWORD_PULL:         `^\s*pull\s+`,
+	TOKEN_KEYWORD_PUSH:         `^\s*push\s+`,
+	TOKEN_COLON:                `\s*:\s*`,
+	TOKEN_COMMA:                `\s*\,\s*`,
+	TOKEN_RETURN:               `\s*->\s*`,
+	TOKEN_BRACE_LEFT:           `\s*\{\s*`,
+	TOKEN_BRACE_RIGHT:          `\s*\}\s*`,
+	TOKEN_BRACKETS_LEFT:        `\s*\(\s*`,
+	TOKEN_BRACKETS_RIGHT:       `\s*\)\s*`,
+	TOKEN_ANGLE_BRACKETS_LEFT:  `\s*<\s*`,
+	TOKEN_ANGLE_BRACKETS_RIGHT: `\s*>\s*`,
+	TOKEN_KEYWORD_STRING:       `\s*string\s*`,
+	TOKEN_KEYWORD_INT:          `\s*int32\s*`,
+	TOKEN_KEYWORD_LONG:         `\s*int64\s*`,
+	TOKEN_KEYWORD_FLOAT:        `\s*float32\s*`,
+	TOKEN_KEYWORD_DOUBLE:       `\s*float64\s*`,
+	TOKEN_KEYWORD_LIST:         `\s*list\s*`,
+	TOKEN_KEYWORD_MAP:          `\s*map\s*`,
+	TOKEN_SYMBOL:               `\s*[\w]+\s*`,
 }
 
 type Token struct {
@@ -143,9 +147,9 @@ func (lexer *Lexer) nextTokenType() int {
 /*
 BNF Design:
 	<type_define> ::= type <identifier> { <variable_declare> }
-	<api_define> ::= api { <api_declare> }
+	<api_define> ::= api pull handlerName { <api_declare> } | api push handlerName { <api_declare> }
 	<identifier> ::= "\w+"
-	<type> ::= int | long | float | double | string | list<<type>> | map<<type>, <type>> | <identifier>
+	<type> ::= int32 | int64 | float32 | float64 | string | list<<type>> | map<<type>, <type>> | <identifier>
 	<variable_declare> ::= <identifier> : <type> | <variable_declare>
 	<parameter_declare> ::= <identifier> : <type> | ,<parameter_declare>
 	<api_declare> ::= <identifier> (<parameter_declare>) -> <type>
@@ -169,6 +173,8 @@ type CustomType struct {
 }
 
 type CustomAPI struct {
+	access string // push or pull
+	group string
 	name   string
 	params []*Variable
 	ret    string
@@ -176,6 +182,18 @@ type CustomAPI struct {
 
 func (parser *Parser) init(lexer *Lexer) {
 	parser.lexer = lexer
+}
+
+func (parser *Parser) getCustomType(typeName string) *CustomType {
+	if typeName == "string" || typeName == "int32" || typeName == "int64" || typeName == "float32" || typeName == "float64" {
+		return nil
+	}
+	for _, v := range parser.types {
+		if v.typeName == typeName {
+			return v
+		}
+	}
+	return nil
 }
 
 func (parser *Parser) parse() {
@@ -269,20 +287,26 @@ func (parser *Parser) variable_declare(members *[]*Variable) {
 }
 
 func (parser *Parser) api_define() {
-
+	access := parser.lexer.takeToken()
+	if access.tokenType != TOKEN_KEYWORD_PULL && access.tokenType != TOKEN_KEYWORD_PUSH {
+		ant.Fatalf("[ant] expect access type 'pull' or 'push' in line %v: %v", access.lineno, access.text)
+	}
+	group := parser.lexer.takeToken()
+	if group.tokenType != TOKEN_SYMBOL {
+		ant.Fatalf("[ant] invaid group name dentifier in line %v: %v", group.lineno, group.text)
+	}
 	braceLeft := parser.lexer.takeToken()
 	if braceLeft.tokenType != TOKEN_BRACE_LEFT {
 		ant.Fatalf("[ant] expect '{' in line %v: %v", braceLeft.lineno, braceLeft.text)
 	}
-	parser.api_declare()
+	parser.api_declare(access.text, group.text)
 	braceRight := parser.lexer.takeToken()
 	if braceRight.tokenType != TOKEN_BRACE_RIGHT {
 		ant.Fatalf("[ant] expect '}' in line %v: %v", braceRight.lineno, braceRight.text)
 	}
-
 }
 
-func (parser *Parser) api_declare() {
+func (parser *Parser) api_declare(access string, group string) {
 	if tokenType := parser.lexer.nextTokenType(); tokenType == TOKEN_BRACE_RIGHT {
 		return
 	}
@@ -292,6 +316,7 @@ func (parser *Parser) api_declare() {
 	if function.tokenType != TOKEN_SYMBOL {
 		ant.Fatalf("[ant] invaid api name dentifier in line %v: %v", function.lineno, function.text)
 	}
+	function.text = strings.ToUpper(function.text[0:1]) + function.text[1:]
 
 	// 2. function '('
 	bracketsLeft := parser.lexer.takeToken()
@@ -310,19 +335,24 @@ func (parser *Parser) api_declare() {
 	}
 
 	// 5. function -> return type
-	retTagToken := parser.lexer.takeToken()
-	if retTagToken.tokenType != TOKEN_RETURN {
-		ant.Fatalf("[ant] expect function return tag '->' in line %v: %v", retTagToken.lineno, retTagToken.text)
+	if access == "pull" {
+		retTagToken := parser.lexer.takeToken()
+		if retTagToken.tokenType != TOKEN_RETURN {
+			ant.Fatalf("[ant] expect function return tag '->' in line %v: %v", retTagToken.lineno, retTagToken.text)
+		}
+		retToken := parser.lexer.takeToken()
+		if parser.isDeclaredType(retToken.text) == false {
+			ant.Fatalf("[ant] undefined ret type in line %v: %v", retToken.lineno, retToken.text)
+		}
+		api := &CustomAPI{access: access, group: group, name: function.text, params: params, ret: retToken.text}
+		parser.apis = append(parser.apis, api)
+	} else {
+		api := &CustomAPI{access: access, group: group, name: function.text, params: params, ret: ""}
+		parser.apis = append(parser.apis, api)
 	}
-	retToken := parser.lexer.takeToken()
-	if parser.isDeclaredType(retToken.text) == false {
-		ant.Fatalf("[ant] undefined ret type in line %v: %v", retToken.lineno, retToken.text)
-	}
-	api := &CustomAPI{name: function.text, params: params, ret: retToken.text}
-	parser.apis = append(parser.apis, api)
 
 	// recursion for processing other api declare
-	parser.api_declare()
+	parser.api_declare(access, group)
 }
 
 func (parser *Parser) parameter_declare(params *[]*Variable) {
@@ -413,7 +443,7 @@ func (parser *Parser) parseMapType() (string, string) {
 }
 
 func (parser *Parser) isDeclaredType(typeName string) bool {
-	if typeName == "string" || typeName == "int" || typeName == "long" || typeName == "float" || typeName == "double" {
+	if typeName == "string" || typeName == "int32" || typeName == "int64" || typeName == "float32" || typeName == "float64" {
 		return true
 	}
 	for _, v := range parser.types {
@@ -425,7 +455,7 @@ func (parser *Parser) isDeclaredType(typeName string) bool {
 }
 
 func (parser *Parser) isSystemType(typeName string) bool {
-	if typeName == "string" || typeName == "int" || typeName == "long" || typeName == "float" || typeName == "double" {
+	if typeName == "string" || typeName == "int32" || typeName == "int64" || typeName == "float32" || typeName == "float64" {
 		return true
 	}
 	return false
@@ -451,13 +481,19 @@ func (parser *Parser) printApis() {
 	fmt.Println("\n------------ api define begin -------------")
 	for i := 0; i < len(parser.apis); i++ {
 		currApi := parser.apis[i]
-		fmt.Print(currApi.name, " (")
+		fmt.Print(currApi.access, " ", currApi.group, " ", currApi.name, " (")
 		for j := 0; j < len(currApi.params); j++ {
 			param := currApi.params[j]
 			if j > 0 {
 				fmt.Print(", ")
 			}
-			fmt.Print(param.variableName, param.variableType, param.other1, param.other2)
+			if param.other2 != "" {
+				fmt.Print(param.variableName, " ", param.variableType, " ", param.other1, " ", param.other2)
+			} else if param.other1 != "" {
+				fmt.Print(param.variableName, " ", param.variableType, " ", param.other1)
+			} else {
+				fmt.Print(param.variableName, " ", param.variableType)
+			}
 		}
 		fmt.Println(") ->", currApi.ret)
 	}
@@ -473,44 +509,74 @@ ${type_define_list}
 
 var handler_tpl = `
 package api
-
 import (
     "${app_path}/logic"
     "${app_path}/types"
     tp "github.com/henrylee2cn/teleport"
 )
-
-type ApiHandlers struct {
-    tp.PullCtx
-}
-
-${api_define_list}
+${api_define_group}
+${api_define_function}
 
 `
 
 var router_tpl = `
 package api
-
 import (
     tp "github.com/henrylee2cn/teleport"
 )
-
 // Route registers handlers to router.
 func Route(root string, router *tp.Router) {
     // root router group
     rootGroup := router.SubRoute(root)
-
     // custom router
     customRoute(rootGroup.ToRouter())
-
     // automatically generated router
-    rootGroup.RoutePull(new(ApiHandlers))
+    ${register_router_list}
 }
 `
+var sdk_rpc_tpl = `
+package sdk
+import (
+	"github.com/henrylee2cn/ant"
+	"${app_path}/types"
+	tp "github.com/henrylee2cn/teleport"
+	"github.com/henrylee2cn/teleport/socket"
+)
+var client *ant.Client
+// Init init client with config and linker.
+func Init(cliConfig ant.CliConfig, linker ant.Linker) {
+	client = ant.NewClient(
+		cliConfig,
+		linker,
+	)
+}
+// InitWithClient init client with current client.
+func InitWithClient(cli *ant.Client) {
+	client = cli
+}
+${rpc_call_define}
+`
 
-var sdk_rpc_tpl = ``
+var sdk_rpc_test_tpl = `
+package sdk
+import (
+	"testing"
+	"github.com/henrylee2cn/ant"
+	"${app_path}/types"
+)
 
-var sdk_rpc_test_tpl = ``
+// TestSdk test SDK.
+func TestSdk(t *testing.T) {
+	Init(
+		ant.CliConfig{
+			Failover:        3,
+			HeartbeatSecond: 4,
+		},
+		ant.NewStaticLinker(":9090"),
+	)
+	${rpc_call_test_define}
+}
+`
 
 type CodeGen struct {
 	parser *Parser
@@ -552,9 +618,9 @@ func (codeGen *CodeGen) genForGolang() {
 				}
 			} else if v.variableType == "map" {
 				if parser.isSystemType(v.other2) {
-					typeMember += fmt.Sprintf("    %s [%s]%s\n", v.variableName, v.other1, v.other2)
+					typeMember += fmt.Sprintf("    %s map[%s]%s\n", v.variableName, v.other1, v.other2)
 				} else {
-					typeMember += fmt.Sprintf("    %s [%s]*%s\n", v.variableName, v.other1, v.other2)
+					typeMember += fmt.Sprintf("    %s map[%s]*%s\n", v.variableName, v.other1, v.other2)
 				}
 			} else {
 				if parser.isSystemType(v.variableType) {
@@ -570,11 +636,31 @@ func (codeGen *CodeGen) genForGolang() {
 	fileContent := strings.Replace(types_tpl, "${type_define_list}", typeDefines, 1)
 	codeGen.saveFile("./types/types.gen.go", &fileContent)
 
+	groups := make(map[string]string)  
+	for i := 0; i < len(parser.apis); i++ {
+		currApi := parser.apis[i]
+		if _, ok := groups[currApi.group]; ok == false {
+			groups[currApi.group] = currApi.access
+		}
+	}
 	// 2. gen api/handlers.gen.go
+	// 2.1 scan all api group
+	groupDefines := ""
+	for k, v := range(groups) {
+		accessStr := ""
+		if v == "pull" {
+			accessStr = "tp.PullCtx"
+		} else if v == "push" {
+			accessStr = "tp.PushCtx"
+		}
+		groupDefines += fmt.Sprintf("type %s struct {\n    %s\n}\n", k, accessStr)
+	}
+
+	// 2.2 scan all api function
 	apiDefines := ""
 	for i := 0; i < len(parser.apis); i++ {
 		currApi := parser.apis[i]
-		apiHeaderStr := fmt.Sprintf("func (handlers *ApiHandlers) %s(", currApi.name)
+		apiHeaderStr := fmt.Sprintf("func (handlers *%s) %s(", currApi.group, currApi.name)
 		apiParamsStr := ""
 		apiParamsStr2 := ""
 		for j := 0; j < len(currApi.params); j++ {
@@ -587,41 +673,148 @@ func (codeGen *CodeGen) genForGolang() {
 				if parser.isSystemType(param.other1) {
 					apiParamsStr += fmt.Sprintf("%s []%s", param.variableName, param.other1)
 				} else {
-					apiParamsStr += fmt.Sprintf("%s []*%s", param.variableName, param.other1)
+					apiParamsStr += fmt.Sprintf("%s []*types.%s", param.variableName, param.other1)
 				}
 
 			} else if param.variableType == "map" {
 				if parser.isSystemType(param.other2) {
 					apiParamsStr += fmt.Sprintf("%s [%s]%s", param.variableName, param.other1, param.other2)
 				} else {
-					apiParamsStr += fmt.Sprintf("%s [%s]*%s", param.variableName, param.other1, param.other2)
+					apiParamsStr += fmt.Sprintf("%s [%s]*types.%s", param.variableName, param.other1, param.other2)
 				}
 			} else {
+				// here translate base type, eg: int32 int64 float32 float64 string
 				if parser.isSystemType(param.variableType) {
 					apiParamsStr += fmt.Sprintf("%s %s", param.variableName, param.variableType)
 				} else {
-					apiParamsStr += fmt.Sprintf("%s *%s", param.variableName, param.variableType)
+					apiParamsStr += fmt.Sprintf("%s *types.%s", param.variableName, param.variableType)
 				}
 			}
 			apiParamsStr2 += param.variableName
 		}
 		replyStr := ""
-		if parser.isSystemType(currApi.ret) {
-			replyStr += fmt.Sprintf(") (%s, *tp.Rerror)", currApi.ret)
+		if currApi.access == "pull" {
+			if parser.isSystemType(currApi.ret) {
+				replyStr += fmt.Sprintf(") (%s, *tp.Rerror)", currApi.ret)
+			} else {
+				replyStr += fmt.Sprintf(") (*types.%s, *tp.Rerror)", currApi.ret)
+			}
 		} else {
-			replyStr += fmt.Sprintf(") (*%s, *tp.Rerror)", currApi.ret)
+			replyStr += fmt.Sprintf(") (*tp.Rerror)")
 		}
+		
 		bodyStr := " {\n"
 		bodyStr += fmt.Sprintf("    return logic.%s(%s)", currApi.name, apiParamsStr2)
 		bodyStr += "\n}\n"
 		apiDefines += apiHeaderStr + apiParamsStr + replyStr + bodyStr + "\n"
 	}
-	fileContent = strings.Replace(handler_tpl, "${api_define_list}", apiDefines, 1)
+	fileContent = ""
+	fileContent = strings.Replace(handler_tpl, "${api_define_group}", groupDefines, 1)
+	fileContent = strings.Replace(fileContent, "${api_define_function}", apiDefines, 1)
 	codeGen.saveFile("./api/handlers.gen.go", &fileContent)
 
 	// 3. gen api/router.gen.go
+	routerRegisters := ""
+	for k, v := range(groups) {
+		if v == "pull" {
+			routerRegisters += fmt.Sprintf("rootGroup.RoutePull(new(%s))\n", k)
+		} else if v == "push" {
+			routerRegisters += fmt.Sprintf("rootGroup.RoutePush(new(%s))\n", k)
+		}
+	}
 	fileContent = router_tpl
+	fileContent = strings.Replace(fileContent, "${register_router_list}", routerRegisters, 1)
 	codeGen.saveFile("./api/router.gen.go", &fileContent)
+
+	// 4. gen sdk/rpc.gen.go
+	sdkRpcDefines := ""
+	for i := 0; i < len(parser.apis); i++ {
+		currApi := parser.apis[i]
+		apiHeaderStr := fmt.Sprintf("func %s(", currApi.name)
+		apiParamsStr := ""
+		apiParamsStr2 := ""
+		for j := 0; j < len(currApi.params); j++ {
+			if j >= 1 && j < len(currApi.params) {
+				apiParamsStr += fmt.Sprintf(", ")
+				apiParamsStr2 += fmt.Sprintf(", ")
+			}
+			param := currApi.params[j]
+			if param.variableType == "list" {
+				if parser.isSystemType(param.other1) {
+					apiParamsStr += fmt.Sprintf("%s []%s", param.variableName, param.other1)
+				} else {
+					apiParamsStr += fmt.Sprintf("%s []*types.%s", param.variableName, param.other1)
+				}
+
+			} else if param.variableType == "map" {
+				if parser.isSystemType(param.other2) {
+					apiParamsStr += fmt.Sprintf("%s [%s]%s", param.variableName, param.other1, param.other2)
+				} else {
+					apiParamsStr += fmt.Sprintf("%s [%s]*types.%s", param.variableName, param.other1, param.other2)
+				}
+			} else {
+				// here translate base type, eg: int32 int64 float32 float64 string
+				if parser.isSystemType(param.variableType) {
+					apiParamsStr += fmt.Sprintf("%s %s", param.variableName, param.variableType)
+				} else {
+					apiParamsStr += fmt.Sprintf("%s *types.%s", param.variableName, param.variableType)
+				}
+			}
+			apiParamsStr2 += param.variableName
+		}
+		apiParamsStr += ", setting ...socket.PacketSetting"
+		replyStr := ""
+		if currApi.access == "pull" {
+			if parser.isSystemType(currApi.ret) {
+				replyStr += fmt.Sprintf(") (%s, *tp.Rerror)", currApi.ret)
+			} else {
+				replyStr += fmt.Sprintf(") (*%s, *tp.Rerror)", currApi.ret)
+			}
+		} else {
+			replyStr += fmt.Sprintf(") (*tp.Rerror)")
+		}
+		
+		bodyStr := " {\n"
+		if currApi.access == "pull" {
+			bodyStr += fmt.Sprintf("    reply := new(types.%s)\n", currApi.ret)
+			bodyStr += fmt.Sprintf("    rerr := client.Pull(\"/root/%s/%s\", %s, reply, setting...).Rerror()\n", strings.ToLower(currApi.group), strings.ToLower(currApi.name), currApi.params[0].variableName)
+			bodyStr += "    return reply, rerr\n"
+		} else if currApi.access == "push" {
+			bodyStr += fmt.Sprintf("    rerr := client.Push(\"/root/%s/%s\", %s, setting...).Rerror()\n", strings.ToLower(currApi.group), strings.ToLower(currApi.name), currApi.params[0].variableName)
+			bodyStr += "    return rerr\n"
+		}
+		
+		bodyStr += "}\n"
+		sdkRpcDefines += apiHeaderStr + apiParamsStr + replyStr + bodyStr + "\n"
+	}
+	fileContent = ""
+	fileContent = strings.Replace(sdk_rpc_tpl, "${rpc_call_define}", sdkRpcDefines, 1)
+	codeGen.saveFile("./sdk/rpc.gen.go", &fileContent)
+
+	// 5. gen sdk/rpc.gen_test.go
+	sdkRpcTestDefines := ""
+	for i := 0; i < len(parser.apis); i++ {
+		currApi := parser.apis[i]
+
+		// support auto fill params
+		//apiParamType := parser.getCustomType(currApi.params[0].variableType)
+		//for j := 0; j < len(apiParamType.members); j++ {
+		//	v := currType.members[j]
+		//}
+		if parser.isDeclaredType(currApi.params[0].variableType) {
+			callExp := fmt.Sprintf("    reply, rerr := %s(&types.%s{})\n", currApi.name, currApi.params[0].variableType)
+			callExp += "    if rerr != nil {\n"
+			callExp += "    t.Logf(\"rerr: %v\", rerr)\n"
+			callExp += "    } else {\n"
+			callExp += "    }\n"
+			sdkRpcTestDefines += callExp + "\n"
+		} else {
+			ant.Fatalf("[ant] not declared type  %v", currApi.params[0].variableType)
+		}
+	}
+	fileContent = ""
+	fileContent = strings.Replace(sdk_rpc_test_tpl, "${rpc_call_test_define}", sdkRpcTestDefines, 1)
+	codeGen.saveFile("./sdk/rpc.gen_test.go", &fileContent)
 }
 
 func (codeGen *CodeGen) saveFile(fileName string, txt *string) {
