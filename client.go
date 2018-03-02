@@ -146,6 +146,21 @@ func (c *Client) Peer() tp.Peer {
 	return c.peer
 }
 
+// SubRoute adds handler group.
+func (c *Client) SubRoute(pathPrefix string, plugin ...tp.Plugin) *tp.SubRouter {
+	return c.peer.SubRoute(pathPrefix, plugin...)
+}
+
+// RoutePush registers PUSH handler.
+func (c *Client) RoutePush(ctrlStruct interface{}, plugin ...tp.Plugin) {
+	c.peer.RoutePush(ctrlStruct, plugin...)
+}
+
+// RoutePushFunc registers PUSH handler.
+func (c *Client) RoutePushFunc(pushHandleFunc interface{}, plugin ...tp.Plugin) {
+	c.peer.RoutePushFunc(pushHandleFunc, plugin...)
+}
+
 // AsyncPull sends a packet and receives reply asynchronously.
 // If the args is []byte or *[]byte type, it can automatically fill in the body codec name.
 func (c *Client) AsyncPull(uri string, args interface{}, reply interface{}, done chan tp.PullCmd, setting ...socket.PacketSetting) {
