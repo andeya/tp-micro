@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/henrylee2cn/ant"
 	"github.com/henrylee2cn/ant/discovery"
+	"github.com/henrylee2cn/ant/discovery/etcd"
 	tp "github.com/henrylee2cn/teleport"
 )
 
@@ -29,7 +30,7 @@ func main() {
 	},
 		discovery.ServicePlugin(
 			":9090",
-			discovery.EtcdConfig{
+			etcd.EtcdConfig{
 				Endpoints: []string{"http://127.0.0.1:2379"},
 			},
 		),

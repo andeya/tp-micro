@@ -20,14 +20,14 @@ import (
 	"net"
 	"sync"
 
-	"github.com/coreos/etcd/clientv3"
 	"github.com/henrylee2cn/ant"
+	"github.com/henrylee2cn/ant/discovery/etcd"
 	"github.com/henrylee2cn/goutil"
 	tp "github.com/henrylee2cn/teleport"
 )
 
 type linker struct {
-	client   *clientv3.Client
+	client   *etcd.Client
 	nodes    goutil.Map
 	uriPaths goutil.Map
 	delCh    chan string
@@ -46,8 +46,8 @@ const (
 // Note:
 // If etcdConfig.DialTimeout<0, it means unlimit;
 // If etcdConfig.DialTimeout=0, use the default value(15s).
-func NewLinker(etcdConfig EtcdConfig) ant.Linker {
-	etcdClient, err := NewEtcdClient(etcdConfig)
+func NewLinker(etcdConfig etcd.EtcdConfig) ant.Linker {
+	etcdClient, err := etcd.NewEtcdClient(etcdConfig)
 	if err != nil {
 		tp.Fatalf("%s: %v", linkerName, err)
 		return nil
@@ -56,7 +56,7 @@ func NewLinker(etcdConfig EtcdConfig) ant.Linker {
 }
 
 // NewLinkerFromEtcd creates a etct service linker.
-func NewLinkerFromEtcd(etcdClient *clientv3.Client) ant.Linker {
+func NewLinkerFromEtcd(etcdClient *etcd.Client) ant.Linker {
 	innerIp, err := goutil.IntranetIP()
 	if err != nil {
 		tp.Fatalf("%s: %v", linkerName, err)
@@ -140,7 +140,7 @@ func (l *linker) delNode(key string) {
 }
 
 func (l *linker) initNodes() error {
-	resp, err := l.client.Get(context.TODO(), ServiceNamespace, clientv3.WithPrefix())
+	resp, err := l.client.Get(context.TODO(), ServiceNamespace, etcd.WithPrefix())
 	if err != nil || len(resp.Kvs) == 0 {
 		return err
 	}
@@ -152,14 +152,14 @@ func (l *linker) initNodes() error {
 }
 
 func (l *linker) watchNodes() {
-	rch := l.client.Watch(context.TODO(), ServiceNamespace, clientv3.WithPrefix())
+	rch := l.client.Watch(context.TODO(), ServiceNamespace, etcd.WithPrefix())
 	for wresp := range rch {
 		for _, ev := range wresp.Events {
 			switch ev.Type {
-			case clientv3.EventTypePut:
+			case etcd.EventTypePut:
 				l.addNode(string(ev.Kv.Key), getServiceInfo(ev.Kv.Value))
 				tp.Infof("%s: %s %q : %q\n", linkerName, ev.Type, ev.Kv.Key, ev.Kv.Value)
-			case clientv3.EventTypeDelete:
+			case etcd.EventTypeDelete:
 				l.delNode(string(ev.Kv.Key))
 				tp.Infof("%s: %s %q\n", linkerName, ev.Type, ev.Kv.Key)
 			}

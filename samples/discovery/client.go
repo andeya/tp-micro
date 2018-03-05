@@ -5,6 +5,7 @@ import (
 
 	"github.com/henrylee2cn/ant"
 	"github.com/henrylee2cn/ant/discovery"
+	"github.com/henrylee2cn/ant/discovery/etcd"
 )
 
 func main() {
@@ -13,7 +14,7 @@ func main() {
 			Failover: 3,
 			// HeartbeatSecond: 30,
 		},
-		discovery.NewLinker(discovery.EtcdConfig{
+		discovery.NewLinker(etcd.EtcdConfig{
 			Endpoints: []string{"http://127.0.0.1:2379"},
 		}),
 	)

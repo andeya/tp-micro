@@ -12,12 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package discovery
+package etcd
 
 import (
 	"time"
 
 	"github.com/coreos/etcd/clientv3"
+	"github.com/coreos/etcd/clientv3/concurrency"
 )
 
 // EtcdConfig ETCD client config
@@ -48,8 +49,14 @@ func NewEtcdClient(etcdConfig EtcdConfig) (*clientv3.Client, error) {
 
 // migrated from etcd 'github.com/coreos/etcd/clientv3'
 
-// EtcdClient ETCD v3 client
-type EtcdClient = clientv3.Client
+// Event types
+const (
+	EventTypePut    = clientv3.EventTypePut
+	EventTypeDelete = clientv3.EventTypeDelete
+)
+
+// Client ETCD v3 client
+type Client = clientv3.Client
 
 // OpOption configures Operations like Get, Put, Delete.
 type OpOption = clientv3.OpOption
@@ -233,3 +240,44 @@ type LeaseTimeToLiveResponse = clientv3.LeaseTimeToLiveResponse
 
 // LeaseStatus represents a lease status.
 type LeaseStatus = clientv3.LeaseStatus
+
+// Session represents a lease kept alive for the lifetime of a client.
+// Fault-tolerant applications may use sessions to reason about liveness.
+type Session = concurrency.Session
+
+// SessionOption configures Session.
+type SessionOption concurrency.SessionOption
+
+// NewSession gets the leased session for a client.
+//  func NewSession(client *v3.Client, opts ...concurrency.SessionOption) (*Session, error)
+var NewSession = concurrency.NewSession
+
+// WithSessionTTL configures the session's TTL in seconds.
+// If TTL is <= 0, the default 60 seconds TTL will be used.
+//  func WithSessionTTL(ttl int) concurrency.SessionOption
+var WithSessionTTL = concurrency.WithTTL
+
+// WithSessionLease specifies the existing leaseID to be used for the session.
+// This is useful in process restart scenario, for example, to reclaim
+// leadership from an election prior to restart.
+//  func WithSessionLease(leaseID v3.LeaseID) concurrency.SessionOption
+var WithSessionLease = concurrency.WithLease
+
+// WithSessionContext assigns a context to the session instead of defaulting to
+// using the client context. This is useful for canceling NewSession and
+// Close operations immediately without having to close the client. If the
+// context is canceled before Close() completes, the session's lease will be
+// abandoned and left to expire instead of being revoked.
+//  func WithSessionContext(ctx context.Context) concurrency.SessionOption
+var WithSessionContext = concurrency.WithContext
+
+// Mutexutex implements the sync Locker interface with etcd
+type Mutex = concurrency.Mutex
+
+// NewMutex creates a sync Locker interface with etcd.
+// func NewMutex(s *concurrency.Session, pfx string) *Mutex
+var NewMutex = concurrency.NewMutex
+
+// NewLocker creates a sync.Locker backed by an etcd mutex.
+//  func NewLocker(s *concurrency.Session, pfx string) sync.Locker
+var NewLocker = concurrency.NewLocker
