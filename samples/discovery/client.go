@@ -14,7 +14,7 @@ func main() {
 			Failover: 3,
 			// HeartbeatSecond: 30,
 		},
-		discovery.NewLinker(etcd.EtcdConfig{
+		discovery.NewLinker(etcd.EasyConfig{
 			Endpoints: []string{"http://127.0.0.1:2379"},
 		}),
 	)

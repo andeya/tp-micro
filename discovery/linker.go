@@ -46,8 +46,8 @@ const (
 // Note:
 // If etcdConfig.DialTimeout<0, it means unlimit;
 // If etcdConfig.DialTimeout=0, use the default value(15s).
-func NewLinker(etcdConfig etcd.EtcdConfig) ant.Linker {
-	etcdClient, err := etcd.NewEtcdClient(etcdConfig)
+func NewLinker(etcdConfig etcd.EasyConfig) ant.Linker {
+	etcdClient, err := etcd.EasyNew(etcdConfig)
 	if err != nil {
 		tp.Fatalf("%s: %v", linkerName, err)
 		return nil

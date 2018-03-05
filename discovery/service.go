@@ -48,10 +48,10 @@ var (
 // Note:
 // If etcdConfig.DialTimeout<0, it means unlimit;
 // If etcdConfig.DialTimeout=0, use the default value(15s).
-func ServicePlugin(addr string, etcdConfig etcd.EtcdConfig, excludeApis ...string) tp.Plugin {
+func ServicePlugin(addr string, etcdConfig etcd.EasyConfig, excludeApis ...string) tp.Plugin {
 	s := ServicePluginFromEtcd(addr, nil, excludeApis...)
 	var err error
-	s.(*service).client, err = etcd.NewEtcdClient(etcdConfig)
+	s.(*service).client, err = etcd.EasyNew(etcdConfig)
 	if err != nil {
 		tp.Fatalf("%v: %v", err, s.Name())
 		return s

@@ -30,7 +30,7 @@ func main() {
 	},
 		discovery.ServicePlugin(
 			":9090",
-			etcd.EtcdConfig{
+			etcd.EasyConfig{
 				Endpoints: []string{"http://127.0.0.1:2379"},
 			},
 		),

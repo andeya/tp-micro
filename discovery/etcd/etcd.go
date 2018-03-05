@@ -1,3 +1,4 @@
+// etcd package is the [ETCD](https://github.com/coreos/etcd) client v3 mirror.
 // Copyright 2018 HenryLee. All Rights Reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -11,7 +12,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-
+//
 package etcd
 
 import (
@@ -21,19 +22,19 @@ import (
 	"github.com/coreos/etcd/clientv3/concurrency"
 )
 
-// EtcdConfig ETCD client config
-type EtcdConfig struct {
+// EasyConfig ETCD client config
+type EasyConfig struct {
 	Endpoints   []string      `yaml:"endpoints"    ini:"endpoints"    comment:"list of URLs"`
 	DialTimeout time.Duration `yaml:"dial_timeout" ini:"dial_timeout" comment:"timeout for failing to establish a connection"`
 	Username    string        `yaml:"username"     ini:"username"     comment:"user name for authentication"`
 	Password    string        `yaml:"password"     ini:"password"     comment:"password for authentication"`
 }
 
-// NewEtcdClient creates ETCD client.
+// EasyNew creates ETCD client.
 // Note:
 // If etcdConfig.DialTimeout<0, it means unlimit;
 // If etcdConfig.DialTimeout=0, use the default value(15s).
-func NewEtcdClient(etcdConfig EtcdConfig) (*clientv3.Client, error) {
+func EasyNew(etcdConfig EasyConfig) (*clientv3.Client, error) {
 	if etcdConfig.DialTimeout == 0 {
 		etcdConfig.DialTimeout = 15 * time.Second
 	} else if etcdConfig.DialTimeout < 0 {
@@ -57,6 +58,13 @@ const (
 
 // Client ETCD v3 client
 type Client = clientv3.Client
+
+// New creates a new etcdv3 client from a given configuration.
+//  func New(cfg clientv3.Config) (*clientv3.Client, error)
+var NewClient = clientv3.New
+
+// Config etcd config
+type Config = clientv3.Config
 
 // OpOption configures Operations like Get, Put, Delete.
 type OpOption = clientv3.OpOption
