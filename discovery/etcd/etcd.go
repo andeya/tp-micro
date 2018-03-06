@@ -72,6 +72,14 @@ type OpOption = clientv3.OpOption
 // LeaseID etcd lease ID
 type LeaseID = clientv3.LeaseID
 
+type (
+	CompactResponse = clientv3.CompactResponse
+	PutResponse     = clientv3.PutResponse
+	GetResponse     = clientv3.GetResponse
+	DeleteResponse  = clientv3.DeleteResponse
+	TxnResponse     = clientv3.TxnResponse
+)
+
 // WithLease attaches a lease ID to a key in 'Put' request.
 //  func WithLease(leaseID clientv3.LeaseID) clientv3.OpOption
 var WithLease = clientv3.WithLease
