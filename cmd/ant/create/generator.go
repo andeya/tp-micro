@@ -37,6 +37,7 @@ const (
 	TOKEN_COMMA                // ,
 	TOKEN_RETURN               // ->
 	TOKEN_COMMENT              // //
+	TOKEN_TYPE_TAG			   // 'xx'
 	TOKEN_SYMBOL
 	TOKEN_MAX
 )
@@ -64,6 +65,7 @@ var token_rules = map[int]string{
 	TOKEN_KEYWORD_DOUBLE:       `\s*float64\s*`,
 	TOKEN_KEYWORD_LIST:         `\s*list\s*`,
 	TOKEN_KEYWORD_MAP:          `\s*map\s*`,
+	TOKEN_TYPE_TAG:				`\s*\".+\"\s*$`,
 	TOKEN_SYMBOL:               `\s*[\w]+\s*`,
 }
 
@@ -97,9 +99,9 @@ func (lexer *Lexer) init(tplReader io.Reader) {
 		lexer.parseLine(k+1, v)
 	}
 
-	//for _, v := range lexer.tokens {
-	//	fmt.Println("line ", v.lineno,  v.text)
-	//}
+	for _, v := range lexer.tokens {
+		fmt.Println("line ", v.lineno,  v.text)
+	}
 }
 
 func (lexer *Lexer) parseLine(lineno int, lineText string) {
@@ -166,6 +168,7 @@ type Variable struct {
 	variableType string
 	other1       string // used by list or map
 	other2       string // used by map
+	tag          string // type member tag
 }
 
 type CustomType struct {
@@ -252,35 +255,46 @@ func (parser *Parser) variable_declare(members *[]*Variable) {
 	if colon.tokenType != TOKEN_COLON {
 		ant.Fatalf("[ant] expect ':' in line %v: %v", colon.lineno, colon.text)
 	}
+	variableName := "" 
+	variableType := ""
+	other1 := "" 
+	other2 := ""
+	tag := ""
 	type_identifier := parser.lexer.takeToken()
 	if type_identifier.tokenType == TOKEN_KEYWORD_LIST {
 		listTypeName := parser.parseListType()
-		*members = append(*members, &Variable{
-			variableName: identifier.text,
-			variableType: type_identifier.text,
-			other1:       listTypeName,
-			other2:       "",
-		})
+		variableName = identifier.text
+		variableType = type_identifier.text
+		other1 = listTypeName
+		other2 = ""
 	} else if type_identifier.tokenType == TOKEN_KEYWORD_MAP {
 		mapKeyTypeName, mapValueTypeName := parser.parseMapType()
-		*members = append(*members, &Variable{
-			variableName: identifier.text,
-			variableType: type_identifier.text,
-			other1:       mapKeyTypeName,
-			other2:       mapValueTypeName,
-		})
+		variableName = identifier.text
+		variableType = type_identifier.text
+		other1 = mapKeyTypeName
+		other2 = mapValueTypeName
 	} else {
 		if parser.isDeclaredType(type_identifier.text) == false {
 			ant.Fatalf("[ant] undeclared type in line %v: %v", type_identifier.lineno, type_identifier.text)
 		}
-		*members = append(*members, &Variable{
-			variableName: identifier.text,
-			variableType: type_identifier.text,
-			other1:       "",
-			other2:       "",
-		})
+		variableName = identifier.text
+		variableType = type_identifier.text
+		other1 = ""
+		other2 = ""
 	}
 
+	// member tag 
+	if parser.lexer.nextTokenType() == TOKEN_TYPE_TAG {
+		tagToken := parser.lexer.takeToken()
+		tag = tagToken.text
+	}
+	*members = append(*members, &Variable{
+		variableName: variableName,
+		variableType: variableType,
+		other1:       other1,
+		other2:       other2,
+		tag:		  tag,
+	})
 	//fmt.Println("member: ", identifier.text, ":", type_identifier.text)
 
 	// recursion for processing variable declare
@@ -613,21 +627,21 @@ func (codeGen *CodeGen) genForGolang() {
 			v := currType.members[j]
 			if v.variableType == "list" {
 				if parser.isSystemType(v.other1) {
-					typeMember += fmt.Sprintf("    %s []%s\n", v.variableName, v.other1)
+					typeMember += fmt.Sprintf("    %s []%s %s\n", v.variableName, v.other1, v.tag)
 				} else {
-					typeMember += fmt.Sprintf("    %s []*%s\n", v.variableName, v.other1)
+					typeMember += fmt.Sprintf("    %s []*%s %s\n", v.variableName, v.other1, v.tag)
 				}
 			} else if v.variableType == "map" {
 				if parser.isSystemType(v.other2) {
-					typeMember += fmt.Sprintf("    %s map[%s]%s\n", v.variableName, v.other1, v.other2)
+					typeMember += fmt.Sprintf("    %s map[%s]%s %s\n", v.variableName, v.other1, v.other2, v.tag)
 				} else {
-					typeMember += fmt.Sprintf("    %s map[%s]*%s\n", v.variableName, v.other1, v.other2)
+					typeMember += fmt.Sprintf("    %s map[%s]*%s %s\n", v.variableName, v.other1, v.other2, v.tag)
 				}
 			} else {
 				if parser.isSystemType(v.variableType) {
-					typeMember += fmt.Sprintf("    %s %s\n", v.variableName, v.variableType)
+					typeMember += fmt.Sprintf("    %s %s %s\n", v.variableName, v.variableType, v.tag)
 				} else {
-					typeMember += fmt.Sprintf("    %s *%s\n", v.variableName, v.variableType)
+					typeMember += fmt.Sprintf("    %s *%s %s\n", v.variableName, v.variableType, v.tag)
 				}
 			}
 		}

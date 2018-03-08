@@ -1,6 +1,6 @@
 // this is comment @#$
 type User {
-    userId:string
+    userId:string   "test:tag"
     nickname : string
     m1 : int32
     m2 : float32
