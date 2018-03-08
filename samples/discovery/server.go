@@ -24,17 +24,16 @@ func (p *P) Divide(args *Args) (int, *tp.Rerror) {
 }
 
 func main() {
-	srv := ant.NewServer(ant.SrvConfig{
+	cfg := ant.SrvConfig{
 		ListenAddress: ":9090",
 		// EnableHeartbeat: true,
-	},
-		discovery.ServicePlugin(
-			"localhost:9090",
-			etcd.EasyConfig{
-				Endpoints: []string{"http://127.0.0.1:2379"},
-			},
-		),
-	)
+	}
+	srv := ant.NewServer(cfg, discovery.ServicePlugin(
+		cfg.InnerIpPort(),
+		etcd.EasyConfig{
+			Endpoints: []string{"http://127.0.0.1:2379"},
+		},
+	))
 	srv.RoutePull(new(P))
 	srv.Listen()
 }
