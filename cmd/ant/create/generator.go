@@ -99,9 +99,9 @@ func (lexer *Lexer) init(tplReader io.Reader) {
 		lexer.parseLine(k+1, v)
 	}
 
-	for _, v := range lexer.tokens {
-		fmt.Println("line ", v.lineno,  v.text)
-	}
+	//for _, v := range lexer.tokens {
+	//	fmt.Println("line ", v.lineno,  v.text)
+	//}
 }
 
 func (lexer *Lexer) parseLine(lineno int, lineText string) {
