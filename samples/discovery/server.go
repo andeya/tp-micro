@@ -29,7 +29,7 @@ func main() {
 		// EnableHeartbeat: true,
 	},
 		discovery.ServicePlugin(
-			":9090",
+			"localhost:9090",
 			etcd.EasyConfig{
 				Endpoints: []string{"http://127.0.0.1:2379"},
 			},

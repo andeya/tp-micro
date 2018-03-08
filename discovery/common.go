@@ -52,6 +52,6 @@ func createServiceKey(addr string) string {
 	return ServiceNamespace + addr
 }
 
-func getAddr(serviceKey string) string {
+func getHostport(serviceKey string) string {
 	return strings.TrimPrefix(serviceKey, ServiceNamespace)
 }

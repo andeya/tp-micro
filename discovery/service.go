@@ -26,7 +26,7 @@ import (
 
 // service automatically registered api info to etcd
 type service struct {
-	addr        string
+	hostport    string
 	serviceKey  string
 	excludeApis []string
 	serviceInfo *ServiceInfo
@@ -48,8 +48,8 @@ var (
 // Note:
 // If etcdConfig.DialTimeout<0, it means unlimit;
 // If etcdConfig.DialTimeout=0, use the default value(15s).
-func ServicePlugin(addr string, etcdConfig etcd.EasyConfig, excludeApis ...string) tp.Plugin {
-	s := ServicePluginFromEtcd(addr, nil, excludeApis...)
+func ServicePlugin(hostport string, etcdConfig etcd.EasyConfig, excludeApis ...string) tp.Plugin {
+	s := ServicePluginFromEtcd(hostport, nil, excludeApis...)
 	var err error
 	s.(*service).client, err = etcd.EasyNew(etcdConfig)
 	if err != nil {
@@ -60,10 +60,10 @@ func ServicePlugin(addr string, etcdConfig etcd.EasyConfig, excludeApis ...strin
 }
 
 // ServicePluginFromEtcd creates a teleport plugin which automatically registered api info to etcd.
-func ServicePluginFromEtcd(addr string, etcdClient *etcd.Client, excludeApis ...string) tp.Plugin {
+func ServicePluginFromEtcd(hostport string, etcdClient *etcd.Client, excludeApis ...string) tp.Plugin {
 	return &service{
-		addr:        addr,
-		serviceKey:  createServiceKey(addr),
+		hostport:    hostport,
+		serviceKey:  createServiceKey(hostport),
 		excludeApis: excludeApis,
 		client:      etcdClient,
 		serviceInfo: new(ServiceInfo),

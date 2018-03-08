@@ -75,8 +75,8 @@ func NewLinkerFromEtcd(etcdClient *etcd.Client) ant.Linker {
 	return l
 }
 
-func (l *linker) getAddr(key string) (string, error) {
-	addr := getAddr(key)
+func (l *linker) getHostport(key string) (string, error) {
+	addr := getHostport(key)
 	host, port, err := net.SplitHostPort(addr)
 	if err != nil {
 		return "", err
@@ -89,7 +89,7 @@ func (l *linker) getAddr(key string) (string, error) {
 }
 
 func (l *linker) addNode(key string, info *ServiceInfo) {
-	addr, err := l.getAddr(key)
+	addr, err := l.getHostport(key)
 	if err != nil {
 		return
 	}
@@ -117,7 +117,7 @@ func (l *linker) addNode(key string, info *ServiceInfo) {
 }
 
 func (l *linker) delNode(key string) {
-	addr, _ := l.getAddr(key)
+	addr, _ := l.getHostport(key)
 	_node, ok := l.nodes.Load(addr)
 	if !ok {
 		return
