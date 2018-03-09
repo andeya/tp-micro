@@ -1,11 +1,11 @@
 // this is comment @#$
 type User {
-    userId:string
+    userId:string   "test:tag"
     nickname : string
-    m1 : int
-    m2 : float
-    m3 : long
-    m4 : double
+    m1 : int32
+    m2 : float32
+    m3 : int64
+    m4 : float64
     m5 : string
     m6 : string
     m7 : string
@@ -13,20 +13,38 @@ type User {
 
 // test commet
 type RpcArgs {
-    a:int
-    b : int
+    a:int32
+    b : int32
     c : string // this is @!
     userIdList : list<string>
     friendsList : map<string, User>
 }
 
 type RpcReply {
-    d : int
+    d : int32
     userList : list<User>
     userMap : map<string, User>
 }
 
-api {
-    getUserList (args : RpcArgs) -> RpcReply
-    getUserList2 (a :int, b:string, args : RpcArgs, args2 : RpcArgs) -> RpcReply
+type PushCoinArgs {
+    coin: int32
 }
+
+type PushPlayersArgs {
+    players : list<User>
+}
+
+type PushPlayers2Args {
+    players : map<string, User>
+}
+
+api pull UserPull {
+    getUserList (args : RpcArgs) -> RpcReply
+}
+
+api push UserPush {
+    updateCoin(args : PushCoinArgs)
+    UpdatePlayers(args : PushPlayersArgs)
+    UpdatePlayers2(args : PushPlayers2Args)
+}
+
