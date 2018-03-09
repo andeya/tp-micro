@@ -20,18 +20,18 @@ import (
 	"context"
 	"time"
 
-	"github.com/coreos/etcd/clientv3"
+	"github.com/henrylee2cn/ant/discovery/etcd"
 	tp "github.com/henrylee2cn/teleport"
 )
 
 // service automatically registered api info to etcd
 type service struct {
-	addr        string
+	hostport    string
 	serviceKey  string
 	excludeApis []string
 	serviceInfo *ServiceInfo
-	client      *clientv3.Client
-	leaseid     clientv3.LeaseID
+	client      *etcd.Client
+	leaseid     etcd.LeaseID
 }
 
 const (
@@ -48,10 +48,10 @@ var (
 // Note:
 // If etcdConfig.DialTimeout<0, it means unlimit;
 // If etcdConfig.DialTimeout=0, use the default value(15s).
-func ServicePlugin(addr string, etcdConfig EtcdConfig, excludeApis ...string) tp.Plugin {
-	s := ServicePluginFromEtcd(addr, nil, excludeApis...)
+func ServicePlugin(hostport string, etcdConfig etcd.EasyConfig, excludeApis ...string) tp.Plugin {
+	s := ServicePluginFromEtcd(hostport, nil, excludeApis...)
 	var err error
-	s.(*service).client, err = NewEtcdClient(etcdConfig)
+	s.(*service).client, err = etcd.EasyNew(etcdConfig)
 	if err != nil {
 		tp.Fatalf("%v: %v", err, s.Name())
 		return s
@@ -60,10 +60,10 @@ func ServicePlugin(addr string, etcdConfig EtcdConfig, excludeApis ...string) tp
 }
 
 // ServicePluginFromEtcd creates a teleport plugin which automatically registered api info to etcd.
-func ServicePluginFromEtcd(addr string, etcdClient *clientv3.Client, excludeApis ...string) tp.Plugin {
+func ServicePluginFromEtcd(hostport string, etcdClient *etcd.Client, excludeApis ...string) tp.Plugin {
 	return &service{
-		addr:        addr,
-		serviceKey:  createServiceKey(addr),
+		hostport:    hostport,
+		serviceKey:  createServiceKey(hostport),
 		excludeApis: excludeApis,
 		client:      etcdClient,
 		serviceInfo: new(ServiceInfo),
@@ -113,7 +113,7 @@ func (s *service) PostListen() error {
 	return nil
 }
 
-func (s *service) anywayKeepAlive() <-chan *clientv3.LeaseKeepAliveResponse {
+func (s *service) anywayKeepAlive() <-chan *etcd.LeaseKeepAliveResponse {
 	ch, err := s.keepAlive()
 	for err != nil {
 		time.Sleep(minLeaseTTL)
@@ -122,7 +122,7 @@ func (s *service) anywayKeepAlive() <-chan *clientv3.LeaseKeepAliveResponse {
 	return ch
 }
 
-func (s *service) keepAlive() (<-chan *clientv3.LeaseKeepAliveResponse, error) {
+func (s *service) keepAlive() (<-chan *etcd.LeaseKeepAliveResponse, error) {
 	resp, err := s.client.Grant(context.TODO(), minLeaseTTL)
 	if err != nil {
 		return nil, err
@@ -134,7 +134,7 @@ func (s *service) keepAlive() (<-chan *clientv3.LeaseKeepAliveResponse, error) {
 		context.TODO(),
 		s.serviceKey,
 		info,
-		clientv3.WithLease(resp.ID),
+		etcd.WithLease(resp.ID),
 	)
 	if err != nil {
 		return nil, err

@@ -1,0 +1,29 @@
+ant_cli:
+  tls_cert_file: ""
+  tls_key_file: ""
+  default_session_age: 0s
+  default_context_age: 0s
+  default_dial_timeout: 0s
+  redial_times: 0
+  failover: 0
+  slow_comet_duration: 0s
+  default_body_codec: ""
+  print_body: false
+  count_time: false
+  network: ""
+  heartbeat_second: 0
+  sess_max_quota: 100
+  sess_max_idle_duration: 3m0s
+
+ant_srv:
+  count_time: false
+  default_body_codec: ""
+  default_context_age: 0s
+  default_session_age: 0s
+  enable_heartbeat: false
+  listen_address: :9090
+  network: ""
+  print_body: false
+  slow_comet_duration: 0s
+  tls_cert_file: ""
+  tls_key_file: ""

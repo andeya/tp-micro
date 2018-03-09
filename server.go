@@ -48,6 +48,33 @@ func (s *SrvConfig) Reload(bind cfgo.BindFunc) error {
 	return bind()
 }
 
+// ListenPort returns the listened port, such as '8080'.
+func (s *SrvConfig) ListenPort() string {
+	_, port, err := net.SplitHostPort(s.ListenAddress)
+	if err != nil {
+		Fatalf("%v", err)
+	}
+	return port
+}
+
+// InnerIpPort returns the service's intranet address, such as '192.168.1.120:8080'.
+func (s *SrvConfig) InnerIpPort() string {
+	hostPort, err := InnerIpPort(s.ListenPort())
+	if err != nil {
+		Fatalf("%v", err)
+	}
+	return hostPort
+}
+
+// OuterIpPort returns the service's extranet address, such as '113.116.141.121:8080'.
+func (s *SrvConfig) OuterIpPort() string {
+	hostPort, err := OuterIpPort(s.ListenPort())
+	if err != nil {
+		Fatalf("%v", err)
+	}
+	return hostPort
+}
+
 func (s *SrvConfig) peerConfig() tp.PeerConfig {
 	return tp.PeerConfig{
 		DefaultSessionAge: s.DefaultSessionAge,
@@ -113,6 +140,16 @@ func (s *Server) RoutePull(ctrlStruct interface{}, plugin ...tp.Plugin) {
 // RoutePush registers PUSH handler.
 func (s *Server) RoutePush(ctrlStruct interface{}, plugin ...tp.Plugin) {
 	s.peer.RoutePush(ctrlStruct, plugin...)
+}
+
+// RoutePullFunc registers PULL handler.
+func (s *Server) RoutePullFunc(pullHandleFunc interface{}, plugin ...tp.Plugin) {
+	s.peer.RoutePullFunc(pullHandleFunc, plugin...)
+}
+
+// RoutePushFunc registers PUSH handler.
+func (s *Server) RoutePushFunc(pushHandleFunc interface{}, plugin ...tp.Plugin) {
+	s.peer.RoutePushFunc(pushHandleFunc, plugin...)
 }
 
 // SetUnknownPull sets the default handler,

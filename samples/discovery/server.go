@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/henrylee2cn/ant"
 	"github.com/henrylee2cn/ant/discovery"
+	"github.com/henrylee2cn/ant/discovery/etcd"
 	tp "github.com/henrylee2cn/teleport"
 )
 
@@ -23,17 +24,16 @@ func (p *P) Divide(args *Args) (int, *tp.Rerror) {
 }
 
 func main() {
-	srv := ant.NewServer(ant.SrvConfig{
+	cfg := ant.SrvConfig{
 		ListenAddress: ":9090",
 		// EnableHeartbeat: true,
-	},
-		discovery.ServicePlugin(
-			":9090",
-			discovery.EtcdConfig{
-				Endpoints: []string{"http://127.0.0.1:2379"},
-			},
-		),
-	)
+	}
+	srv := ant.NewServer(cfg, discovery.ServicePlugin(
+		cfg.InnerIpPort(),
+		etcd.EasyConfig{
+			Endpoints: []string{"http://127.0.0.1:2379"},
+		},
+	))
 	srv.RoutePull(new(P))
 	srv.Listen()
 }

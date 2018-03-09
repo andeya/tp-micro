@@ -15,10 +15,32 @@
 package ant
 
 import (
+	"net"
 	"sync"
 
+	"github.com/henrylee2cn/goutil"
 	tp "github.com/henrylee2cn/teleport"
 )
+
+// InnerIpPort returns the service's intranet address, such as '192.168.1.120:8080'.
+func InnerIpPort(port string) (string, error) {
+	host, err := goutil.IntranetIP()
+	if err != nil {
+		return "", err
+	}
+	hostPort := net.JoinHostPort(host, port)
+	return hostPort, nil
+}
+
+// OuterIpPort returns the service's extranet address, such as '113.116.141.121:8080'.
+func OuterIpPort(port string) (string, error) {
+	host, err := goutil.ExtranetIP()
+	if err != nil {
+		return "", err
+	}
+	hostPort := net.JoinHostPort(host, port)
+	return hostPort, nil
+}
 
 var initOnce sync.Once
 
