@@ -34,8 +34,8 @@ func main() {
 
 	// new a project
 	newCom := cli.Command{
-		Name:  "new",
-		Usage: "Create a new ant project",
+		Name:  "gen",
+		Usage: "Generate an ant project",
 		Flags: []cli.Flag{
 			cli.StringFlag{
 				Name:  "script, s",

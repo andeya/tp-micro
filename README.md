@@ -422,17 +422,17 @@ go install
 
 ```
 NAME:
-   ant new - Create a new ant project
+   ant gen - Generate an ant project
 
 USAGE:
-   ant new [command options] [arguments...]
+   ant gen [command options] [arguments...]
 
 OPTIONS:
    --script value, -s value    The script for code generation(relative/absolute)
    --app_path value, -p value  The path(relative/absolute) of the project
 ```
 
-example: `ant new -s ./test.ant -p ./myant`
+example: `ant gen -s ./test.ant -p ./myant`
 
 - run project
 
