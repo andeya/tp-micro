@@ -462,6 +462,9 @@ func RestoreAssets(dir, name string) error {
 	}
 	// Dir
 	for _, child := range children {
+		if child == "logic" {
+			continue
+		}
 		err = RestoreAssets(dir, filepath.Join(name, child))
 		if err != nil {
 			return err
