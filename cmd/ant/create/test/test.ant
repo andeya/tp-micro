@@ -1,50 +1,56 @@
-// this is comment @#$
+// User user info
 type User {
-    userId:string   "test:tag"
-    nickname : string
-    m1 : int32
-    m2 : float32
-    m3 : int64
-    m4 : float64
-    m5 : string
-    m6 : string
-    m7 : string
+    UserId : string    `param:"<len: 0:100>"` // UserId user ID
+    // Nickname nickname
+    Nickname : string // Nickname nickname
+    M1 : int32
+    M2 : float32
+    M3 : int64
+    M4 : float64
+    M5 : string
+    M6 : string
+    M7 : string
 }
 
-// test commet
+// RpcArgs RPC commet args
 type RpcArgs {
-    a:int32
-    b : int32
-    c : string // this is @!
-    userIdList : list<string>
-    friendsList : map<string, User>
+    A : int32
+    // B is b
+    B : int32
+    C : string // C is c!
+    UserIdList : list<string>
+    FriendsList : map<string, User>
 }
 
 type RpcReply {
-    d : int32
-    userList : list<User>
-    userMap : map<string, User>
+    D : int32
+    UserList : list<User>
+    UserMap : map<string, User>
 }
 
 type PushCoinArgs {
-    coin: int32
+    Coin : int32
 }
 
 type PushPlayersArgs {
-    players : list<User>
+    Players : list<User>
 }
 
 type PushPlayers2Args {
-    players : map<string, User>
+    Players : map<string, User>
 }
 
+// UserPull PULL controller
 api pull UserPull {
-    getUserList (args : RpcArgs) -> RpcReply
+    // GetList returns the user list.
+    GetList (args : RpcArgs) -> RpcReply
 }
 
+// UserPush PUSH controller
 api push UserPush {
-    updateCoin(args : PushCoinArgs)
-    UpdatePlayers(args : PushPlayersArgs)
+    // UpdateCoin updates the user's coin.
+    UpdateCoin(args : PushCoinArgs)
+    UpdatePlayers(args : PushPlayersArgs) // UpdatePlayers updates players.
     UpdatePlayers2(args : PushPlayers2Args)
 }
 
