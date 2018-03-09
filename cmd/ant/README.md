@@ -15,7 +15,7 @@ go install
 
 ## 3. Usage
 
-- new project
+- generate project
 
 ```
 NAME:

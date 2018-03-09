@@ -418,7 +418,7 @@ go install
 
 ### 2. Usage
 
-- new project
+- generate project
 
 ```
 NAME:
