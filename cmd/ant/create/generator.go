@@ -593,6 +593,15 @@ func TestSdk(t *testing.T) {
 }
 `
 
+var logic_tpl = `
+package logic
+import (
+	tp "github.com/henrylee2cn/teleport"
+	"${app_path}/types"
+)
+${logic_api_define}
+`
+
 type CodeGen struct {
 	parser *Parser
 }
@@ -673,9 +682,11 @@ func (codeGen *CodeGen) genForGolang() {
 
 	// 2.2 scan all api function
 	apiDefines := ""
+	logicApiDefines := ""
 	for i := 0; i < len(parser.apis); i++ {
 		currApi := parser.apis[i]
 		apiHeaderStr := fmt.Sprintf("func (handlers *%s) %s(", currApi.group, currApi.name)
+		logicApiHeaderStr := fmt.Sprintf("func %s(", currApi.name)
 		apiParamsStr := ""
 		apiParamsStr2 := ""
 		for j := 0; j < len(currApi.params); j++ {
@@ -721,12 +732,23 @@ func (codeGen *CodeGen) genForGolang() {
 		bodyStr := " {\n"
 		bodyStr += fmt.Sprintf("    return logic.%s(%s)", currApi.name, apiParamsStr2)
 		bodyStr += "\n}\n"
+		logicBodySr := " {\n"
+		if currApi.access == "pull" {
+			logicBodySr += "return nil, nil"
+		} else {
+			logicBodySr += "return nil"
+		}
+		logicBodySr += "\n}\n"
 		apiDefines += apiHeaderStr + apiParamsStr + replyStr + bodyStr + "\n"
+		logicApiDefines += logicApiHeaderStr + apiParamsStr + replyStr + logicBodySr + "\n"
 	}
 	fileContent = ""
 	fileContent = strings.Replace(handler_tpl, "${api_define_group}", groupDefines, 1)
 	fileContent = strings.Replace(fileContent, "${api_define_function}", apiDefines, 1)
 	codeGen.saveFile("./api/handlers.gen.go", &fileContent)
+	fileContent = ""
+	fileContent = strings.Replace(logic_tpl, "${logic_api_define}", logicApiDefines, 1)
+	codeGen.saveFile("./logic/_logic.gen.go", &fileContent)	
 
 	// 3. gen api/router.gen.go
 	routerRegisters := ""
