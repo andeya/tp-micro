@@ -748,7 +748,7 @@ func (codeGen *CodeGen) genForGolang() {
 	codeGen.saveFile("./api/handlers.gen.go", &fileContent)
 	fileContent = ""
 	fileContent = strings.Replace(logic_tpl, "${logic_api_define}", logicApiDefines, 1)
-	codeGen.saveFile("./logic/_logic.gen.go", &fileContent)	
+	codeGen.saveFile("./logic/_logic.gen.go", &fileContent)
 
 	// 3. gen api/router.gen.go
 	routerRegisters := ""
@@ -838,8 +838,12 @@ func (codeGen *CodeGen) genForGolang() {
 		//for j := 0; j < len(apiParamType.members); j++ {
 		//	v := currType.members[j]
 		//}
+		colon := ":"
+		if i > 0 {
+			colon = ""
+		}
 		if parser.isDeclaredType(currApi.params[0].variableType) {
-			callExp := fmt.Sprintf("    reply, rerr := %s(&types.%s{})\n", currApi.name, currApi.params[0].variableType)
+			callExp := fmt.Sprintf("    reply, rerr %s= %s(&types.%s{})\n", colon, currApi.name, currApi.params[0].variableType)
 			callExp += "    if rerr != nil {\n"
 			callExp += "    t.Logf(\"rerr: %v\", rerr)\n"
 			callExp += "    } else {\n"

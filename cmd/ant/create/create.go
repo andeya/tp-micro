@@ -12,6 +12,7 @@ import (
 	"github.com/henrylee2cn/ant/cmd/ant/create/test"
 	"github.com/henrylee2cn/ant/cmd/ant/create/tpl"
 	"github.com/henrylee2cn/ant/cmd/ant/info"
+	"github.com/henrylee2cn/goutil"
 )
 
 // CreateProject creates a project.
@@ -38,7 +39,9 @@ func CreateProject(scriptFile string) {
 	}
 
 	// creats base files
-	tpl.Create()
+	if !goutil.FileExists("main.go") {
+		tpl.Create()
+	}
 
 	var r io.Reader
 	if noScriptFile {
