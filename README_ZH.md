@@ -404,6 +404,7 @@ func main() {
 ### 1. 安装
 
 ```sh
+cd $GOPATH/github.com/henrylee2cn/ant/cmd/ant
 go install
 ```
 

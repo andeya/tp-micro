@@ -413,6 +413,7 @@ Command ant is deployment tools of ant microservice frameware.
 ### 1. Install
 
 ```sh
+cd $GOPATH/github.com/henrylee2cn/ant/cmd/ant
 go install
 ```
 
