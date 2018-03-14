@@ -22,6 +22,7 @@ import (
 
 	"github.com/henrylee2cn/ant/discovery/etcd"
 	tp "github.com/henrylee2cn/teleport"
+	heartbeat "github.com/henrylee2cn/tp-ext/plugin-heartbeat"
 )
 
 // service automatically registered api info to etcd
@@ -76,6 +77,9 @@ func (s *service) Name() string {
 
 func (s *service) PostReg(handler *tp.Handler) error {
 	uriPath := handler.Name()
+	if uriPath == heartbeat.HeartbeatUri {
+		return nil
+	}
 	for _, a := range s.excludeApis {
 		if a == uriPath {
 			return nil
