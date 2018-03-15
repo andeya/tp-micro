@@ -72,14 +72,14 @@ func ServicePluginFromEtcd(hostport string, etcdClient *etcd.Client, excludeApis
 		client:      etcdClient,
 		serviceInfo: new(ServiceInfo),
 	}
-	s.AppendExcludeApis(heartbeat.HeartbeatUri)
-	s.AppendExcludeApis(excludeApis...)
+	s.ExcludeApi(heartbeat.HeartbeatUri)
+	s.ExcludeApi(excludeApis...)
 	return s
 }
 
-// AppendExcludeApis appends apis that must not be registered to etcd.
-func (s *Service) AppendExcludeApis(excludeApis ...string) {
-	s.excludeApis = append(s.excludeApis, excludeApis...)
+// ExcludeApi appends apis that must not be registered to etcd.
+func (s *Service) ExcludeApi(excludeApi ...string) {
+	s.excludeApis = append(s.excludeApis, excludeApi...)
 }
 
 // Name returns name.
