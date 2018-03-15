@@ -132,24 +132,24 @@ func (s *Server) SubRoute(pathPrefix string, plugin ...tp.Plugin) *tp.SubRouter 
 	return s.peer.SubRoute(pathPrefix, plugin...)
 }
 
-// RoutePull registers PULL handler.
-func (s *Server) RoutePull(ctrlStruct interface{}, plugin ...tp.Plugin) {
-	s.peer.RoutePull(ctrlStruct, plugin...)
+// RoutePull registers PULL handlers, and returns the paths.
+func (s *Server) RoutePull(ctrlStruct interface{}, plugin ...tp.Plugin) []string {
+	return s.peer.RoutePull(ctrlStruct, plugin...)
 }
 
-// RoutePush registers PUSH handler.
-func (s *Server) RoutePush(ctrlStruct interface{}, plugin ...tp.Plugin) {
-	s.peer.RoutePush(ctrlStruct, plugin...)
+// RoutePullFunc registers PULL handler, and returns the path.
+func (s *Server) RoutePullFunc(pullHandleFunc interface{}, plugin ...tp.Plugin) string {
+	return s.peer.RoutePullFunc(pullHandleFunc, plugin...)
 }
 
-// RoutePullFunc registers PULL handler.
-func (s *Server) RoutePullFunc(pullHandleFunc interface{}, plugin ...tp.Plugin) {
-	s.peer.RoutePullFunc(pullHandleFunc, plugin...)
+// RoutePush registers PUSH handlers, and returns the paths.
+func (s *Server) RoutePush(ctrlStruct interface{}, plugin ...tp.Plugin) []string {
+	return s.peer.RoutePush(ctrlStruct, plugin...)
 }
 
-// RoutePushFunc registers PUSH handler.
-func (s *Server) RoutePushFunc(pushHandleFunc interface{}, plugin ...tp.Plugin) {
-	s.peer.RoutePushFunc(pushHandleFunc, plugin...)
+// RoutePushFunc registers PUSH handler, and returns the path.
+func (s *Server) RoutePushFunc(pushHandleFunc interface{}, plugin ...tp.Plugin) string {
+	return s.peer.RoutePushFunc(pushHandleFunc, plugin...)
 }
 
 // SetUnknownPull sets the default handler,

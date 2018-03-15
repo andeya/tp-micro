@@ -151,14 +151,14 @@ func (c *Client) SubRoute(pathPrefix string, plugin ...tp.Plugin) *tp.SubRouter 
 	return c.peer.SubRoute(pathPrefix, plugin...)
 }
 
-// RoutePush registers PUSH handler.
-func (c *Client) RoutePush(ctrlStruct interface{}, plugin ...tp.Plugin) {
-	c.peer.RoutePush(ctrlStruct, plugin...)
+// RoutePush registers PUSH handlers, and returns the paths.
+func (c *Client) RoutePush(ctrlStruct interface{}, plugin ...tp.Plugin) []string {
+	return c.peer.RoutePush(ctrlStruct, plugin...)
 }
 
-// RoutePushFunc registers PUSH handler.
-func (c *Client) RoutePushFunc(pushHandleFunc interface{}, plugin ...tp.Plugin) {
-	c.peer.RoutePushFunc(pushHandleFunc, plugin...)
+// RoutePushFunc registers PUSH handler, and returns the path.
+func (c *Client) RoutePushFunc(pushHandleFunc interface{}, plugin ...tp.Plugin) string {
+	return c.peer.RoutePushFunc(pushHandleFunc, plugin...)
 }
 
 // AsyncPull sends a packet and receives reply asynchronously.
