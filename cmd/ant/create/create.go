@@ -8,7 +8,6 @@ import (
 	"path/filepath"
 
 	"github.com/henrylee2cn/ant"
-	"github.com/henrylee2cn/ant/cmd/ant/create/def"
 	"github.com/henrylee2cn/ant/cmd/ant/create/test"
 	"github.com/henrylee2cn/ant/cmd/ant/create/tpl"
 	"github.com/henrylee2cn/ant/cmd/ant/info"
@@ -30,12 +29,6 @@ func CreateProject(scriptFile string) {
 	err := os.Chdir(info.AbsPath())
 	if err != nil {
 		ant.Fatalf("[ant] Jump working directory failed: %v", err)
-	}
-
-	if noScriptFile {
-		def.Create()
-		format()
-		return
 	}
 
 	// creats base files
