@@ -865,5 +865,6 @@ func (codeGen *CodeGen) saveFile(fileName string, txt *string) {
 	}
 	defer f.Close()
 	fileContent := strings.Replace(*txt, "${app_path}", info.ProjPath(), -1)
+	f.WriteString("// generate by ant command\n\n")
 	f.WriteString(fileContent)
 }

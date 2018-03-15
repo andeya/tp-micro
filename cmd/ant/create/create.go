@@ -2,7 +2,7 @@ package create
 
 import (
 	"bytes"
-	"io"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -43,20 +43,18 @@ func CreateProject(scriptFile string) {
 		tpl.Create()
 	}
 
-	var r io.Reader
+	var b []byte
 	if noScriptFile {
-		b := test.MustAsset("test.ant")
-		r = bytes.NewReader(b)
+		b = test.MustAsset("test.ant")
 	} else {
-		file, err := os.Open(scriptFile)
+		b, err = ioutil.ReadFile(scriptFile)
 		if err != nil {
 			ant.Fatalf("[ant] Write project files failed: %v", err)
 		}
-		defer file.Close()
-		r = file
 	}
 
 	{
+		r := bytes.NewReader(b)
 		lexer := Lexer{}
 		lexer.init(r)
 
@@ -68,6 +66,14 @@ func CreateProject(scriptFile string) {
 		codeGen.init(&parser)
 		codeGen.genForGolang()
 	}
+
+	// write script file
+	f, err := os.OpenFile(info.ProjName()+".ant", os.O_WRONLY|os.O_TRUNC|os.O_CREATE, os.ModePerm)
+	if err != nil {
+		ant.Fatalf("[ant] Create files error: %v", err)
+	}
+	defer f.Close()
+	f.Write(b)
 
 	format()
 }
