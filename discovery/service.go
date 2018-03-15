@@ -25,10 +25,11 @@ import (
 	heartbeat "github.com/henrylee2cn/tp-ext/plugin-heartbeat"
 )
 
-// service automatically registered api info to etcd
-type service struct {
+// Service automatically registered api info to etcd
+type Service struct {
 	hostport    string
 	serviceKey  string
+	allApis     []string
 	excludeApis []string
 	serviceInfo *ServiceInfo
 	client      *etcd.Client
@@ -41,18 +42,19 @@ const (
 )
 
 var (
-	_ tp.PostRegPlugin    = new(service)
-	_ tp.PostListenPlugin = new(service)
+	_ tp.PostRegPlugin    = new(Service)
+	_ tp.PostListenPlugin = new(Service)
 )
 
 // ServicePlugin creates a teleport plugin which automatically registered api info to etcd.
 // Note:
+// excludeApis must not be registered to etcd.
 // If etcdConfig.DialTimeout<0, it means unlimit;
 // If etcdConfig.DialTimeout=0, use the default value(15s).
-func ServicePlugin(hostport string, etcdConfig etcd.EasyConfig, excludeApis ...string) tp.Plugin {
+func ServicePlugin(hostport string, etcdConfig etcd.EasyConfig, excludeApis ...string) *Service {
 	s := ServicePluginFromEtcd(hostport, nil, excludeApis...)
 	var err error
-	s.(*service).client, err = etcd.EasyNew(etcdConfig)
+	s.client, err = etcd.EasyNew(etcdConfig)
 	if err != nil {
 		tp.Fatalf("%v: %v", err, s.Name())
 		return s
@@ -61,35 +63,47 @@ func ServicePlugin(hostport string, etcdConfig etcd.EasyConfig, excludeApis ...s
 }
 
 // ServicePluginFromEtcd creates a teleport plugin which automatically registered api info to etcd.
-func ServicePluginFromEtcd(hostport string, etcdClient *etcd.Client, excludeApis ...string) tp.Plugin {
-	return &service{
+// Note:
+// excludeApis must not be registered to etcd.
+func ServicePluginFromEtcd(hostport string, etcdClient *etcd.Client, excludeApis ...string) *Service {
+	s := &Service{
 		hostport:    hostport,
 		serviceKey:  createServiceKey(hostport),
-		excludeApis: excludeApis,
 		client:      etcdClient,
 		serviceInfo: new(ServiceInfo),
 	}
+	s.AppendExcludeApis(heartbeat.HeartbeatUri)
+	s.AppendExcludeApis(excludeApis...)
+	return s
 }
 
-func (s *service) Name() string {
+// AppendExcludeApis appends apis that must not be registered to etcd.
+func (s *Service) AppendExcludeApis(excludeApis ...string) {
+	s.excludeApis = append(s.excludeApis, excludeApis...)
+}
+
+// Name returns name.
+func (s *Service) Name() string {
 	return "ETCD(" + s.serviceKey + ")"
 }
 
-func (s *service) PostReg(handler *tp.Handler) error {
-	uriPath := handler.Name()
-	if uriPath == heartbeat.HeartbeatUri {
-		return nil
-	}
-	for _, a := range s.excludeApis {
-		if a == uriPath {
-			return nil
-		}
-	}
-	s.serviceInfo.Append(uriPath)
+// PostReg registers URI path.
+func (s *Service) PostReg(handler *tp.Handler) error {
+	s.allApis = append(s.allApis, handler.Name())
 	return nil
 }
 
-func (s *service) PostListen() error {
+// PostListen adds serviceInfo, and starts etcd keep alive.
+func (s *Service) PostListen() error {
+L:
+	for _, api := range s.allApis {
+		for _, a := range s.excludeApis {
+			if a == api {
+				continue L
+			}
+		}
+		s.serviceInfo.Append(api)
+	}
 	ch, err := s.keepAlive()
 	if err != nil {
 		return err
@@ -117,7 +131,7 @@ func (s *service) PostListen() error {
 	return nil
 }
 
-func (s *service) anywayKeepAlive() <-chan *etcd.LeaseKeepAliveResponse {
+func (s *Service) anywayKeepAlive() <-chan *etcd.LeaseKeepAliveResponse {
 	ch, err := s.keepAlive()
 	for err != nil {
 		time.Sleep(minLeaseTTL)
@@ -126,7 +140,7 @@ func (s *service) anywayKeepAlive() <-chan *etcd.LeaseKeepAliveResponse {
 	return ch
 }
 
-func (s *service) keepAlive() (<-chan *etcd.LeaseKeepAliveResponse, error) {
+func (s *Service) keepAlive() (<-chan *etcd.LeaseKeepAliveResponse, error) {
 	resp, err := s.client.Grant(context.TODO(), minLeaseTTL)
 	if err != nil {
 		return nil, err
@@ -153,7 +167,7 @@ func (s *service) keepAlive() (<-chan *etcd.LeaseKeepAliveResponse, error) {
 	return ch, err
 }
 
-func (s *service) revoke() {
+func (s *Service) revoke() {
 	_, err := s.client.Revoke(context.TODO(), s.leaseid)
 	if err != nil {
 		tp.Errorf("%s: revoke service error: %s", s.Name(), err.Error())
