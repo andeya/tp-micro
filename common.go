@@ -132,6 +132,10 @@ var WithRealId = tp.WithRealId
 // func WithRealIp(ip string) socket.PacketSetting
 var WithRealIp = tp.WithRealIp
 
+// WithAcceptBodyCodec sets the body codec that the sender wishes to accept.
+//  func WithAcceptBodyCodec(bodyCodec byte) socket.PacketSetting
+var WithAcceptBodyCodec = tp.WithAcceptBodyCodec
+
 // WithContext sets the packet handling context.
 //  func WithContext(ctx context.Context) socket.PacketSetting
 var WithContext = tp.WithContext
