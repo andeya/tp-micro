@@ -133,6 +133,7 @@ var WithRealId = tp.WithRealId
 var WithRealIp = tp.WithRealIp
 
 // WithAcceptBodyCodec sets the body codec that the sender wishes to accept.
+// Note: If the specified codec is invalid, the receiver will ignore the mate data.
 //  func WithAcceptBodyCodec(bodyCodec byte) socket.PacketSetting
 var WithAcceptBodyCodec = tp.WithAcceptBodyCodec
 
