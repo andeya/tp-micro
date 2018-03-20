@@ -9,6 +9,7 @@ import (
 	"go/token"
 	"os"
 	"strings"
+	"unicode"
 
 	"github.com/henrylee2cn/ant"
 	"github.com/henrylee2cn/ant/cmd/ant/info"
@@ -508,14 +509,52 @@ func (t *TypeStructGroup) createCode() (s string) {
 		if doc == "" {
 			doc = tt.Doc
 		}
-		return fmt.Sprintf("\n%stype %s %s\n", doc, tt.Name, tt.Body)
+		return fmt.Sprintf("\n%stype %s %s\n", doc, tt.Name, addTag(tt.Body))
 	default:
 		var body string
 		for _, tt := range t.Structs {
-			body += fmt.Sprintf("%s%s %s\n\n", tt.Doc, tt.Name, tt.Body)
+			body += fmt.Sprintf("%s%s %s\n\n", tt.Doc, tt.Name, addTag(tt.Body))
 		}
 		return fmt.Sprintf("\n%stype(\n%s)\n", t.Doc, body)
 	}
+}
+
+func addTag(body string) string {
+	a := strings.Split(body, "\n")
+	for i, s := range a {
+		if i == 0 || i == len(a)-1 {
+			continue
+		}
+		s = strings.TrimSpace(s)
+		if s[0] == '/' {
+			continue
+		}
+		var lastIsSpace bool
+		var cnt int
+		var col [4]string
+		for _, r := range s {
+			if unicode.IsSpace(r) {
+				if !lastIsSpace {
+					cnt++
+				}
+				lastIsSpace = true
+			} else {
+				lastIsSpace = false
+				col[cnt] += string(r)
+			}
+		}
+		jsTag := fmt.Sprintf("json:\"%s\"", goutil.SnakeString(col[0]))
+		if col[2] == "" {
+			col[2] = "`" + jsTag + "`"
+		} else if col[2][0] == '/' {
+			col[3] = col[2] + " " + col[3]
+			col[2] = "`" + jsTag + "`"
+		} else if !strings.Contains(col[2], "json:\"") {
+			col[2] = col[2][:1] + jsTag + " " + col[2][1:]
+		}
+		a[i] = strings.Join(col[:], " ")
+	}
+	return strings.Join(a, "\n")
 }
 
 func groupComment(s string) string {
