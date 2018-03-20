@@ -50,13 +50,12 @@ func CreateProject(tplFile string) {
 		}
 	}
 
-	{
-		proj := NewProject(b)
-		proj.Prepare()
-		proj.Generator()
-	}
+	// new project
+	proj := NewProject(b)
+	proj.Prepare()
+	proj.Generator()
 
-	// write script file
+	// write template file
 	f, err := os.OpenFile(defAntTpl, os.O_WRONLY|os.O_TRUNC|os.O_CREATE, os.ModePerm)
 	if err != nil {
 		ant.Fatalf("[ant] Create files error: %v", err)
