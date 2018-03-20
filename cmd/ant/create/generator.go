@@ -101,7 +101,10 @@ func (p *Project) Prepare() {
 
 			typeSpec := spec.(*ast.TypeSpec)
 			name := typeSpec.Name.Name
-			doc := comment(name, typeSpec.Doc.Text(), typeSpec.Comment.Text())
+			var doc = typeStructGroup.Doc
+			if len(genDecl.Specs) > 1 {
+				doc = comment(name, typeSpec.Doc.Text(), typeSpec.Comment.Text())
+			}
 
 			switch t := typeSpec.Type.(type) {
 
