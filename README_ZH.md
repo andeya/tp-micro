@@ -420,11 +420,11 @@ USAGE:
    ant gen [command options] [arguments...]
 
 OPTIONS:
-   --script value, -s value    The script for code generation(relative/absolute)
+   --template value, -t value    The template for code generation(relative/absolute)
    --app_path value, -p value  The path(relative/absolute) of the project
 ```
 
-示例：`ant gen -p ./myant -s ./test.ant`
+示例：`ant gen -t ./__ant__tpl__.go -p ./myant`
 
 - 热编译运行
 

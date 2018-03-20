@@ -25,11 +25,11 @@ USAGE:
    ant gen [command options] [arguments...]
 
 OPTIONS:
-   --script value, -s value    The script for code generation(relative/absolute)
+   --template value, -t value    The template for code generation(relative/absolute)
    --app_path value, -p value  The path(relative/absolute) of the project
 ```
 
-example: `ant gen -s ./test.ant -p ./myant`
+example: `ant gen -t ./__ant__tpl__.go -p ./myant`
 
 - run project
 

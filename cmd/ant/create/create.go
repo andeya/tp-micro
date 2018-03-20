@@ -1,10 +1,8 @@
 package create
 
 import (
-	"bytes"
 	"io/ioutil"
 	"os"
-	"os/exec"
 	"path/filepath"
 
 	"github.com/henrylee2cn/ant"
@@ -14,8 +12,14 @@ import (
 	"github.com/henrylee2cn/goutil"
 )
 
+const (
+	defAntTpl = "__ant__tpl__.go"
+)
+
 // CreateProject creates a project.
 func CreateProject(scriptFile string) {
+	ant.Infof("Generating project: %s", info.ProjPath())
+
 	noScriptFile := len(scriptFile) == 0
 	if !noScriptFile {
 		var err error
@@ -38,7 +42,7 @@ func CreateProject(scriptFile string) {
 
 	var b []byte
 	if noScriptFile {
-		b = test.MustAsset("test.ant")
+		b = test.MustAsset(defAntTpl)
 	} else {
 		b, err = ioutil.ReadFile(scriptFile)
 		if err != nil {
@@ -47,34 +51,18 @@ func CreateProject(scriptFile string) {
 	}
 
 	{
-		r := bytes.NewReader(b)
-		lexer := Lexer{}
-		lexer.init(r)
-
-		parser := Parser{}
-		parser.init(&lexer)
-		parser.parse()
-
-		codeGen := CodeGen{}
-		codeGen.init(&parser)
-		codeGen.genForGolang()
+		proj := NewProject(b)
+		proj.Prepare()
+		proj.Generator()
 	}
 
 	// write script file
-	f, err := os.OpenFile(info.ProjName()+".ant", os.O_WRONLY|os.O_TRUNC|os.O_CREATE, os.ModePerm)
+	f, err := os.OpenFile(defAntTpl, os.O_WRONLY|os.O_TRUNC|os.O_CREATE, os.ModePerm)
 	if err != nil {
 		ant.Fatalf("[ant] Create files error: %v", err)
 	}
 	defer f.Close()
-	f.Write(b)
+	f.Write(formatSource(b))
 
-	format()
-}
-
-// format the codes
-func format() {
-	cmd := exec.Command("gofmt", "-w", "./")
-	cmd.Stderr = os.Stderr
-	cmd.Stdout = os.Stdout
-	cmd.Run()
+	ant.Infof("Completed code generation!")
 }

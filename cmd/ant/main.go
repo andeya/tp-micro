@@ -38,8 +38,8 @@ func main() {
 		Usage: "Generate an ant project",
 		Flags: []cli.Flag{
 			cli.StringFlag{
-				Name:  "script, s",
-				Usage: "The script for code generation(relative/absolute)",
+				Name:  "template, t",
+				Usage: "The template for code generation(relative/absolute)",
 			},
 			cli.StringFlag{
 				Name:  "app_path, p",
@@ -48,7 +48,7 @@ func main() {
 		},
 		Before: initProject,
 		Action: func(c *cli.Context) error {
-			create.CreateProject(c.String("script"))
+			create.CreateProject(c.String("template"))
 			return nil
 		},
 	}
