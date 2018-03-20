@@ -17,13 +17,13 @@ const (
 )
 
 // CreateProject creates a project.
-func CreateProject(scriptFile string) {
+func CreateProject(tplFile string) {
 	ant.Infof("Generating project: %s", info.ProjPath())
 
-	noScriptFile := len(scriptFile) == 0
+	noScriptFile := len(tplFile) == 0
 	if !noScriptFile {
 		var err error
-		scriptFile, err = filepath.Abs(scriptFile)
+		tplFile, err = filepath.Abs(tplFile)
 		if err != nil {
 			ant.Fatalf("[ant] Invalid script file path")
 		}
@@ -44,7 +44,7 @@ func CreateProject(scriptFile string) {
 	if noScriptFile {
 		b = test.MustAsset(defAntTpl)
 	} else {
-		b, err = ioutil.ReadFile(scriptFile)
+		b, err = ioutil.ReadFile(tplFile)
 		if err != nil {
 			ant.Fatalf("[ant] Write project files failed: %v", err)
 		}
