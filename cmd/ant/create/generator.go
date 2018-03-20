@@ -16,11 +16,14 @@ import (
 )
 
 const (
+	// API_PULL_ROUTER Name of the interface used to register the pull route in the template
 	API_PULL_ROUTER = "__API__PULL__"
+	// API_PUSH_ROUTER Name of the interface used to register the push route in the template
 	API_PUSH_ROUTER = "__API__PUSH__"
 )
 
 type (
+	// Project project Information
 	Project struct {
 		fileSet      *token.FileSet
 		astFile      *ast.File
@@ -28,28 +31,28 @@ type (
 		ImprotPrefix string
 		Types        []*TypeStructGroup
 		CtrlStructs  map[string]*CtrlStruct
-		PullRouters  []*Router
-		PushRouters  []*Router
+		PullApis     []*Handler
+		PushApis     []*Handler
 	}
-
+	// TypeStructGroup a group of defined types
 	TypeStructGroup struct {
 		Doc     string
 		Structs []*TypeStruct
 	}
-
+	// TypeStruct defined struct in types directory
 	TypeStruct struct {
 		Doc  string
 		Name string
 		Body string
 	}
-
+	// CtrlStruct defined controller struct
 	CtrlStruct struct {
 		Doc     string
 		Name    string
-		Methods []*Router
+		Methods []*Handler
 	}
-
-	Router struct {
+	// Handler defined router handler
+	Handler struct {
 		IsCtrl bool
 		Name   string
 		Doc    string
@@ -58,6 +61,7 @@ type (
 	}
 )
 
+// NewProject new project.
 func NewProject(src []byte) *Project {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "", src, parser.ParseComments)
@@ -75,6 +79,7 @@ func NewProject(src []byte) *Project {
 	return &proj
 }
 
+// Prepare prepares project.
 func (p *Project) Prepare() {
 	for k, v := range codeFiles {
 		v = strings.Replace(v, "${import_prefix}", p.ImprotPrefix, -1)
@@ -116,7 +121,7 @@ func (p *Project) Prepare() {
 
 			case *ast.InterfaceType:
 
-				var routers []*Router
+				var handlers []*Handler
 
 				for _, method := range t.Methods.List {
 
@@ -141,40 +146,40 @@ func (p *Project) Prepare() {
 							result = dst.String()
 						}
 
-						r := &Router{
+						r := &Handler{
 							IsCtrl: false,
 							Name:   subName,
 							Doc:    comment(subName, method.Doc.Text(), method.Comment.Text()),
 							Param:  param,
 							Result: result,
 						}
-						routers = append(routers, r)
+						handlers = append(handlers, r)
 
 					case *ast.Ident:
 						// interface
 						subName := tt.String()
-						r := &Router{
+						r := &Handler{
 							IsCtrl: true,
 							Name:   subName,
 							Doc:    comment(subName, method.Doc.Text(), method.Comment.Text()),
 						}
-						routers = append(routers, r)
+						handlers = append(handlers, r)
 					}
 				}
 
 				switch name {
 				case API_PULL_ROUTER:
-					p.PullRouters = append(p.PullRouters, routers...)
+					p.PullApis = append(p.PullApis, handlers...)
 
 				case API_PUSH_ROUTER:
-					p.PushRouters = append(p.PushRouters, routers...)
+					p.PushApis = append(p.PushApis, handlers...)
 
 				default:
 					// controller
 					p.CtrlStructs[name] = &CtrlStruct{
 						Name:    name,
 						Doc:     doc,
-						Methods: routers,
+						Methods: handlers,
 					}
 				}
 			}
@@ -299,16 +304,16 @@ func (p *Project) Generator() {
 func (p *Project) genTypesFile() {
 	var s string
 	for _, t := range p.Types {
-		s += t.String()
+		s += t.createCode()
 	}
 	replace("types/types.gen.go", "${type_define_list}", s)
 }
 
 func (p *Project) genRouterFile() {
 	var s string
-	if len(p.PullRouters) > 0 {
+	if len(p.PullApis) > 0 {
 		s += "\n// PULL APIs...\n"
-		for _, r := range p.PullRouters {
+		for _, r := range p.PullApis {
 			if r.IsCtrl {
 				s += fmt.Sprintf("rootGroup.RoutePull(&%s{})\n", r.Name)
 			} else {
@@ -316,9 +321,9 @@ func (p *Project) genRouterFile() {
 			}
 		}
 	}
-	if len(p.PushRouters) > 0 {
+	if len(p.PushApis) > 0 {
 		s += "\n// PUSH APIs...\n"
-		for _, r := range p.PushRouters {
+		for _, r := range p.PushApis {
 			if r.IsCtrl {
 				s += fmt.Sprintf("rootGroup.RoutePush(&%s{})\n", r.Name)
 			} else {
@@ -330,8 +335,8 @@ func (p *Project) genRouterFile() {
 }
 
 func (p *Project) genHandlerAndLogicAndSdkFiles() {
-	var handler, logic, sdk, sdkTest = p.createHandlerAndLogicAndSdk(p.PullRouters, true)
-	var a, b, c, d = p.createHandlerAndLogicAndSdk(p.PushRouters, false)
+	var handler, logic, sdk, sdkTest = p.createHandlerAndLogicAndSdk(p.PullApis, true)
+	var a, b, c, d = p.createHandlerAndLogicAndSdk(p.PushApis, false)
 	handler += a
 	logic += b
 	sdk += c
@@ -342,7 +347,7 @@ func (p *Project) genHandlerAndLogicAndSdkFiles() {
 	replace("sdk/rpc_test.gen.go", "${rpc_call_test_define}", sdkTest)
 }
 
-func (p *Project) createHandlerAndLogicAndSdk(routers []*Router, isPull bool) (handler, logic, sdk, sdkTest string) {
+func (p *Project) createHandlerAndLogicAndSdk(routers []*Handler, isPull bool) (handler, logic, sdk, sdkTest string) {
 	for _, r := range routers {
 		if !r.IsCtrl {
 			a, b, c, d := p.createFunc(r, isPull)
@@ -367,7 +372,7 @@ func (p *Project) createHandlerAndLogicAndSdk(routers []*Router, isPull bool) (h
 	return
 }
 
-func (p *Project) createFunc(r *Router, isPull bool) (handler, logic, sdk, sdkTest string) {
+func (p *Project) createFunc(r *Handler, isPull bool) (handler, logic, sdk, sdkTest string) {
 	paramAndresult := p.checkHandler(r, isPull)
 	camelName := goutil.CamelString(r.Name)
 	camelDoc := strings.Replace(r.Doc, "// "+r.Name, "// "+camelName, 1)
@@ -435,7 +440,7 @@ func (p *Project) createCtrlStruct(c *CtrlStruct, isPull bool) (handler, logic, 
 	return
 }
 
-func (p *Project) createMethod(ctrl string, r *Router, isPull bool) (handler, logic, sdk, sdkTest string) {
+func (p *Project) createMethod(ctrl string, r *Handler, isPull bool) (handler, logic, sdk, sdkTest string) {
 	paramAndresult := p.checkHandler(r, isPull)
 	first := strings.ToLower(ctrl[:1])
 	fullName := goutil.CamelString(ctrl + "_" + r.Name)
@@ -486,7 +491,7 @@ func (p *Project) createMethod(ctrl string, r *Router, isPull bool) (handler, lo
 	}
 }
 
-func (t *TypeStructGroup) String() (s string) {
+func (t *TypeStructGroup) createCode() (s string) {
 	defer func() {
 		b, _ := format.Source([]byte(s))
 		s = string(b)
@@ -530,7 +535,7 @@ func comment(name, s1, s2 string) string {
 	return s
 }
 
-func (p *Project) checkHandler(r *Router, isPull bool) (paramAndResult [2]string) {
+func (p *Project) checkHandler(r *Handler, isPull bool) (paramAndResult [2]string) {
 	var tt = []string{r.Param}
 	if isPull {
 		if r.Result == "" {
