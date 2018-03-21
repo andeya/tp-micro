@@ -544,10 +544,8 @@ func addTag(body string) string {
 				lastIsSpace = true
 			} else {
 				lastIsSpace = false
-
 				col[cnt] += string(r)
 			}
-
 		}
 		jsTag := fmt.Sprintf("json:\"%s\"", goutil.SnakeString(col[0]))
 		if col[2] == "" {
