@@ -20,37 +20,40 @@ const (
 func CreateProject(tplFile string) {
 	ant.Infof("Generating project: %s", info.ProjPath())
 
-	noScriptFile := len(tplFile) == 0
-	if !noScriptFile {
-		var err error
-		tplFile, err = filepath.Abs(tplFile)
-		if err != nil {
-			ant.Fatalf("[ant] Invalid script file path")
+	// read temptale file
+	var noTplFile = len(tplFile) == 0
+	if noTplFile {
+		tplFile = defAntTpl
+	}
+
+	absTplFile, err := filepath.Abs(tplFile)
+	if err != nil {
+		ant.Fatalf("[ant] Invalid template file: %s", tplFile)
+	}
+
+	b, err := ioutil.ReadFile(absTplFile)
+	if err != nil {
+		if !noTplFile {
+			ant.Fatalf("[ant] Write project files failed: %v", err)
+		} else {
+			b = test.MustAsset(defAntTpl)
 		}
 	}
 
+	// creates project
+
 	os.MkdirAll(info.AbsPath(), os.FileMode(0755))
-	err := os.Chdir(info.AbsPath())
+	err = os.Chdir(info.AbsPath())
 	if err != nil {
 		ant.Fatalf("[ant] Jump working directory failed: %v", err)
 	}
 
-	// creats base files
+	// creates base files
 	if !goutil.FileExists("main.go") {
 		tpl.Create()
 	}
 
-	var b []byte
-	if noScriptFile {
-		b = test.MustAsset(defAntTpl)
-	} else {
-		b, err = ioutil.ReadFile(tplFile)
-		if err != nil {
-			ant.Fatalf("[ant] Write project files failed: %v", err)
-		}
-	}
-
-	// new project
+	// new project code
 	proj := NewProject(b)
 	proj.Prepare()
 	proj.Generator()
