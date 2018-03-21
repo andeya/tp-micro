@@ -225,12 +225,13 @@ import (
 // Route registers handlers to router.
 func Route(root string, router *tp.Router) {
     // root router group
-    rootGroup := router.SubRoute(root)
+    group := router.SubRoute(root)
+    
     // custom router
-    customRoute(rootGroup.ToRouter())
+    customRoute(group.ToRouter())
+   
     // automatically generated router
-    ${register_router_list}
-}
+    ${register_router_list}}
 `,
 
 	"sdk/rpc.gen.go": `package sdk
@@ -271,8 +272,7 @@ func TestSdk(t *testing.T) {
 		},
 		ant.NewStaticLinker(":9090"),
 	)
-	${rpc_call_test_define}
-}
+	${rpc_call_test_define}}
 `}
 
 func mustMkdirAll(dir string) {
@@ -319,9 +319,9 @@ func (p *Project) genRouterFile() {
 		s += "\n// PULL APIs...\n"
 		for _, r := range p.PullApis {
 			if r.IsCtrl {
-				s += fmt.Sprintf("rootGroup.RoutePull(&%s{})\n", r.Name)
+				s += fmt.Sprintf("group.RoutePull(&%s{})\n", r.Name)
 			} else {
-				s += fmt.Sprintf("rootGroup.RoutePullFunc(%s)\n", r.Name)
+				s += fmt.Sprintf("group.RoutePullFunc(%s)\n", r.Name)
 			}
 		}
 	}
@@ -329,9 +329,9 @@ func (p *Project) genRouterFile() {
 		s += "\n// PUSH APIs...\n"
 		for _, r := range p.PushApis {
 			if r.IsCtrl {
-				s += fmt.Sprintf("rootGroup.RoutePush(&%s{})\n", r.Name)
+				s += fmt.Sprintf("group.RoutePush(&%s{})\n", r.Name)
 			} else {
-				s += fmt.Sprintf("rootGroup.RoutePushFunc(%s)\n", r.Name)
+				s += fmt.Sprintf("group.RoutePushFunc(%s)\n", r.Name)
 			}
 		}
 	}
