@@ -109,7 +109,7 @@ func (p *Project) Prepare() {
 
 			switch t := typeSpec.Type.(type) {
 
-			case *ast.StructType:
+			case *ast.StructType, *ast.Ident:
 				// types
 				if !goutil.IsExportedName(name) {
 					ant.Fatalf("[ant] Unexported types: %s", name)
@@ -535,13 +535,19 @@ func addTag(body string) string {
 		for _, r := range s {
 			if unicode.IsSpace(r) {
 				if !lastIsSpace {
-					cnt++
+					if cnt < 3 {
+						cnt++
+					} else {
+						col[cnt] += string(r)
+					}
 				}
 				lastIsSpace = true
 			} else {
 				lastIsSpace = false
+
 				col[cnt] += string(r)
 			}
+
 		}
 		jsTag := fmt.Sprintf("json:\"%s\"", goutil.SnakeString(col[0]))
 		if col[2] == "" {
