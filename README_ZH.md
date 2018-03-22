@@ -5,7 +5,7 @@
 TP-Micro 是一个基于 [Teleport](https://github.com/henrylee2cn/teleport) 定制的、简约而强大的微服务框架。
 
 
-## 1 安装
+## 安装
 
 ```
 go version ≥ 1.9
@@ -15,7 +15,7 @@ go version ≥ 1.9
 go get -u -f github.com/henrylee2cn/tp-micro
 ```
 
-## 2 特性
+## 特性
 
 - 支持服务自动发现
 - 支持自定义服务链接选择器
@@ -33,9 +33,9 @@ go get -u -f github.com/henrylee2cn/tp-micro
 - 支持的网络类型：`tcp`、`tcp4`、`tcp6`、`unix`、`unixpacket`等
 - 客户端支持断线后自动重连
 
-## 3 用法
+## 用法
 
-### 3.1 Peer端点（服务端或客户端）示例
+### Peer端点（服务端或客户端）示例
 
 ```go
 // Start a server
@@ -52,7 +52,7 @@ var sess, err = peer2.Dial("127.0.0.1:8080")
 ```
 
 
-### 3.2 Pull-Controller-Struct 接口模板
+### Pull-Controller-Struct 接口模板
 
 ```go
 type Aaa struct {
@@ -74,7 +74,7 @@ peer.RoutePull(new(Aaa))
 peer.RoutePullFunc((*Aaa).XxZz)
 ```
 
-### 3.3 Pull-Handler-Function 接口模板
+### Pull-Handler-Function 接口模板
 
 ```go
 func XxZz(ctx tp.PullCtx, args *<T>) (<T>, *tp.Rerror) {
@@ -90,7 +90,7 @@ func XxZz(ctx tp.PullCtx, args *<T>) (<T>, *tp.Rerror) {
 peer.RoutePullFunc(XxZz)
 ```
 
-### 3.4 Push-Controller-Struct 接口模板
+### Push-Controller-Struct 接口模板
 
 ```go
 type Bbb struct {
@@ -112,7 +112,7 @@ peer.RoutePush(new(Bbb))
 peer.RoutePushFunc((*Bbb).YyZz)
 ```
 
-### 3.5 Push-Handler-Function 接口模板
+### Push-Handler-Function 接口模板
 
 ```go
 // YyZz register the route: /yy_zz
@@ -129,7 +129,7 @@ func YyZz(ctx tp.PushCtx, args *<T>) *tp.Rerror {
 peer.RoutePushFunc(YyZz)
 ```
 
-### 3.6 Unknown-Pull-Handler-Function 接口模板
+### Unknown-Pull-Handler-Function 接口模板
 
 ```go
 func XxxUnknownPull (ctx tp.UnknownPullCtx) (interface{}, *tp.Rerror) {
@@ -145,7 +145,7 @@ func XxxUnknownPull (ctx tp.UnknownPullCtx) (interface{}, *tp.Rerror) {
 peer.SetUnknownPull(XxxUnknownPull)
 ```
 
-### 3.7 Unknown-Push-Handler-Function 接口模板
+### Unknown-Push-Handler-Function 接口模板
 
 ```go
 func XxxUnknownPush(ctx tp.UnknownPushCtx) *tp.Rerror {
@@ -161,7 +161,7 @@ func XxxUnknownPush(ctx tp.UnknownPushCtx) *tp.Rerror {
 peer.SetUnknownPush(XxxUnknownPush)
 ```
 
-### 3.8 插件示例
+### 插件示例
 
 ```go
 // NewIgnoreCase Returns a ignoreCase plugin.
@@ -193,7 +193,7 @@ func (i *ignoreCase) PostReadPushHeader(ctx tp.ReadCtx) *tp.Rerror {
 }
 ```
 
-### 3.9 注册以上操作和插件示例到路由
+### 注册以上操作和插件示例到路由
 
 ```go
 // add router group
@@ -207,7 +207,7 @@ peer.SetUnknownPull(XxxUnknownPull)
 peer.SetUnknownPush(XxxUnknownPush)
 ```
 
-### 3.10 配置信息
+### 配置信息
 
 ```go
 // SrvConfig server config
@@ -245,7 +245,7 @@ type CliConfig struct {
 }
 ```
 
-### 3.11 通信优化
+### 通信优化
 
 - SetPacketSizeLimit 设置包大小的上限，
   如果 maxSize<=0，上限默认为最大 uint32
@@ -287,7 +287,7 @@ type CliConfig struct {
 
 [More Usage](https://github.com/henrylee2cn/teleport)
 
-## 4. 示例
+## 示例
 
 - 服务端
 
@@ -369,16 +369,16 @@ func main() {
 [更多示例](https://github.com/henrylee2cn/tp-micro/tree/master/samples)
 
 
-## 5 命令行工具
+## 命令行工具
 
 - 快速创建ant项目
 - 热编译模式运行ant项目
 
 
-## 6 微服务平台解决方案
+## 微服务平台解决方案
 
 [Ants](https://github.com/xiaoenai/ants): 一套基于 [TP-Micro](https://github.com/henrylee2cn/tp-micro) 和 [Teleport](https://github.com/henrylee2cn/teleport) 的、高可用的微服务平台解决方案。
 
-## 7 开源协议
+## 开源协议
 
 Ant 项目采用商业应用友好的 [Apache2.0](https://github.com/henrylee2cn/tp-micro/raw/master/LICENSE) 协议发布

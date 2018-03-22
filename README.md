@@ -7,7 +7,7 @@ TP-Micro is a simple, powerful micro service framework based on [Teleport](https
 [简体中文](https://github.com/henrylee2cn/tp-micro/blob/master/README_ZH.md)
 
 
-## 1 Install
+## Install
 
 
 ```
@@ -18,7 +18,7 @@ go version ≥ 1.9
 go get -u -f github.com/henrylee2cn/tp-micro
 ```
 
-## 2 Feature
+## Feature
 
 - Support auto service-discovery
 - Supports custom service linker
@@ -36,9 +36,9 @@ go get -u -f github.com/henrylee2cn/tp-micro
 - Support network list: `tcp`, `tcp4`, `tcp6`, `unix`, `unixpacket` and so on
 - Client support automatically redials after disconnection
 
-## 3 Usage
+## Usage
 
-### 3.1 Peer(server or client) Demo
+### Peer(server or client) Demo
 
 ```go
 // Start a server
@@ -54,7 +54,7 @@ var peer2 = tp.NewPeer(tp.PeerConfig{})
 var sess, err = peer2.Dial("127.0.0.1:8080")
 ```
 
-### 3.2 Pull-Controller-Struct API template
+### Pull-Controller-Struct API template
 
 ```go
 type Aaa struct {
@@ -76,7 +76,7 @@ peer.RoutePull(new(Aaa))
 peer.RoutePullFunc((*Aaa).XxZz)
 ```
 
-### 3.3 Pull-Handler-Function API template
+### Pull-Handler-Function API template
 
 ```go
 func XxZz(ctx tp.PullCtx, args *<T>) (<T>, *tp.Rerror) {
@@ -92,7 +92,7 @@ func XxZz(ctx tp.PullCtx, args *<T>) (<T>, *tp.Rerror) {
 peer.RoutePullFunc(XxZz)
 ```
 
-### 3.4 Push-Controller-Struct API template
+### Push-Controller-Struct API template
 
 ```go
 type Bbb struct {
@@ -114,7 +114,7 @@ peer.RoutePush(new(Bbb))
 peer.RoutePushFunc((*Bbb).YyZz)
 ```
 
-### 3.5 Push-Handler-Function API template
+### Push-Handler-Function API template
 
 ```go
 // YyZz register the route: /yy_zz
@@ -131,7 +131,7 @@ func YyZz(ctx tp.PushCtx, args *<T>) *tp.Rerror {
 peer.RoutePushFunc(YyZz)
 ```
 
-### 3.6 Unknown-Pull-Handler-Function API template
+### Unknown-Pull-Handler-Function API template
 
 ```go
 func XxxUnknownPull (ctx tp.UnknownPullCtx) (interface{}, *tp.Rerror) {
@@ -147,7 +147,7 @@ func XxxUnknownPull (ctx tp.UnknownPullCtx) (interface{}, *tp.Rerror) {
 peer.SetUnknownPull(XxxUnknownPull)
 ```
 
-### 3.7 Unknown-Push-Handler-Function API template
+### Unknown-Push-Handler-Function API template
 
 ```go
 func XxxUnknownPush(ctx tp.UnknownPushCtx) *tp.Rerror {
@@ -163,7 +163,7 @@ func XxxUnknownPush(ctx tp.UnknownPushCtx) *tp.Rerror {
 peer.SetUnknownPush(XxxUnknownPush)
 ```
 
-### 3.8 Plugin Demo
+### Plugin Demo
 
 ```go
 // NewIgnoreCase Returns a ignoreCase plugin.
@@ -195,7 +195,7 @@ func (i *ignoreCase) PostReadPushHeader(ctx tp.ReadCtx) *tp.Rerror {
 }
 ```
 
-### 3.9 Register above handler and plugin
+### Register above handler and plugin
 
 ```go
 // add router group
@@ -209,7 +209,7 @@ peer.SetUnknownPull(XxxUnknownPull)
 peer.SetUnknownPush(XxxUnknownPush)
 ```
 
-### 3.10 Config
+### Config
 
 ```go
 // SrvConfig server config
@@ -247,7 +247,7 @@ type CliConfig struct {
 }
 ```
 
-### 3.11 Optimize
+### Optimize
 
 - SetPacketSizeLimit sets max packet size.
   If maxSize<=0, set it to max uint32.
@@ -294,7 +294,7 @@ type CliConfig struct {
 
 [More Usage](https://github.com/henrylee2cn/teleport)
 
-## 4 Demo
+## Demo
 
 - server
 
@@ -376,21 +376,21 @@ func main() {
 [More Samples](https://github.com/henrylee2cn/tp-micro/tree/master/samples)
 
 
-## 5 Command
+## Command
 
 Command ant is deployment tools of ant microservice frameware.
 
 - Quickly create a ant project
 - Run ant project with hot compilation
 
-### 5.1 Install Ant Command
+### Install Ant Command
 
 ```sh
 cd $GOPATH/src/github.com/xiaoenai/ants/ant
 go install
 ```
 
-### 5.2 Generate project
+### Generate project
 
 `ant gen` command help:
 
@@ -487,7 +487,7 @@ Desc:
 - add `.gen` suffix to the file name of the automatically generated file
 - `tmp_code.gen.go` is temporary code used to ensure successful compilation!<br>When the project is completed, it should be removed!
 
-### 5.3 Run project
+### Run project
 
 `ant run` command help:
 
@@ -509,10 +509,10 @@ example: `ant run -x .yaml -p myant` or `ant run`
 
 [More Ant Command](https://github.com/xiaoenai/ants/tree/master/ant)
 
-## 6 Platform
+## Platform
 
 [Ants](https://github.com/xiaoenai/ants): A highly available micro service platform based on [TP-Micro](https://github.com/henrylee2cn/tp-micro) and [Teleport](https://github.com/henrylee2cn/teleport).
 
-## 7 License
+## License
 
 Ant is under Apache v2 License. See the [LICENSE](https://github.com/henrylee2cn/tp-micro/raw/master/LICENSE) file for the full license text
