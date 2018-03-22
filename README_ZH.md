@@ -1,4 +1,4 @@
-# Ant [![GitHub release](https://img.shields.io/github/release/henrylee2cn/tp-micro.svg?style=flat-square)](https://github.com/henrylee2cn/tp-micro/releases) [![report card](https://goreportcard.com/badge/github.com/henrylee2cn/tp-micro?style=flat-square)](http://goreportcard.com/report/henrylee2cn/tp-micro) [![github issues](https://img.shields.io/github/issues/henrylee2cn/tp-micro.svg?style=flat-square)](https://github.com/henrylee2cn/tp-micro/issues?q=is%3Aopen+is%3Aissue) [![github closed issues](https://img.shields.io/github/issues-closed-raw/henrylee2cn/tp-micro.svg?style=flat-square)](https://github.com/henrylee2cn/tp-micro/issues?q=is%3Aissue+is%3Aclosed) [![GoDoc](https://img.shields.io/badge/godoc-reference-blue.svg?style=flat-square)](http://godoc.org/github.com/henrylee2cn/tp-micro) [![view examples](https://img.shields.io/badge/learn%20by-examples-00BCD4.svg?style=flat-square)](https://github.com/henrylee2cn/tp-micro/tree/master/samples)
+# Ant [![GitHub release](https://img.shields.io/github/release/henrylee2cn/tp-micro.svg?style=flat-square)](https://github.com/henrylee2cn/tp-micro/releases) [![report card](https://goreportcard.com/badge/github.com/henrylee2cn/tp-micro?style=flat-square)](http://goreportcard.com/report/henrylee2cn/tp-micro) [![github issues](https://img.shields.io/github/issues/henrylee2cn/tp-micro.svg?style=flat-square)](https://github.com/henrylee2cn/tp-micro/issues?q=is%3Aopen+is%3Aissue) [![github closed issues](https://img.shields.io/github/issues-closed-raw/henrylee2cn/tp-micro.svg?style=flat-square)](https://github.com/henrylee2cn/tp-micro/issues?q=is%3Aissue+is%3Aclosed) [![GoDoc](https://img.shields.io/badge/godoc-reference-blue.svg?style=flat-square)](http://godoc.org/github.com/henrylee2cn/tp-micro) [![view examples](https://img.shields.io/badge/learn%20by-examples-00BCD4.svg?style=flat-square)](https://github.com/henrylee2cn/tp-micro/tree/master/examples)
 <!-- [![view Go网络编程群](https://img.shields.io/badge/官方QQ群-Go网络编程(42730308)-27a5ea.svg?style=flat-square)](http://jq.qq.com/?_wv=1027&k=fzi4p1) -->
 
 
@@ -116,7 +116,7 @@ func main() {
 }
 ```
 
-[更多示例](https://github.com/henrylee2cn/tp-micro/tree/master/samples)
+[更多示例](https://github.com/henrylee2cn/tp-micro/tree/master/examples)
 
 
 ## 项目管理

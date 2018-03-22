@@ -2,7 +2,7 @@ package main
 
 import (
 	micro "github.com/henrylee2cn/tp-micro"
-	"github.com/henrylee2cn/tp-micro/samples/template/api"
+	"github.com/henrylee2cn/tp-micro/examples/template/api"
 )
 
 func main() {
@@ -10,6 +10,6 @@ func main() {
 		ListenAddress:   ":9090",
 		EnableHeartbeat: true,
 	})
-	api.Route("/root", srv.Router())
+	api.Route("/template", srv.Router())
 	srv.Listen()
 }
