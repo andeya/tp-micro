@@ -36,6 +36,92 @@ go get -u -f github.com/henrylee2cn/tp-micro
 - Support network list: `tcp`, `tcp4`, `tcp6`, `unix`, `unixpacket` and so on
 - Client support automatically redials after disconnection
 
+## Platform Case
+
+[Ants](https://github.com/xiaoenai/ants): A highly available micro service platform based on [TP-Micro](https://github.com/henrylee2cn/tp-micro) and [Teleport](https://github.com/henrylee2cn/teleport).
+
+
+## Demo
+
+- server
+
+```go
+package main
+
+import (
+  micro "github.com/henrylee2cn/tp-micro"
+  tp "github.com/henrylee2cn/teleport"
+)
+
+// Args args
+type Args struct {
+  A int
+  B int `param:"<range:1:>"`
+}
+
+// P handler
+type P struct {
+  tp.PullCtx
+}
+
+// Divide divide API
+func (p *P) Divide(args *Args) (int, *tp.Rerror) {
+  return args.A / args.B, nil
+}
+
+func main() {
+  srv := micro.NewServer(micro.SrvConfig{
+    ListenAddress: ":9090",
+  })
+  srv.RoutePull(new(P))
+  srv.Listen()
+}
+```
+
+- client
+
+```go
+package main
+
+import (
+  micro "github.com/henrylee2cn/tp-micro"
+  tp "github.com/henrylee2cn/teleport"
+)
+
+func main() {
+  cli := micro.NewClient(
+    micro.CliConfig{},
+    micro.NewStaticLinker(":9090"),
+  )
+  defer cli.Close()
+
+  type Args struct {
+    A int
+    B int
+  }
+
+  var reply int
+  rerr := cli.Pull("/p/divide", &Args{
+    A: 10,
+    B: 2,
+  }, &reply).Rerror()
+  if rerr != nil {
+    tp.Fatalf("%v", rerr)
+  }
+  tp.Infof("10/2=%d", reply)
+  rerr = cli.Pull("/p/divide", &Args{
+    A: 10,
+    B: 0,
+  }, &reply).Rerror()
+  if rerr == nil {
+    tp.Fatalf("%v", rerr)
+  }
+  tp.Infof("test binding error: ok: %v", rerr)
+}
+```
+
+[More Samples](https://github.com/henrylee2cn/tp-micro/tree/master/samples)
+
 ## Usage
 
 ### Peer(server or client) Demo
@@ -294,88 +380,6 @@ type CliConfig struct {
 
 [More Usage](https://github.com/henrylee2cn/teleport)
 
-## Demo
-
-- server
-
-```go
-package main
-
-import (
-	micro "github.com/henrylee2cn/tp-micro"
-	tp "github.com/henrylee2cn/teleport"
-)
-
-// Args args
-type Args struct {
-	A int
-	B int `param:"<range:1:>"`
-}
-
-// P handler
-type P struct {
-	tp.PullCtx
-}
-
-// Divide divide API
-func (p *P) Divide(args *Args) (int, *tp.Rerror) {
-	return args.A / args.B, nil
-}
-
-func main() {
-	srv := micro.NewServer(micro.SrvConfig{
-		ListenAddress: ":9090",
-	})
-	srv.RoutePull(new(P))
-	srv.Listen()
-}
-```
-
-- client
-
-```go
-package main
-
-import (
-	micro "github.com/henrylee2cn/tp-micro"
-  tp "github.com/henrylee2cn/teleport"
-)
-
-func main() {
-	cli := micro.NewClient(
-		micro.CliConfig{},
-		micro.NewStaticLinker(":9090"),
-	)
-	defer	cli.Close()
-
-	type Args struct {
-		A int
-		B int
-	}
-
-	var reply int
-	rerr := cli.Pull("/p/divide", &Args{
-		A: 10,
-		B: 2,
-	}, &reply).Rerror()
-	if rerr != nil {
-		tp.Fatalf("%v", rerr)
-	}
-	tp.Infof("10/2=%d", reply)
-	rerr = cli.Pull("/p/divide", &Args{
-		A: 10,
-		B: 0,
-	}, &reply).Rerror()
-	if rerr == nil {
-		tp.Fatalf("%v", rerr)
-	}
-	tp.Infof("test binding error: ok: %v", rerr)
-}
-```
-
-[More Samples](https://github.com/henrylee2cn/tp-micro/tree/master/samples)
-
-
 ## Project Management
 
 Command ant is deployment tools of ant microservice frameware.
@@ -509,10 +513,6 @@ OPTIONS:
 example: `ant run -x .yaml -p myant` or `ant run`
 
 [More Ant Command](https://github.com/xiaoenai/ants/tree/master/ant)
-
-## Platform
-
-[Ants](https://github.com/xiaoenai/ants): A highly available micro service platform based on [TP-Micro](https://github.com/henrylee2cn/tp-micro) and [Teleport](https://github.com/henrylee2cn/teleport).
 
 ## License
 

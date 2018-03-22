@@ -33,6 +33,91 @@ go get -u -f github.com/henrylee2cn/tp-micro
 - 支持的网络类型：`tcp`、`tcp4`、`tcp6`、`unix`、`unixpacket`等
 - 客户端支持断线后自动重连
 
+## 平台方案
+
+[Ants](https://github.com/xiaoenai/ants): 一套基于 [TP-Micro](https://github.com/henrylee2cn/tp-micro) 和 [Teleport](https://github.com/henrylee2cn/teleport) 的、高可用的微服务平台解决方案。
+
+## 代码示例
+
+- 服务端
+
+```go
+package main
+
+import (
+  micro "github.com/henrylee2cn/tp-micro"
+  tp "github.com/henrylee2cn/teleport"
+)
+
+// Args args
+type Args struct {
+  A int
+  B int `param:"<range:1:>"`
+}
+
+// P handler
+type P struct {
+  tp.PullCtx
+}
+
+// Divide divide API
+func (p *P) Divide(args *Args) (int, *tp.Rerror) {
+  return args.A / args.B, nil
+}
+
+func main() {
+  srv := micro.NewServer(micro.SrvConfig{
+    ListenAddress: ":9090",
+  })
+  srv.RoutePull(new(P))
+  srv.Listen()
+}
+```
+
+- 客户端
+
+```go
+package main
+
+import (
+  micro "github.com/henrylee2cn/tp-micro"
+  tp "github.com/henrylee2cn/teleport"
+)
+
+func main() {
+  cli := micro.NewClient(
+    micro.CliConfig{},
+    micro.NewStaticLinker(":9090"),
+  )
+  defer cli.Close()
+
+  type Args struct {
+    A int
+    B int
+  }
+
+  var reply int
+  rerr := cli.Pull("/p/divide", &Args{
+    A: 10,
+    B: 2,
+  }, &reply).Rerror()
+  if rerr != nil {
+    tp.Fatalf("%v", rerr)
+  }
+  tp.Infof("10/2=%d", reply)
+  rerr = cli.Pull("/p/divide", &Args{
+    A: 10,
+    B: 0,
+  }, &reply).Rerror()
+  if rerr == nil {
+    tp.Fatalf("%v", rerr)
+  }
+  tp.Infof("test binding error: ok: %v", rerr)
+}
+```
+
+[更多示例](https://github.com/henrylee2cn/tp-micro/tree/master/samples)
+
 ## 用法
 
 ### Peer端点（服务端或客户端）示例
@@ -287,88 +372,6 @@ type CliConfig struct {
 
 [More Usage](https://github.com/henrylee2cn/teleport)
 
-## 示例
-
-- 服务端
-
-```go
-package main
-
-import (
-	micro "github.com/henrylee2cn/tp-micro"
-	tp "github.com/henrylee2cn/teleport"
-)
-
-// Args args
-type Args struct {
-	A int
-	B int `param:"<range:1:>"`
-}
-
-// P handler
-type P struct {
-	tp.PullCtx
-}
-
-// Divide divide API
-func (p *P) Divide(args *Args) (int, *tp.Rerror) {
-	return args.A / args.B, nil
-}
-
-func main() {
-	srv := micro.NewServer(micro.SrvConfig{
-		ListenAddress: ":9090",
-	})
-	srv.RoutePull(new(P))
-	srv.Listen()
-}
-```
-
-- 客户端
-
-```go
-package main
-
-import (
-	micro "github.com/henrylee2cn/tp-micro"
-  tp "github.com/henrylee2cn/teleport"
-)
-
-func main() {
-	cli := micro.NewClient(
-		micro.CliConfig{},
-		micro.NewStaticLinker(":9090"),
-	)
-	defer	cli.Close()
-
-	type Args struct {
-		A int
-		B int
-	}
-
-	var reply int
-	rerr := cli.Pull("/p/divide", &Args{
-		A: 10,
-		B: 2,
-	}, &reply).Rerror()
-	if rerr != nil {
-		tp.Fatalf("%v", rerr)
-	}
-	tp.Infof("10/2=%d", reply)
-	rerr = cli.Pull("/p/divide", &Args{
-		A: 10,
-		B: 0,
-	}, &reply).Rerror()
-	if rerr == nil {
-		tp.Fatalf("%v", rerr)
-	}
-	tp.Infof("test binding error: ok: %v", rerr)
-}
-```
-
-[更多示例](https://github.com/henrylee2cn/tp-micro/tree/master/samples)
-
-
 ## 项目管理
 
 - 快速创建项目
@@ -502,10 +505,6 @@ example: `ant run -x .yaml -p myant` or `ant run`
 
 [更多 Ant 命令](https://github.com/xiaoenai/ants/tree/master/ant)
 
-
-## 微服务平台解决方案
-
-[Ants](https://github.com/xiaoenai/ants): 一套基于 [TP-Micro](https://github.com/henrylee2cn/tp-micro) 和 [Teleport](https://github.com/henrylee2cn/teleport) 的、高可用的微服务平台解决方案。
 
 ## 开源协议
 
