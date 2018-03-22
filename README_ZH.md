@@ -5,7 +5,7 @@
 TP-Micro 是一个基于 [Teleport](https://github.com/henrylee2cn/teleport) 定制的、简约而强大的微服务框架。
 
 
-## 1. 安装
+## 1 安装
 
 ```
 go version ≥ 1.9
@@ -15,7 +15,7 @@ go version ≥ 1.9
 go get -u -f github.com/henrylee2cn/tp-micro
 ```
 
-## 2. 特性
+## 2 特性
 
 - 支持服务自动发现
 - 支持自定义服务链接选择器
@@ -33,37 +33,9 @@ go get -u -f github.com/henrylee2cn/tp-micro
 - 支持的网络类型：`tcp`、`tcp4`、`tcp6`、`unix`、`unixpacket`等
 - 客户端支持断线后自动重连
 
-## 3. 项目结构
+## 3 用法
 
-（推荐）
-
-```
-├── README.md
-├── main.go
-├── api
-│   ├── handlers.gen.go
-│   ├── handlers.go
-│   ├── router.gen.go
-│   └── router.go
-├── logic
-│   └── xxx.go
-├── sdk
-│   ├── rpc.gen.go
-│   ├── rpc.gen_test.go
-│   ├── rpc.go
-│   └── rpc_test.go
-└── types
-    ├── types.gen.go
-    └── types.go
-```
-
-说明：
-
-- 在自动生成的文件的文件名中增加 `.gen` 后缀进行标记
-
-## 4. 用法
-
-### 4.1 Peer端点（服务端或客户端）示例
+### 3.1 Peer端点（服务端或客户端）示例
 
 ```go
 // Start a server
@@ -80,7 +52,7 @@ var sess, err = peer2.Dial("127.0.0.1:8080")
 ```
 
 
-### 4.2 Pull-Controller-Struct 接口模板
+### 3.2 Pull-Controller-Struct 接口模板
 
 ```go
 type Aaa struct {
@@ -102,7 +74,7 @@ peer.RoutePull(new(Aaa))
 peer.RoutePullFunc((*Aaa).XxZz)
 ```
 
-### 4.3 Pull-Handler-Function 接口模板
+### 3.3 Pull-Handler-Function 接口模板
 
 ```go
 func XxZz(ctx tp.PullCtx, args *<T>) (<T>, *tp.Rerror) {
@@ -118,7 +90,7 @@ func XxZz(ctx tp.PullCtx, args *<T>) (<T>, *tp.Rerror) {
 peer.RoutePullFunc(XxZz)
 ```
 
-### 4.4 Push-Controller-Struct 接口模板
+### 3.4 Push-Controller-Struct 接口模板
 
 ```go
 type Bbb struct {
@@ -140,7 +112,7 @@ peer.RoutePush(new(Bbb))
 peer.RoutePushFunc((*Bbb).YyZz)
 ```
 
-### 4.5 Push-Handler-Function 接口模板
+### 3.5 Push-Handler-Function 接口模板
 
 ```go
 // YyZz register the route: /yy_zz
@@ -157,7 +129,7 @@ func YyZz(ctx tp.PushCtx, args *<T>) *tp.Rerror {
 peer.RoutePushFunc(YyZz)
 ```
 
-### 4.6 Unknown-Pull-Handler-Function 接口模板
+### 3.6 Unknown-Pull-Handler-Function 接口模板
 
 ```go
 func XxxUnknownPull (ctx tp.UnknownPullCtx) (interface{}, *tp.Rerror) {
@@ -173,7 +145,7 @@ func XxxUnknownPull (ctx tp.UnknownPullCtx) (interface{}, *tp.Rerror) {
 peer.SetUnknownPull(XxxUnknownPull)
 ```
 
-### 4.7 Unknown-Push-Handler-Function 接口模板
+### 3.7 Unknown-Push-Handler-Function 接口模板
 
 ```go
 func XxxUnknownPush(ctx tp.UnknownPushCtx) *tp.Rerror {
@@ -189,7 +161,7 @@ func XxxUnknownPush(ctx tp.UnknownPushCtx) *tp.Rerror {
 peer.SetUnknownPush(XxxUnknownPush)
 ```
 
-### 4.8 插件示例
+### 3.8 插件示例
 
 ```go
 // NewIgnoreCase Returns a ignoreCase plugin.
@@ -221,7 +193,7 @@ func (i *ignoreCase) PostReadPushHeader(ctx tp.ReadCtx) *tp.Rerror {
 }
 ```
 
-### 4.9 注册以上操作和插件示例到路由
+### 3.9 注册以上操作和插件示例到路由
 
 ```go
 // add router group
@@ -235,7 +207,7 @@ peer.SetUnknownPull(XxxUnknownPull)
 peer.SetUnknownPush(XxxUnknownPush)
 ```
 
-### 4.10 配置信息
+### 3.10 配置信息
 
 ```go
 // SrvConfig server config
@@ -273,7 +245,7 @@ type CliConfig struct {
 }
 ```
 
-### 4.11 通信优化
+### 3.11 通信优化
 
 - SetPacketSizeLimit 设置包大小的上限，
   如果 maxSize<=0，上限默认为最大 uint32
@@ -315,7 +287,7 @@ type CliConfig struct {
 
 [More Usage](https://github.com/henrylee2cn/teleport)
 
-## 5. 示例
+## 4. 示例
 
 - 服务端
 
@@ -397,112 +369,16 @@ func main() {
 [更多示例](https://github.com/henrylee2cn/tp-micro/tree/master/samples)
 
 
-## 5. 命令行工具
+## 5 命令行工具
 
 - 快速创建ant项目
 - 热编译模式运行ant项目
 
-### 1. 安装
 
-```sh
-cd $GOPATH/github.com/henrylee2cn/tp-micro/cmd/ant
-go install
-```
+## 6 微服务平台解决方案
 
-### 2. 用法
+[Ants](https://github.com/xiaoenai/ants): 一套基于 [TP-Micro](https://github.com/henrylee2cn/tp-micro) 和 [Teleport](https://github.com/henrylee2cn/teleport) 的、高可用的微服务平台解决方案。
 
-- 生成项目
-
-```
-NAME:
-   ant gen - Generate an ant project
-
-USAGE:
-   ant gen [command options] [arguments...]
-
-OPTIONS:
-   --template value, -t value    The template for code generation(relative/absolute)
-   --app_path value, -p value  The path(relative/absolute) of the project
-```
-
-示例：`ant gen -t ./__ant__tpl__.go -p ./myant` 或默认的 `ant gen myant`
-
-模板文件 `__ant__tpl__.go` 样板:
-
-```go
-// package __ANT__TPL__ is the project template
-package __ANT__TPL__
-
-// __API__PULL__ register PULL router:
-//  /home
-//  /math/divide
-type __API__PULL__ interface {
-  Home(*struct{}) *HomeReply
-  Math
-}
-
-// __API__PUSH__ register PUSH router:
-//  /stat
-type __API__PUSH__ interface {
-  Stat(*StatArgs)
-}
-
-// Math controller
-type Math interface {
-  // Divide handler
-  Divide(*DivideArgs) *DivideReply
-}
-
-// HomeReply home reply
-type HomeReply struct {
-  Content string // text
-}
-
-type (
-  // DivideArgs divide api args
-  DivideArgs struct {
-    // dividend
-    A float64
-    // divisor
-    B float64 `param:"<range: 0.01:100000>"`
-  }
-  // DivideReply divide api result
-  DivideReply struct {
-    // quotient
-    C float64
-  }
-)
-
-// StatArgs stat handler args
-type StatArgs struct {
-  Ts int64 // timestamps
-}
-```
-
-- 热编译运行
-
-```
-NAME:
-   ant run - Compile and run gracefully (monitor changes) an any existing go project
-
-USAGE:
-   ant run [options] [arguments...]
- or
-   ant run [options except -app_path] [arguments...] {app_path}
-
-OPTIONS:
-   --watch_exts value, -x value  Specified to increase the listening file suffix (default: ".go", ".ini", ".yaml", ".toml", ".xml")
-   --app_path value, -p value    Specifies the path(relative/absolute) of the project
-```
-
-示例：`ant run -x .yaml -a myant` or `ant run -x .yaml myant`
-
-[更多 ant command](https://github.com/henrylee2cn/tp-micro/tree/master/cmd/ant)
-
-## 6. 平台架构
-
-[Ants](https://github.com/xiaoenai/ants): 一套基于 [Ant](https://github.com/henrylee2cn/tp-micro) 和 [Teleport](https://github.com/henrylee2cn/teleport) 的高可用的微服务平台解决方案。
-
-## 7. 开源协议
+## 7 开源协议
 
 Ant 项目采用商业应用友好的 [Apache2.0](https://github.com/henrylee2cn/tp-micro/raw/master/LICENSE) 协议发布
