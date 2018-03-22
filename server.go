@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package ant
+package micro
 
 import (
 	"net"
@@ -52,7 +52,7 @@ func (s *SrvConfig) Reload(bind cfgo.BindFunc) error {
 func (s *SrvConfig) ListenPort() string {
 	_, port, err := net.SplitHostPort(s.ListenAddress)
 	if err != nil {
-		Fatalf("%v", err)
+		tp.Fatalf("%v", err)
 	}
 	return port
 }
@@ -61,7 +61,7 @@ func (s *SrvConfig) ListenPort() string {
 func (s *SrvConfig) InnerIpPort() string {
 	hostPort, err := InnerIpPort(s.ListenPort())
 	if err != nil {
-		Fatalf("%v", err)
+		tp.Fatalf("%v", err)
 	}
 	return hostPort
 }
@@ -70,7 +70,7 @@ func (s *SrvConfig) InnerIpPort() string {
 func (s *SrvConfig) OuterIpPort() string {
 	hostPort, err := OuterIpPort(s.ListenPort())
 	if err != nil {
-		Fatalf("%v", err)
+		tp.Fatalf("%v", err)
 	}
 	return hostPort
 }

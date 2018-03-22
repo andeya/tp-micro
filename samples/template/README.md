@@ -1,6 +1,6 @@
 # template
 
-The template for using ant development project.
+The template for using TP-Micro development project.
 
 ## Project Structure
 

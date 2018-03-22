@@ -1,19 +1,20 @@
 package main
 
 import (
-	"github.com/henrylee2cn/ant"
 	"github.com/henrylee2cn/cfgo"
+	tp "github.com/henrylee2cn/teleport"
+	micro "github.com/henrylee2cn/tp-micro"
 )
 
 func main() {
-	cfg := ant.CliConfig{}
+	cfg := micro.CliConfig{}
 
 	// auto create and sync config/config.yaml
-	cfgo.MustGet("config/config.yaml", true).MustReg("ant_cli", &cfg)
+	cfgo.MustGet("config/config.yaml", true).MustReg("micro_cli", &cfg)
 
-	cli := ant.NewClient(
+	cli := micro.NewClient(
 		cfg,
-		ant.NewStaticLinker(":9090"),
+		micro.NewStaticLinker(":9090"),
 	)
 
 	type Args struct {
@@ -27,7 +28,7 @@ func main() {
 		B: 2,
 	}, &reply).Rerror()
 	if rerr != nil {
-		ant.Fatalf("%v", rerr)
+		tp.Fatalf("%v", rerr)
 	}
-	ant.Infof("%d/%d = %d", 10, 2, reply)
+	tp.Infof("%d/%d = %d", 10, 2, reply)
 }

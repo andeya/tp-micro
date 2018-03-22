@@ -1,4 +1,4 @@
-// Package ant is a simple and flexible microservice framework based on Teleport.
+// Package tp-micro is a simple, powerful micro service framework based on Teleport.
 //
 // Copyright 2018 HenryLee. All Rights Reserved.
 //
@@ -14,4 +14,4 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-package ant
+package micro

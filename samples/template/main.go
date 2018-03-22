@@ -1,12 +1,12 @@
 package main
 
 import (
-	"github.com/henrylee2cn/ant"
-	"github.com/henrylee2cn/ant/samples/template/api"
+	micro "github.com/henrylee2cn/tp-micro"
+	"github.com/henrylee2cn/tp-micro/samples/template/api"
 )
 
 func main() {
-	srv := ant.NewServer(ant.SrvConfig{
+	srv := micro.NewServer(micro.SrvConfig{
 		ListenAddress:   ":9090",
 		EnableHeartbeat: true,
 	})

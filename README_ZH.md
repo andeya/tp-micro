@@ -1,8 +1,8 @@
-# Ant [![GitHub release](https://img.shields.io/github/release/henrylee2cn/ant.svg?style=flat-square)](https://github.com/henrylee2cn/ant/releases) [![report card](https://goreportcard.com/badge/github.com/henrylee2cn/ant?style=flat-square)](http://goreportcard.com/report/henrylee2cn/ant) [![github issues](https://img.shields.io/github/issues/henrylee2cn/ant.svg?style=flat-square)](https://github.com/henrylee2cn/ant/issues?q=is%3Aopen+is%3Aissue) [![github closed issues](https://img.shields.io/github/issues-closed-raw/henrylee2cn/ant.svg?style=flat-square)](https://github.com/henrylee2cn/ant/issues?q=is%3Aissue+is%3Aclosed) [![GoDoc](https://img.shields.io/badge/godoc-reference-blue.svg?style=flat-square)](http://godoc.org/github.com/henrylee2cn/ant) [![view examples](https://img.shields.io/badge/learn%20by-examples-00BCD4.svg?style=flat-square)](https://github.com/henrylee2cn/ant/tree/master/samples)
+# Ant [![GitHub release](https://img.shields.io/github/release/henrylee2cn/micro.svg?style=flat-square)](https://github.com/henrylee2cn/tp-micro/releases) [![report card](https://goreportcard.com/badge/github.com/henrylee2cn/tp-micro?style=flat-square)](http://goreportcard.com/report/henrylee2cn/tp-micro) [![github issues](https://img.shields.io/github/issues/henrylee2cn/micro.svg?style=flat-square)](https://github.com/henrylee2cn/tp-micro/issues?q=is%3Aopen+is%3Aissue) [![github closed issues](https://img.shields.io/github/issues-closed-raw/henrylee2cn/micro.svg?style=flat-square)](https://github.com/henrylee2cn/tp-micro/issues?q=is%3Aissue+is%3Aclosed) [![GoDoc](https://img.shields.io/badge/godoc-reference-blue.svg?style=flat-square)](http://godoc.org/github.com/henrylee2cn/tp-micro) [![view examples](https://img.shields.io/badge/learn%20by-examples-00BCD4.svg?style=flat-square)](https://github.com/henrylee2cn/tp-micro/tree/master/samples)
 <!-- [![view Go网络编程群](https://img.shields.io/badge/官方QQ群-Go网络编程(42730308)-27a5ea.svg?style=flat-square)](http://jq.qq.com/?_wv=1027&k=fzi4p1) -->
 
 
-Ant 是一套简单、灵活的基于 [Teleport](https://github.com/henrylee2cn/teleport) 的微服务框架。
+TP-Micro 是一个基于 [Teleport](https://github.com/henrylee2cn/teleport) 定制的、简约而强大的微服务框架。
 
 
 ## 1. 安装
@@ -12,7 +12,7 @@ go version ≥ 1.9
 ```
 
 ```sh
-go get -u -f github.com/henrylee2cn/ant
+go get -u -f github.com/henrylee2cn/tp-micro
 ```
 
 ## 2. 特性
@@ -323,7 +323,7 @@ type CliConfig struct {
 package main
 
 import (
-	"github.com/henrylee2cn/ant"
+	micro "github.com/henrylee2cn/tp-micro"
 	tp "github.com/henrylee2cn/teleport"
 )
 
@@ -344,7 +344,7 @@ func (p *P) Divide(args *Args) (int, *tp.Rerror) {
 }
 
 func main() {
-	srv := ant.NewServer(ant.SrvConfig{
+	srv := micro.NewServer(micro.SrvConfig{
 		ListenAddress: ":9090",
 	})
 	srv.RoutePull(new(P))
@@ -358,13 +358,14 @@ func main() {
 package main
 
 import (
-	"github.com/henrylee2cn/ant"
+	micro "github.com/henrylee2cn/tp-micro"
+  tp "github.com/henrylee2cn/teleport"
 )
 
 func main() {
-	cli := ant.NewClient(
-		ant.CliConfig{},
-		ant.NewStaticLinker(":9090"),
+	cli := micro.NewClient(
+		micro.CliConfig{},
+		micro.NewStaticLinker(":9090"),
 	)
 	defer	cli.Close()
 
@@ -379,21 +380,21 @@ func main() {
 		B: 2,
 	}, &reply).Rerror()
 	if rerr != nil {
-		ant.Fatalf("%v", rerr)
+		tp.Fatalf("%v", rerr)
 	}
-	ant.Infof("10/2=%d", reply)
+	tp.Infof("10/2=%d", reply)
 	rerr = cli.Pull("/p/divide", &Args{
 		A: 10,
 		B: 0,
 	}, &reply).Rerror()
 	if rerr == nil {
-		ant.Fatalf("%v", rerr)
+		tp.Fatalf("%v", rerr)
 	}
-	ant.Infof("test binding error: ok: %v", rerr)
+	tp.Infof("test binding error: ok: %v", rerr)
 }
 ```
 
-[更多示例](https://github.com/henrylee2cn/ant/tree/master/samples)
+[更多示例](https://github.com/henrylee2cn/tp-micro/tree/master/samples)
 
 
 ## 5. 命令行工具
@@ -404,7 +405,7 @@ func main() {
 ### 1. 安装
 
 ```sh
-cd $GOPATH/github.com/henrylee2cn/ant/cmd/ant
+cd $GOPATH/github.com/henrylee2cn/tp-micro/cmd/ant
 go install
 ```
 
@@ -496,12 +497,12 @@ OPTIONS:
 
 示例：`ant run -x .yaml -a myant` or `ant run -x .yaml myant`
 
-[更多 ant command](https://github.com/henrylee2cn/ant/tree/master/cmd/ant)
+[更多 ant command](https://github.com/henrylee2cn/tp-micro/tree/master/cmd/ant)
 
 ## 6. 平台架构
 
-[Ants](https://github.com/xiaoenai/ants): 一套基于 [Ant](https://github.com/henrylee2cn/ant) 和 [Teleport](https://github.com/henrylee2cn/teleport) 的高可用的微服务平台解决方案。
+[Ants](https://github.com/xiaoenai/ants): 一套基于 [Ant](https://github.com/henrylee2cn/tp-micro) 和 [Teleport](https://github.com/henrylee2cn/teleport) 的高可用的微服务平台解决方案。
 
 ## 7. 开源协议
 
-Ant 项目采用商业应用友好的 [Apache2.0](https://github.com/henrylee2cn/ant/raw/master/LICENSE) 协议发布
+Ant 项目采用商业应用友好的 [Apache2.0](https://github.com/henrylee2cn/tp-micro/raw/master/LICENSE) 协议发布

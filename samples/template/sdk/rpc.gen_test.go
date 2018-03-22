@@ -3,18 +3,18 @@ package sdk
 import (
 	"testing"
 
-	"github.com/henrylee2cn/ant"
-	"github.com/henrylee2cn/ant/samples/template/types"
+	micro "github.com/henrylee2cn/tp-micro"
+	"github.com/henrylee2cn/tp-micro/samples/template/types"
 )
 
 // TestSdk test SDK.
 func TestSdk(t *testing.T) {
 	Init(
-		ant.CliConfig{
+		micro.CliConfig{
 			Failover:        3,
 			HeartbeatSecond: 4,
 		},
-		ant.NewStaticLinker(":9090"),
+		micro.NewStaticLinker(":9090"),
 	)
 	reply, rerr := PullMathDivide(&types.MathDivideArgs{A: 10, B: 5})
 	if rerr != nil {

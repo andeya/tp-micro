@@ -3,16 +3,17 @@ package main
 import (
 	"time"
 
-	"github.com/henrylee2cn/ant"
+	tp "github.com/henrylee2cn/teleport"
+	micro "github.com/henrylee2cn/tp-micro"
 )
 
 func main() {
-	cli := ant.NewClient(
-		ant.CliConfig{
+	cli := micro.NewClient(
+		micro.CliConfig{
 			Failover:        3,
 			HeartbeatSecond: 4,
 		},
-		ant.NewStaticLinker(":9090"),
+		micro.NewStaticLinker(":9090"),
 	)
 
 	type Args struct {
@@ -25,24 +26,24 @@ func main() {
 		A: 10,
 		B: 2,
 	}, &reply).Rerror()
-	if ant.IsConnRerror(rerr) {
-		ant.Fatalf("has conn rerror: %v", rerr)
+	if tp.IsConnRerror(rerr) {
+		tp.Fatalf("has conn rerror: %v", rerr)
 	}
 	if rerr != nil {
-		ant.Fatalf("%v", rerr)
+		tp.Fatalf("%v", rerr)
 	}
-	ant.Infof("10/2=%d", reply)
+	tp.Infof("10/2=%d", reply)
 	rerr = cli.Pull("/static/p/divide", &Args{
 		A: 10,
 		B: 0,
 	}, &reply).Rerror()
-	if ant.IsConnRerror(rerr) {
-		ant.Fatalf("has conn rerror: %v", rerr)
+	if tp.IsConnRerror(rerr) {
+		tp.Fatalf("has conn rerror: %v", rerr)
 	}
 	if rerr == nil {
-		ant.Fatalf("%v", rerr)
+		tp.Fatalf("%v", rerr)
 	}
-	ant.Infof("test binding error: ok: %v", rerr)
+	tp.Infof("test binding error: ok: %v", rerr)
 
 	time.Sleep(time.Second * 5)
 
@@ -52,7 +53,7 @@ func main() {
 		B: 5,
 	}, &reply).Rerror()
 	if rerr == nil {
-		ant.Fatalf("test closing client: fail")
+		tp.Fatalf("test closing client: fail")
 	}
-	ant.Infof("test closing client: ok: %v", rerr)
+	tp.Infof("test closing client: ok: %v", rerr)
 }

@@ -1,24 +1,24 @@
 package sdk
 
 import (
-	"github.com/henrylee2cn/ant"
-	"github.com/henrylee2cn/ant/samples/template/types"
 	tp "github.com/henrylee2cn/teleport"
 	"github.com/henrylee2cn/teleport/socket"
+	micro "github.com/henrylee2cn/tp-micro"
+	"github.com/henrylee2cn/tp-micro/samples/template/types"
 )
 
-var client *ant.Client
+var client *micro.Client
 
 // Init init client with config and linker.
-func Init(cliConfig ant.CliConfig, linker ant.Linker) {
-	client = ant.NewClient(
+func Init(cliConfig micro.CliConfig, linker micro.Linker) {
+	client = micro.NewClient(
 		cliConfig,
 		linker,
 	)
 }
 
 // InitWithClient init client with current client.
-func InitWithClient(cli *ant.Client) {
+func InitWithClient(cli *micro.Client) {
 	client = cli
 }
 

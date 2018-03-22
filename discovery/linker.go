@@ -20,10 +20,10 @@ import (
 	"net"
 	"sync"
 
-	"github.com/henrylee2cn/ant"
-	"github.com/henrylee2cn/ant/discovery/etcd"
 	"github.com/henrylee2cn/goutil"
 	tp "github.com/henrylee2cn/teleport"
+	micro "github.com/henrylee2cn/tp-micro"
+	"github.com/henrylee2cn/tp-micro/discovery/etcd"
 )
 
 type linker struct {
@@ -46,7 +46,7 @@ const (
 // Note:
 // If etcdConfig.DialTimeout<0, it means unlimit;
 // If etcdConfig.DialTimeout=0, use the default value(15s).
-func NewLinker(etcdConfig etcd.EasyConfig) ant.Linker {
+func NewLinker(etcdConfig etcd.EasyConfig) micro.Linker {
 	etcdClient, err := etcd.EasyNew(etcdConfig)
 	if err != nil {
 		tp.Fatalf("%s: %v", linkerName, err)
@@ -56,7 +56,7 @@ func NewLinker(etcdConfig etcd.EasyConfig) ant.Linker {
 }
 
 // NewLinkerFromEtcd creates a etct service linker.
-func NewLinkerFromEtcd(etcdClient *etcd.Client) ant.Linker {
+func NewLinkerFromEtcd(etcdClient *etcd.Client) micro.Linker {
 	innerIp, err := goutil.IntranetIP()
 	if err != nil {
 		tp.Fatalf("%s: %v", linkerName, err)
@@ -180,11 +180,11 @@ func getServiceInfo(value []byte) *ServiceInfo {
 func (l *linker) Select(uriPath string) (string, *tp.Rerror) {
 	iface, exist := l.uriPaths.Load(uriPath)
 	if !exist {
-		return "", ant.NotFoundService
+		return "", micro.NotFoundService
 	}
 	nodes := iface.(goutil.Map)
 	if nodes.Len() == 0 {
-		return "", ant.NotFoundService
+		return "", micro.NotFoundService
 	}
 	var node *Node
 	for i := 0; i < nodes.Len(); i++ {
@@ -195,7 +195,7 @@ func (l *linker) Select(uriPath string) (string, *tp.Rerror) {
 		}
 	}
 	if node == nil {
-		return "", ant.NotFoundService
+		return "", micro.NotFoundService
 	}
 	return node.Addr, nil
 }

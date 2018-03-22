@@ -20,9 +20,9 @@ import (
 	"context"
 	"time"
 
-	"github.com/henrylee2cn/ant/discovery/etcd"
 	tp "github.com/henrylee2cn/teleport"
 	heartbeat "github.com/henrylee2cn/tp-ext/plugin-heartbeat"
+	"github.com/henrylee2cn/tp-micro/discovery/etcd"
 )
 
 // Service automatically registered api info to etcd

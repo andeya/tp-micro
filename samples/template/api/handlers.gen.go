@@ -1,9 +1,9 @@
 package api
 
 import (
-	"github.com/henrylee2cn/ant/samples/template/logic"
-	"github.com/henrylee2cn/ant/samples/template/types"
 	tp "github.com/henrylee2cn/teleport"
+	"github.com/henrylee2cn/tp-micro/samples/template/logic"
+	"github.com/henrylee2cn/tp-micro/samples/template/types"
 )
 
 // Math mathematical calculation controller

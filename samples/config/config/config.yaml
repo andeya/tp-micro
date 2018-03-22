@@ -1,4 +1,4 @@
-ant_cli:
+micro_cli:
   tls_cert_file: ""
   tls_key_file: ""
   default_session_age: 0s
@@ -12,10 +12,10 @@ ant_cli:
   count_time: false
   network: ""
   heartbeat_second: 0
-  sess_max_quota: 100
-  sess_max_idle_duration: 3m0s
+  sess_max_quota: 0
+  sess_max_idle_duration: 0s
 
-ant_srv:
+micro_srv:
   count_time: false
   default_body_codec: ""
   default_context_age: 0s

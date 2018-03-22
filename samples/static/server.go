@@ -1,8 +1,8 @@
 package main
 
 import (
-	"github.com/henrylee2cn/ant"
 	tp "github.com/henrylee2cn/teleport"
+	micro "github.com/henrylee2cn/tp-micro"
 )
 
 // Args args
@@ -22,7 +22,7 @@ func (p *P) Divide(args *Args) (int, *tp.Rerror) {
 }
 
 func main() {
-	srv := ant.NewServer(ant.SrvConfig{
+	srv := micro.NewServer(micro.SrvConfig{
 		ListenAddress:   ":9090",
 		EnableHeartbeat: true,
 	})
