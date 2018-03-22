@@ -369,10 +369,10 @@ func main() {
 [更多示例](https://github.com/henrylee2cn/tp-micro/tree/master/samples)
 
 
-## 命令行工具
+## 项目管理
 
-- 快速创建ant项目
-- 热编译模式运行ant项目
+- 快速创建项目
+- 热编译模式运行项目
 
 ### 安装ant命令行
 
