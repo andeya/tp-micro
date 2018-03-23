@@ -8,7 +8,7 @@ import (
 // Args args
 type Args struct {
 	A int
-	B int `param:"<range:1:>"`
+	B int `param:"<range:1:100>"`
 }
 
 // P handler

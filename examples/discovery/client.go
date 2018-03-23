@@ -4,52 +4,43 @@ import (
 	"time"
 
 	tp "github.com/henrylee2cn/teleport"
+	"github.com/henrylee2cn/teleport/socket/example/pb"
 	micro "github.com/henrylee2cn/tp-micro"
 	"github.com/henrylee2cn/tp-micro/discovery"
 	"github.com/henrylee2cn/tp-micro/discovery/etcd"
 )
 
 func main() {
+	tp.SetSocketNoDelay(false)
+	tp.SetShutdown(time.Second*20, nil, nil)
+
 	cli := micro.NewClient(
 		micro.CliConfig{
-			Failover: 3,
+			DefaultBodyCodec:   "protobuf",
+			DefaultDialTimeout: time.Second * 5,
+			Failover:           3,
 			CircuitBreaker: micro.CircuitBreakerConfig{
 				Enable:          true,
-				ErrorPercentage: 0,
+				ErrorPercentage: 50,
 			},
-			HeartbeatSecond: 3,
+			HeartbeatSecond: 5,
 		},
 		discovery.NewLinker(etcd.EasyConfig{
 			Endpoints: []string{"http://127.0.0.1:2379"},
 		}),
 	)
+	defer cli.Close()
 
-	var arg = &struct {
-		A int
-		B int
-	}{
-		A: 10,
-		B: 2,
-	}
-
-	var reply int
-
-	rerr := cli.Pull("/p/divide", arg, &reply).Rerror()
+	var reply = new(pb.PbTest)
+	rerr := cli.Pull(
+		"/group/home/test",
+		&pb.PbTest{A: 10, B: 2},
+		reply,
+	).Rerror()
 	if rerr != nil {
-		tp.Fatalf("%v", rerr)
+		tp.Errorf("pull error: %v", rerr)
+	} else {
+		tp.Infof("pull reply: %v", reply)
 	}
-	tp.Infof("10/2=%d", reply)
 
-	tp.Debugf("waiting for 10s...")
-	time.Sleep(time.Second * 10)
-
-	arg.B = 5
-	rerr = cli.Pull("/p/divide", arg, &reply).Rerror()
-	if rerr != nil {
-		tp.Fatalf("%v", rerr)
-	}
-	tp.Infof("10/5=%d", reply)
-
-	tp.Debugf("waiting for 5s...")
-	time.Sleep(time.Second * 5)
 }
