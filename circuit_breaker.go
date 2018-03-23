@@ -45,7 +45,7 @@ type (
 		sessLib         goutil.Map
 		closeCh         chan struct{}
 		enableBreak     bool
-		errorPercentage int64
+		errorPercentage float64
 		breakDuration   time.Duration
 	}
 	cliSession struct {
@@ -73,7 +73,7 @@ func newCircuitBreaker(
 		linker:          linker,
 		sessLib:         goutil.AtomicMap(),
 		enableBreak:     enableBreak,
-		errorPercentage: int64(errorPercentage),
+		errorPercentage: float64(errorPercentage),
 		breakDuration:   breakDuration,
 		closeCh:         make(chan struct{}),
 	}
@@ -137,7 +137,7 @@ func (c *circuitBreaker) work() {
 	for {
 		select {
 		case <-test.C:
-			c.sessLib.Range(func(k, _s interface{}) bool {
+			c.sessLib.Range(func(_, _s interface{}) bool {
 				s := _s.(*cliSession)
 				s.rwmu.Lock()
 				s.cursor++
@@ -158,6 +158,7 @@ func (c *circuitBreaker) work() {
 				if s.status != closedStatus {
 					return true
 				}
+				succTotal, failTotal = 0, 0
 				for _, a := range s.failCount {
 					failTotal += a
 				}
@@ -165,7 +166,7 @@ func (c *circuitBreaker) work() {
 					succTotal += a
 				}
 				if failTotal > 0 &&
-					(100*failTotal)/(100*(failTotal+succTotal)) > c.errorPercentage {
+					(float64(failTotal)/float64(failTotal+succTotal))*100 > c.errorPercentage {
 					s.toOpenLocked()
 					return true
 				}
