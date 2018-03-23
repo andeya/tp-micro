@@ -25,7 +25,7 @@ import (
 
 const (
 	// Statistical interval second
-	intervalSecond = 3
+	intervalSecond = 10
 	// The default failure rate threshold
 	defaultErrorPercentage = 50
 	// The default period of one-cycle break in milliseconds
