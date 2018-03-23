@@ -165,7 +165,7 @@ func (c *Client) SetProtoFunc(protoFunc socket.ProtoFunc) {
 	c.protoFunc = protoFunc
 }
 
-// Peer returns the peer
+// Peer returns the peer.
 func (c *Client) Peer() tp.Peer {
 	return c.peer
 }
@@ -187,9 +187,9 @@ func (c *Client) RoutePushFunc(pushHandleFunc interface{}, plugin ...tp.Plugin) 
 
 // AsyncPull sends a packet and receives reply asynchronously.
 // Note:
-//  If the args is []byte or *[]byte type, it can automatically fill in the body codec name.
-//  If the session is a client role and PeerConfig.RedialTimes>0, it is automatically re-called once after a failure.
-//  Do not support failover to try again
+//  If the args is []byte or *[]byte type, it can automatically fill in the body codec name;
+//  If the session is a client role and PeerConfig.RedialTimes>0, it is automatically re-called once after a failure;
+//  Do not support failover to try again.
 func (c *Client) AsyncPull(
 	uri string,
 	args interface{},
