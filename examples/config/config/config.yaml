@@ -12,8 +12,12 @@ micro_cli:
   count_time: false
   network: ""
   heartbeat_second: 0
-  sess_max_quota: 0
-  sess_max_idle_duration: 0s
+  sess_max_quota: 100
+  sess_max_idle_duration: 3m0s
+  circuit_breaker:
+    enable: false
+    error_percentage: 50
+    break_duration: 5s
 
 micro_srv:
   count_time: false

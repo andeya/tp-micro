@@ -24,11 +24,11 @@ var NotFoundService = tp.NewRerror(tp.CodeDialFailed, "Dial Failed", "not found 
 // Linker linker for client.
 type Linker interface {
 	// Select selects a service address by URI path.
-	Select(uriPath string) (addr string, rerr *tp.Rerror)
-	// EventDel pushs service node offline notification.
-	EventDel() <-chan string
-	// Sick marks the address status is unhealthy.
-	Sick(addr string)
+	Select(uriPath string, exclude map[string]struct{}) (addr string, rerr *tp.Rerror)
+	// Len returns the number of nodes corresponding to the URI.
+	Len(uriPath string) int
+	// WatchOffline pushs service node offline notification.
+	WatchOffline() <-chan string
 	// Close closes the linker.
 	Close()
 }
@@ -49,17 +49,19 @@ type staticLinker struct {
 }
 
 // Select selects a service address by URI path.
-func (d *staticLinker) Select(string) (string, *tp.Rerror) {
+func (d *staticLinker) Select(uriPath string, exclude map[string]struct{}) (string, *tp.Rerror) {
 	return d.srvAddr, nil
 }
 
-// EventDel pushs service node offline notification.
-func (d *staticLinker) EventDel() <-chan string {
-	return d.ch
+// Len returns the number of nodes corresponding to the URI.
+func (d *staticLinker) Len(uriPath string) int {
+	return 1
 }
 
-// Sick marks the address status is unhealthy.
-func (d *staticLinker) Sick(string) {}
+// WatchOffline pushs service node offline notification.
+func (d *staticLinker) WatchOffline() <-chan string {
+	return d.ch
+}
 
 // Close closes the linker.
 func (d *staticLinker) Close() {

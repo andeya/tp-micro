@@ -25,6 +25,11 @@ import (
 	"github.com/henrylee2cn/tp-micro/discovery/etcd"
 )
 
+const (
+	// minimum lease TTL is 5-second
+	minLeaseTTL = 5
+)
+
 // Service automatically registered api info to etcd
 type Service struct {
 	hostport    string
@@ -35,11 +40,6 @@ type Service struct {
 	client      *etcd.Client
 	leaseid     etcd.LeaseID
 }
-
-const (
-	// minimum lease TTL is 5-second
-	minLeaseTTL = 5
-)
 
 var (
 	_ tp.PostRegPlugin    = new(Service)

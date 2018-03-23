@@ -26,21 +26,24 @@ import (
 	"github.com/henrylee2cn/tp-micro/discovery/etcd"
 )
 
-type linker struct {
-	client   *etcd.Client
-	nodes    goutil.Map
-	uriPaths goutil.Map
-	delCh    chan string
-	innerIp  string
-}
-
 const (
 	linkerName = "ETCD(ANT-LINKER)"
-	// health health state
-	health = 0
-	// subHealth sub-health state
-	subHealth = -1
 )
+
+// Node a service node info.
+type Node struct {
+	Addr string
+	Info *ServiceInfo
+	mu   sync.RWMutex
+}
+
+type linker struct {
+	client      *etcd.Client
+	nodes       goutil.Map
+	uriPaths    goutil.Map
+	offlineChan chan string
+	innerIp     string
+}
 
 // NewLinker creates a etct service linker.
 // Note:
@@ -62,11 +65,11 @@ func NewLinkerFromEtcd(etcdClient *etcd.Client) micro.Linker {
 		tp.Fatalf("%s: %v", linkerName, err)
 	}
 	l := &linker{
-		client:   etcdClient,
-		nodes:    goutil.AtomicMap(),
-		uriPaths: goutil.AtomicMap(),
-		delCh:    make(chan string, 256),
-		innerIp:  innerIp,
+		client:      etcdClient,
+		nodes:       goutil.AtomicMap(),
+		uriPaths:    goutil.AtomicMap(),
+		offlineChan: make(chan string, 256),
+		innerIp:     innerIp,
 	}
 	if err := l.initNodes(); err != nil {
 		tp.Fatalf("%s: %v", linkerName, err)
@@ -94,9 +97,8 @@ func (l *linker) addNode(key string, info *ServiceInfo) {
 		return
 	}
 	node := &Node{
-		Addr:  addr,
-		Info:  info,
-		State: health,
+		Addr: addr,
+		Info: info,
 	}
 	l.nodes.Store(addr, node)
 	var (
@@ -136,7 +138,7 @@ func (l *linker) delNode(key string) {
 			}
 		}
 	}
-	l.delCh <- addr
+	l.offlineChan <- addr
 }
 
 func (l *linker) initNodes() error {
@@ -177,65 +179,40 @@ func getServiceInfo(value []byte) *ServiceInfo {
 }
 
 // Select selects a service address by URI path.
-func (l *linker) Select(uriPath string) (string, *tp.Rerror) {
+func (l *linker) Select(uriPath string, exclude map[string]struct{}) (string, *tp.Rerror) {
 	iface, exist := l.uriPaths.Load(uriPath)
 	if !exist {
 		return "", micro.NotFoundService
 	}
 	nodes := iface.(goutil.Map)
-	if nodes.Len() == 0 {
-		return "", micro.NotFoundService
-	}
-	var node *Node
+	var addr string
 	for i := 0; i < nodes.Len(); i++ {
 		if _, iface, exist = nodes.Random(); exist {
-			if node = iface.(*Node); node.getState() == health {
-				return node.Addr, nil
+			addr = iface.(*Node).Addr
+			if _, exist = exclude[addr]; !exist {
+				return addr, nil
 			}
 		}
 	}
-	if node == nil {
-		return "", micro.NotFoundService
-	}
-	return node.Addr, nil
+	return "", micro.NotFoundService
 }
 
-// EventDel pushs service node offline notification.
-func (l *linker) EventDel() <-chan string {
-	return l.delCh
+// WatchOffline pushs service node offline notification.
+func (l *linker) WatchOffline() <-chan string {
+	return l.offlineChan
 }
 
-// Sick marks the address status is unhealthy.
-func (l *linker) Sick(addr string) {
-	_node, ok := l.nodes.Load(addr)
-	if ok {
-		_node.(*Node).setState(subHealth)
+// Len returns the number of nodes corresponding to the URI.
+func (l *linker) Len(uriPath string) int {
+	nodes, exist := l.uriPaths.Load(uriPath)
+	if !exist {
+		return 0
 	}
+	return nodes.(goutil.Map).Len()
 }
 
 // Close closes the linker.
 func (l *linker) Close() {
-	close(l.delCh)
+	close(l.offlineChan)
 	l.client.Close()
-}
-
-// Node a service node info.
-type Node struct {
-	Addr  string
-	Info  *ServiceInfo
-	State int8
-	mu    sync.RWMutex
-}
-
-func (n *Node) getState() int8 {
-	n.mu.RLock()
-	state := n.State
-	n.mu.RUnlock()
-	return state
-}
-
-func (n *Node) setState(state int8) {
-	n.mu.Lock()
-	n.State = state
-	n.mu.Unlock()
 }

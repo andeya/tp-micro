@@ -16,6 +16,7 @@ package micro
 
 import (
 	"net"
+	"strings"
 	"sync"
 
 	"github.com/henrylee2cn/goutil"
@@ -59,4 +60,11 @@ func doInit() {
 	initOnce.Do(func() {
 		go tp.GraceSignal()
 	})
+}
+
+func getUriPath(uri string) string {
+	if idx := strings.Index(uri, "?"); idx != -1 {
+		return uri[:idx]
+	}
+	return uri
 }

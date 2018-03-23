@@ -13,7 +13,11 @@ func main() {
 	cli := micro.NewClient(
 		micro.CliConfig{
 			Failover: 3,
-			// HeartbeatSecond: 30,
+			CircuitBreaker: micro.CircuitBreakerConfig{
+				Enable:          true,
+				ErrorPercentage: 0,
+			},
+			HeartbeatSecond: 3,
 		},
 		discovery.NewLinker(etcd.EasyConfig{
 			Endpoints: []string{"http://127.0.0.1:2379"},
@@ -46,6 +50,6 @@ func main() {
 	}
 	tp.Infof("10/5=%d", reply)
 
-	tp.Debugf("waiting for 10s...")
-	time.Sleep(time.Second * 10)
+	tp.Debugf("waiting for 5s...")
+	time.Sleep(time.Second * 5)
 }

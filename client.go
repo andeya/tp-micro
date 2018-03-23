@@ -15,39 +15,46 @@
 package micro
 
 import (
-	"strings"
 	"sync"
 	"time"
 
 	"github.com/henrylee2cn/cfgo"
-	"github.com/henrylee2cn/goutil"
 	tp "github.com/henrylee2cn/teleport"
 	"github.com/henrylee2cn/teleport/socket"
-	cliSession "github.com/henrylee2cn/tp-ext/mod-cliSession"
+	sess "github.com/henrylee2cn/tp-ext/mod-cliSession"
 	heartbeat "github.com/henrylee2cn/tp-ext/plugin-heartbeat"
 )
 
-// CliConfig client config
-// Note:
-//  yaml tag is used for github.com/henrylee2cn/cfgo
-//  ini tag is used for github.com/henrylee2cn/ini
-type CliConfig struct {
-	TlsCertFile         string        `yaml:"tls_cert_file"          ini:"tls_cert_file"          comment:"TLS certificate file path"`
-	TlsKeyFile          string        `yaml:"tls_key_file"           ini:"tls_key_file"           comment:"TLS key file path"`
-	DefaultSessionAge   time.Duration `yaml:"default_session_age"    ini:"default_session_age"    comment:"Default session max age, if less than or equal to 0, no time limit; ns,µs,ms,s,m,h"`
-	DefaultContextAge   time.Duration `yaml:"default_context_age"    ini:"default_context_age"    comment:"Default PULL or PUSH context max age, if less than or equal to 0, no time limit; ns,µs,ms,s,m,h"`
-	DefaultDialTimeout  time.Duration `yaml:"default_dial_timeout"   ini:"default_dial_timeout"   comment:"Default maximum duration for dialing; for client role; ns,µs,ms,s,m,h"`
-	RedialTimes         int           `yaml:"redial_times"           ini:"redial_times"           comment:"The maximum times of attempts to redial, after the connection has been unexpectedly broken; for client role"`
-	Failover            int           `yaml:"failover"               ini:"failover"               comment:"The maximum times of failover"`
-	SlowCometDuration   time.Duration `yaml:"slow_comet_duration"    ini:"slow_comet_duration"    comment:"Slow operation alarm threshold; ns,µs,ms,s ..."`
-	DefaultBodyCodec    string        `yaml:"default_body_codec"     ini:"default_body_codec"     comment:"Default body codec type id"`
-	PrintBody           bool          `yaml:"print_body"             ini:"print_body"             comment:"Is print body or not"`
-	CountTime           bool          `yaml:"count_time"             ini:"count_time"             comment:"Is count cost time or not"`
-	Network             string        `yaml:"network"                ini:"network"                comment:"Network; tcp, tcp4, tcp6, unix or unixpacket"`
-	HeartbeatSecond     int           `yaml:"heartbeat_second"       ini:"heartbeat_second"       comment:"When the heartbeat interval(second) is greater than 0, heartbeat is enabled; if it's smaller than 3, change to 3 default"`
-	SessMaxQuota        int           `yaml:"sess_max_quota"         ini:"sess_max_quota"         comment:"The maximum number of sessions in the connection pool"`
-	SessMaxIdleDuration time.Duration `yaml:"sess_max_idle_duration" ini:"sess_max_idle_duration" comment:"The maximum time period for the idle session in the connection pool; ns,µs,ms,s,m,h"`
-}
+type (
+	// CliConfig client config
+	// Note:
+	//  yaml tag is used for github.com/henrylee2cn/cfgo
+	//  ini tag is used for github.com/henrylee2cn/ini
+	CliConfig struct {
+		TlsCertFile         string               `yaml:"tls_cert_file"          ini:"tls_cert_file"          comment:"TLS certificate file path"`
+		TlsKeyFile          string               `yaml:"tls_key_file"           ini:"tls_key_file"           comment:"TLS key file path"`
+		DefaultSessionAge   time.Duration        `yaml:"default_session_age"    ini:"default_session_age"    comment:"Default session max age, if less than or equal to 0, no time limit; ns,µs,ms,s,m,h"`
+		DefaultContextAge   time.Duration        `yaml:"default_context_age"    ini:"default_context_age"    comment:"Default PULL or PUSH context max age, if less than or equal to 0, no time limit; ns,µs,ms,s,m,h"`
+		DefaultDialTimeout  time.Duration        `yaml:"default_dial_timeout"   ini:"default_dial_timeout"   comment:"Default maximum duration for dialing; for client role; ns,µs,ms,s,m,h"`
+		RedialTimes         int                  `yaml:"redial_times"           ini:"redial_times"           comment:"The maximum times of attempts to redial, after the connection has been unexpectedly broken; for client role"`
+		Failover            int                  `yaml:"failover"               ini:"failover"               comment:"The maximum times of failover"`
+		SlowCometDuration   time.Duration        `yaml:"slow_comet_duration"    ini:"slow_comet_duration"    comment:"Slow operation alarm threshold; ns,µs,ms,s ..."`
+		DefaultBodyCodec    string               `yaml:"default_body_codec"     ini:"default_body_codec"     comment:"Default body codec type id"`
+		PrintBody           bool                 `yaml:"print_body"             ini:"print_body"             comment:"Is print body or not"`
+		CountTime           bool                 `yaml:"count_time"             ini:"count_time"             comment:"Is count cost time or not"`
+		Network             string               `yaml:"network"                ini:"network"                comment:"Network; tcp, tcp4, tcp6, unix or unixpacket"`
+		HeartbeatSecond     int                  `yaml:"heartbeat_second"       ini:"heartbeat_second"       comment:"When the heartbeat interval(second) is greater than 0, heartbeat is enabled; if it's smaller than 3, change to 3 default"`
+		SessMaxQuota        int                  `yaml:"sess_max_quota"         ini:"sess_max_quota"         comment:"The maximum number of sessions in the connection pool"`
+		SessMaxIdleDuration time.Duration        `yaml:"sess_max_idle_duration" ini:"sess_max_idle_duration" comment:"The maximum time period for the idle session in the connection pool; ns,µs,ms,s,m,h"`
+		CircuitBreaker      CircuitBreakerConfig `yaml:"circuit_breaker" ini:"circuit_breaker" comment:"Circuit breaker config"`
+	}
+	// CircuitBreakerConfig circuit breaker config
+	CircuitBreakerConfig struct {
+		Enable          bool          `yaml:"enable" ini:"enable" comment:"Whether to use circuit breaker"`
+		ErrorPercentage int           `yaml:"error_percentage" ini:"error_percentage" comment:"break linker when the error rate exceeds the threshold during a statistical period; default 50"`
+		BreakDuration   time.Duration `yaml:"break_duration" ini:"break_duration" comment:"The period of one-cycle break in milliseconds; must ≥ 1ms"`
+	}
+)
 
 // Reload Bi-directionally synchronizes config between YAML file and memory.
 func (c *CliConfig) Reload(bind cfgo.BindFunc) error {
@@ -73,6 +80,12 @@ func (c *CliConfig) Check() error {
 	} else if c.HeartbeatSecond < 3 {
 		c.HeartbeatSecond = 3
 	}
+	if c.CircuitBreaker.ErrorPercentage <= 0 || c.CircuitBreaker.ErrorPercentage > 100 {
+		c.CircuitBreaker.ErrorPercentage = defaultErrorPercentage
+	}
+	if c.CircuitBreaker.BreakDuration < time.Millisecond {
+		c.CircuitBreaker.BreakDuration = defaultBreakDuration
+	}
 	return nil
 }
 
@@ -93,9 +106,8 @@ func (c *CliConfig) peerConfig() tp.PeerConfig {
 // Client client peer
 type Client struct {
 	peer                tp.Peer
-	linker              Linker
+	circuitBreaker      *circuitBreaker
 	protoFunc           socket.ProtoFunc
-	cliSessPool         goutil.Map
 	sessMaxQuota        int
 	sessMaxIdleDuration time.Duration
 	closeCh             chan struct{}
@@ -122,14 +134,26 @@ func NewClient(cfg CliConfig, linker Linker, plugin ...tp.Plugin) *Client {
 	cli := &Client{
 		peer:                peer,
 		protoFunc:           socket.DefaultProtoFunc(),
-		linker:              linker,
-		cliSessPool:         goutil.AtomicMap(),
 		sessMaxQuota:        cfg.SessMaxQuota,
 		sessMaxIdleDuration: cfg.SessMaxIdleDuration,
 		closeCh:             make(chan struct{}),
 		maxTry:              cfg.Failover + 1,
 	}
-	go cli.watchEventDel()
+	cli.circuitBreaker = newCircuitBreaker(
+		cfg.CircuitBreaker.Enable,
+		cfg.CircuitBreaker.ErrorPercentage,
+		cfg.CircuitBreaker.BreakDuration,
+		linker,
+		func(addr string) *sess.CliSession {
+			return sess.New(
+				peer,
+				addr,
+				cli.sessMaxQuota,
+				cli.sessMaxIdleDuration,
+				cli.protoFunc,
+			)
+		})
+	cli.circuitBreaker.start()
 	return cli
 }
 
@@ -162,64 +186,109 @@ func (c *Client) RoutePushFunc(pushHandleFunc interface{}, plugin ...tp.Plugin) 
 }
 
 // AsyncPull sends a packet and receives reply asynchronously.
-// If the args is []byte or *[]byte type, it can automatically fill in the body codec name.
-func (c *Client) AsyncPull(uri string, args interface{}, reply interface{}, done chan tp.PullCmd, setting ...socket.PacketSetting) {
-	cliSess, rerr := c.getCliSession(uri)
-	if rerr != nil {
-		done <- tp.NewFakePullCmd(uri, args, reply, rerr)
-		return
+// Note:
+//  If the args is []byte or *[]byte type, it can automatically fill in the body codec name.
+//  If the session is a client role and PeerConfig.RedialTimes>0, it is automatically re-called once after a failure.
+//  Do not support failover to try again
+func (c *Client) AsyncPull(
+	uri string,
+	args interface{},
+	reply interface{},
+	pullCmdChan chan<- tp.PullCmd,
+	setting ...socket.PacketSetting,
+) tp.PullCmd {
+	if pullCmdChan == nil {
+		pullCmdChan = make(chan tp.PullCmd, 10) // buffered.
+	} else {
+		// If caller passes pullCmdChan != nil, it must arrange that
+		// pullCmdChan has enough buffer for the number of simultaneous
+		// RPCs that will be using that channel. If the channel
+		// is totally unbuffered, it's best not to run at all.
+		if cap(pullCmdChan) == 0 {
+			tp.Panicf("*Client.AsyncPull(): pullCmdChan channel is unbuffered")
+		}
 	}
-	cliSess.AsyncPull(uri, args, reply, done, setting...)
+	select {
+	case <-c.closeCh:
+		pullCmd := tp.NewFakePullCmd(uri, args, reply, RerrClosed)
+		pullCmdChan <- pullCmd
+		return pullCmd
+	default:
+	}
+
+	cliSess, rerr := c.circuitBreaker.selectSession(uri)
+	if rerr != nil {
+		pullCmd := tp.NewFakePullCmd(uri, args, reply, rerr)
+		pullCmdChan <- pullCmd
+		return pullCmd
+	}
+	pullCmd := cliSess.AsyncPull(uri, args, reply, pullCmdChan, setting...)
+	cliSess.feedback(!tp.IsConnRerror(pullCmd.Rerror()))
+	return pullCmd
 }
 
 // Pull sends a packet and receives reply.
 // Note:
-// If the args is []byte or *[]byte type, it can automatically fill in the body codec name;
-// If the session is a client role and PeerConfig.RedialTimes>0, it is automatically re-called once after a failure.
+//  If the args is []byte or *[]byte type, it can automatically fill in the body codec name;
+//  If the session is a client role and PeerConfig.RedialTimes>0, it is automatically re-called once after a failure.
 func (c *Client) Pull(uri string, args interface{}, reply interface{}, setting ...socket.PacketSetting) tp.PullCmd {
+	select {
+	case <-c.closeCh:
+		return tp.NewFakePullCmd(uri, args, reply, RerrClosed)
+	default:
+	}
 	var (
-		cliSess *cliSession.CliSession
-		rerr    *tp.Rerror
-		r       tp.PullCmd
-		uriPath = getUriPath(uri)
+		cliSess     *cliSession
+		pullCmd     tp.PullCmd
+		rerr        *tp.Rerror
+		healthy     bool
+		pullCmdChan = make(chan tp.PullCmd, 1)
 	)
 	for i := 0; i < c.maxTry; i++ {
-		cliSess, rerr = c.getCliSession(uriPath)
+		cliSess, rerr = c.circuitBreaker.selectSession(uri)
 		if rerr != nil {
 			return tp.NewFakePullCmd(uri, args, reply, rerr)
 		}
-		r = cliSess.Pull(uri, args, reply, setting...)
-		if !tp.IsConnRerror(r.Rerror()) {
-			return r
+		cliSess.AsyncPull(uri, args, reply, pullCmdChan, setting...)
+		pullCmd = <-pullCmdChan
+		healthy = !tp.IsConnRerror(pullCmd.Rerror())
+		cliSess.feedback(healthy)
+		if healthy {
+			return pullCmd
 		}
-		c.linker.Sick(cliSess.Addr())
 		if i > 0 {
-			tp.Debugf("the %dth failover is triggered because: %s", i, r.Rerror().String())
+			tp.Debugf("the %dth failover is triggered because: %s", i, pullCmd.Rerror().String())
 		}
 	}
-	return r
+	return pullCmd
 }
 
 // Push sends a packet, but do not receives reply.
 // Note:
-// If the args is []byte or *[]byte type, it can automatically fill in the body codec name;
-// If the session is a client role and PeerConfig.RedialTimes>0, it is automatically re-called once after a failure.
+//  If the args is []byte or *[]byte type, it can automatically fill in the body codec name;
+//  If the session is a client role and PeerConfig.RedialTimes>0, it is automatically re-called once after a failure.
 func (c *Client) Push(uri string, args interface{}, setting ...socket.PacketSetting) *tp.Rerror {
+	select {
+	case <-c.closeCh:
+		return RerrClosed
+	default:
+	}
 	var (
-		cliSess *cliSession.CliSession
+		cliSess *cliSession
 		rerr    *tp.Rerror
-		uriPath = getUriPath(uri)
+		healthy bool
 	)
 	for i := 0; i < c.maxTry; i++ {
-		cliSess, rerr = c.getCliSession(uriPath)
+		cliSess, rerr = c.circuitBreaker.selectSession(uri)
 		if rerr != nil {
 			return rerr
 		}
 		rerr = cliSess.Push(uri, args, setting...)
-		if !tp.IsConnRerror(rerr) {
+		healthy = !tp.IsConnRerror(rerr)
+		cliSess.feedback(healthy)
+		if healthy {
 			return rerr
 		}
-		c.linker.Sick(cliSess.Addr())
 		if i > 0 {
 			tp.Debugf("the %dth failover is triggered because: %s", i, rerr.String())
 		}
@@ -237,50 +306,6 @@ func (c *Client) Close() {
 	default:
 		close(c.closeCh)
 		c.peer.Close()
-		c.linker.Close()
-	}
-}
-
-func getUriPath(uri string) string {
-	if idx := strings.Index(uri, "?"); idx != -1 {
-		return uri[:idx]
-	}
-	return uri
-}
-
-func (c *Client) getCliSession(uriPath string) (*cliSession.CliSession, *tp.Rerror) {
-	select {
-	case <-c.closeCh:
-		return nil, RerrClosed
-	default:
-	}
-	addr, rerr := c.linker.Select(uriPath)
-	if rerr != nil {
-		return nil, rerr
-	}
-	_cliSess, ok := c.cliSessPool.Load(addr)
-	if ok {
-		return _cliSess.(*cliSession.CliSession), nil
-	}
-	cliSess := cliSession.New(
-		c.peer,
-		addr,
-		c.sessMaxQuota,
-		c.sessMaxIdleDuration,
-		c.protoFunc,
-	)
-	c.cliSessPool.Store(addr, cliSess)
-	return cliSess, nil
-}
-
-func (c *Client) watchEventDel() {
-	ch := c.linker.EventDel()
-	for addr := range <-ch {
-		_cliSess, ok := c.cliSessPool.Load(addr)
-		if !ok {
-			continue
-		}
-		c.cliSessPool.Delete(addr)
-		tp.Go(_cliSess.(*cliSession.CliSession).Close)
+		c.circuitBreaker.close()
 	}
 }

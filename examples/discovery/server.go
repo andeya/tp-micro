@@ -25,8 +25,8 @@ func (p *P) Divide(args *Args) (int, *tp.Rerror) {
 
 func main() {
 	cfg := micro.SrvConfig{
-		ListenAddress: ":9090",
-		// EnableHeartbeat: true,
+		ListenAddress:   ":9090",
+		EnableHeartbeat: true,
 	}
 	srv := micro.NewServer(cfg, discovery.ServicePlugin(
 		cfg.InnerIpPort(),

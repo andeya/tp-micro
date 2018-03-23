@@ -32,6 +32,7 @@ go get -u -f github.com/henrylee2cn/tp-micro
 - 支持推送
 - 支持的网络类型：`tcp`、`tcp4`、`tcp6`、`unix`、`unixpacket`等
 - 客户端支持断线后自动重连
+- 支持过载保护（断路器）
 
 ## 平台方案
 
