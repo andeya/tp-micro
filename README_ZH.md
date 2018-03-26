@@ -161,45 +161,45 @@ package __ANT__TPL__
 //  /home
 //  /math/divide
 type __API__PULL__ interface {
-  Home(*struct{}) *HomeReply
-  Math
+    Home(*struct{}) *HomeReply
+    Math
 }
 
 // __API__PUSH__ register PUSH router:
 //  /stat
 type __API__PUSH__ interface {
-  Stat(*StatArgs)
+    Stat(*StatArgs)
 }
 
 // Math controller
 type Math interface {
-  // Divide handler
-  Divide(*DivideArgs) *DivideReply
+    // Divide handler
+    Divide(*DivideArgs) *DivideReply
 }
 
 // HomeReply home reply
 type HomeReply struct {
-  Content string // text
+    Content string // text
 }
 
 type (
-  // DivideArgs divide api args
-  DivideArgs struct {
-    // dividend
-    A float64
-    // divisor
-    B float64 `param:"<range: 0.01:100000>"`
-  }
-  // DivideReply divide api result
-  DivideReply struct {
-    // quotient
-    C float64
-  }
+    // DivideArgs divide api args
+    DivideArgs struct {
+        // dividend
+        A float64
+        // divisor
+        B float64 `param:"<range: 0.01:100000>"`
+    }
+    // DivideReply divide api result
+    DivideReply struct {
+        // quotient
+        C float64
+    }
 )
 
 // StatArgs stat handler args
 type StatArgs struct {
-  Ts int64 // timestamps
+    Ts int64 // timestamps
 }
 ```
 
@@ -403,13 +403,13 @@ func (i *ignoreCase) Name() string {
 
 func (i *ignoreCase) PostReadPullHeader(ctx tp.ReadCtx) *tp.Rerror {
     // Dynamic transformation path is lowercase
-    ctx.Url().Path = strings.ToLower(ctx.Url().Path)
+    ctx.UriObject().Path = strings.ToLower(ctx.UriObject().Path)
     return nil
 }
 
 func (i *ignoreCase) PostReadPushHeader(ctx tp.ReadCtx) *tp.Rerror {
     // Dynamic transformation path is lowercase
-    ctx.Url().Path = strings.ToLower(ctx.Url().Path)
+    ctx.UriObject().Path = strings.ToLower(ctx.UriObject().Path)
     return nil
 }
 ```
@@ -433,36 +433,36 @@ peer.SetUnknownPush(XxxUnknownPush)
 ```go
 // SrvConfig server config
 type SrvConfig struct {
-	TlsCertFile       string        `yaml:"tls_cert_file"        ini:"tls_cert_file"        comment:"TLS certificate file path"`
-	TlsKeyFile        string        `yaml:"tls_key_file"         ini:"tls_key_file"         comment:"TLS key file path"`
-	DefaultSessionAge time.Duration `yaml:"default_session_age"  ini:"default_session_age"  comment:"Default session max age, if less than or equal to 0, no time limit; ns,µs,ms,s,m,h"`
-	DefaultContextAge time.Duration `yaml:"default_context_age"  ini:"default_context_age"  comment:"Default PULL or PUSH context max age, if less than or equal to 0, no time limit; ns,µs,ms,s,m,h"`
-	SlowCometDuration time.Duration `yaml:"slow_comet_duration"  ini:"slow_comet_duration"  comment:"Slow operation alarm threshold; ns,µs,ms,s ..."`
-	DefaultBodyCodec  string        `yaml:"default_body_codec"   ini:"default_body_codec"   comment:"Default body codec type id"`
-	PrintBody         bool          `yaml:"print_body"           ini:"print_body"           comment:"Is print body or not"`
-	CountTime         bool          `yaml:"count_time"           ini:"count_time"           comment:"Is count cost time or not"`
-	Network           string        `yaml:"network"              ini:"network"              comment:"Network; tcp, tcp4, tcp6, unix or unixpacket"`
-	ListenAddress     string        `yaml:"listen_address"       ini:"listen_address"       comment:"Listen address; for server role"`
-	EnableHeartbeat   bool          `yaml:"enable_heartbeat"     ini:"enable_heartbeat"     comment:"enable heartbeat"`
+    TlsCertFile       string        `yaml:"tls_cert_file"        ini:"tls_cert_file"        comment:"TLS certificate file path"`
+    TlsKeyFile        string        `yaml:"tls_key_file"         ini:"tls_key_file"         comment:"TLS key file path"`
+    DefaultSessionAge time.Duration `yaml:"default_session_age"  ini:"default_session_age"  comment:"Default session max age, if less than or equal to 0, no time limit; ns,µs,ms,s,m,h"`
+    DefaultContextAge time.Duration `yaml:"default_context_age"  ini:"default_context_age"  comment:"Default PULL or PUSH context max age, if less than or equal to 0, no time limit; ns,µs,ms,s,m,h"`
+    SlowCometDuration time.Duration `yaml:"slow_comet_duration"  ini:"slow_comet_duration"  comment:"Slow operation alarm threshold; ns,µs,ms,s ..."`
+    DefaultBodyCodec  string        `yaml:"default_body_codec"   ini:"default_body_codec"   comment:"Default body codec type id"`
+    PrintBody         bool          `yaml:"print_body"           ini:"print_body"           comment:"Is print body or not"`
+    CountTime         bool          `yaml:"count_time"           ini:"count_time"           comment:"Is count cost time or not"`
+    Network           string        `yaml:"network"              ini:"network"              comment:"Network; tcp, tcp4, tcp6, unix or unixpacket"`
+    ListenAddress     string        `yaml:"listen_address"       ini:"listen_address"       comment:"Listen address; for server role"`
+    EnableHeartbeat   bool          `yaml:"enable_heartbeat"     ini:"enable_heartbeat"     comment:"enable heartbeat"`
 }
 
 // CliConfig client config
 type CliConfig struct {
-	TlsCertFile         string        `yaml:"tls_cert_file"          ini:"tls_cert_file"          comment:"TLS certificate file path"`
-	TlsKeyFile          string        `yaml:"tls_key_file"           ini:"tls_key_file"           comment:"TLS key file path"`
-	DefaultSessionAge   time.Duration `yaml:"default_session_age"    ini:"default_session_age"    comment:"Default session max age, if less than or equal to 0, no time limit; ns,µs,ms,s,m,h"`
-	DefaultContextAge   time.Duration `yaml:"default_context_age"    ini:"default_context_age"    comment:"Default PULL or PUSH context max age, if less than or equal to 0, no time limit; ns,µs,ms,s,m,h"`
-	DefaultDialTimeout  time.Duration `yaml:"default_dial_timeout"   ini:"default_dial_timeout"   comment:"Default maximum duration for dialing; for client role; ns,µs,ms,s,m,h"`
-	RedialTimes         int           `yaml:"redial_times"           ini:"redial_times"           comment:"The maximum times of attempts to redial, after the connection has been unexpectedly broken; for client role"`
-	Failover            int           `yaml:"failover"               ini:"failover"               comment:"The maximum times of failover"`
-	SlowCometDuration   time.Duration `yaml:"slow_comet_duration"    ini:"slow_comet_duration"    comment:"Slow operation alarm threshold; ns,µs,ms,s ..."`
-	DefaultBodyCodec    string        `yaml:"default_body_codec"     ini:"default_body_codec"     comment:"Default body codec type id"`
-	PrintBody           bool          `yaml:"print_body"             ini:"print_body"             comment:"Is print body or not"`
-	CountTime           bool          `yaml:"count_time"             ini:"count_time"             comment:"Is count cost time or not"`
-	Network             string        `yaml:"network"                ini:"network"                comment:"Network; tcp, tcp4, tcp6, unix or unixpacket"`
-	HeartbeatSecond     int           `yaml:"heartbeat_second"       ini:"heartbeat_second"       comment:"When the heartbeat interval(second) is greater than 0, heartbeat is enabled; if it's smaller than 3, change to 3 default"`
-	SessMaxQuota        int           `yaml:"sess_max_quota"         ini:"sess_max_quota"         comment:"The maximum number of sessions in the connection pool"`
-	SessMaxIdleDuration time.Duration `yaml:"sess_max_idle_duration" ini:"sess_max_idle_duration" comment:"The maximum time period for the idle session in the connection pool; ns,µs,ms,s,m,h"`
+    TlsCertFile         string        `yaml:"tls_cert_file"          ini:"tls_cert_file"          comment:"TLS certificate file path"`
+    TlsKeyFile          string        `yaml:"tls_key_file"           ini:"tls_key_file"           comment:"TLS key file path"`
+    DefaultSessionAge   time.Duration `yaml:"default_session_age"    ini:"default_session_age"    comment:"Default session max age, if less than or equal to 0, no time limit; ns,µs,ms,s,m,h"`
+    DefaultContextAge   time.Duration `yaml:"default_context_age"    ini:"default_context_age"    comment:"Default PULL or PUSH context max age, if less than or equal to 0, no time limit; ns,µs,ms,s,m,h"`
+    DefaultDialTimeout  time.Duration `yaml:"default_dial_timeout"   ini:"default_dial_timeout"   comment:"Default maximum duration for dialing; for client role; ns,µs,ms,s,m,h"`
+    RedialTimes         int           `yaml:"redial_times"           ini:"redial_times"           comment:"The maximum times of attempts to redial, after the connection has been unexpectedly broken; for client role"`
+    Failover            int           `yaml:"failover"               ini:"failover"               comment:"The maximum times of failover"`
+    SlowCometDuration   time.Duration `yaml:"slow_comet_duration"    ini:"slow_comet_duration"    comment:"Slow operation alarm threshold; ns,µs,ms,s ..."`
+    DefaultBodyCodec    string        `yaml:"default_body_codec"     ini:"default_body_codec"     comment:"Default body codec type id"`
+    PrintBody           bool          `yaml:"print_body"             ini:"print_body"             comment:"Is print body or not"`
+    CountTime           bool          `yaml:"count_time"             ini:"count_time"             comment:"Is count cost time or not"`
+    Network             string        `yaml:"network"                ini:"network"                comment:"Network; tcp, tcp4, tcp6, unix or unixpacket"`
+    HeartbeatSecond     int           `yaml:"heartbeat_second"       ini:"heartbeat_second"       comment:"When the heartbeat interval(second) is greater than 0, heartbeat is enabled; if it's smaller than 3, change to 3 default"`
+    SessMaxQuota        int           `yaml:"sess_max_quota"         ini:"sess_max_quota"         comment:"The maximum number of sessions in the connection pool"`
+    SessMaxIdleDuration time.Duration `yaml:"sess_max_idle_duration" ini:"sess_max_idle_duration" comment:"The maximum time period for the idle session in the connection pool; ns,µs,ms,s,m,h"`
 }
 ```
 
