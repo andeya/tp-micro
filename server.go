@@ -179,9 +179,9 @@ func (s *Server) GetSession(sessionId string) (tp.Session, bool) {
 	return s.peer.GetSession(sessionId)
 }
 
-// Listen turns on the listening service.
-func (s *Server) Listen(protoFunc ...socket.ProtoFunc) error {
-	return s.peer.Listen(protoFunc...)
+// ListenAndServe turns on the listening service.
+func (s *Server) ListenAndServe(protoFunc ...socket.ProtoFunc) error {
+	return s.peer.ListenAndServe(protoFunc...)
 }
 
 // RangeSession ranges all sessions. If fn returns false, stop traversing.

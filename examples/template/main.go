@@ -11,5 +11,5 @@ func main() {
 		EnableHeartbeat: true,
 	})
 	api.Route("/template", srv.Router())
-	srv.Listen()
+	srv.ListenAndServe()
 }

@@ -71,7 +71,7 @@ func main() {
     ListenAddress: ":9090",
   })
   srv.RoutePull(new(P))
-  srv.Listen()
+  srv.ListenAndServe()
 }
 ```
 

@@ -29,5 +29,5 @@ func main() {
 
 	group := srv.SubRoute("/static")
 	group.RoutePullFunc(Divide)
-	srv.Listen()
+	srv.ListenAndServe()
 }

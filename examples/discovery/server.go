@@ -29,7 +29,7 @@ func main() {
 		group := srv.SubRoute("group")
 		group.RoutePull(new(Home))
 	}
-	srv.Listen()
+	srv.ListenAndServe()
 }
 
 // Home controller
