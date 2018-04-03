@@ -25,8 +25,7 @@ import (
 
 // error codes
 const (
-	RerrCodeClientClosed int32 = 10000
-	RerrCodeBind         int32 = 10001
+	RerrCodeClientClosed int32 = 100000
 )
 
 var (

@@ -15,6 +15,7 @@
 package micro
 
 import (
+	"fmt"
 	"net"
 	"time"
 
@@ -90,16 +91,22 @@ func (s *SrvConfig) peerConfig() tp.PeerConfig {
 
 // Server server peer
 type Server struct {
-	peer tp.Peer
+	peer   tp.Peer
+	binder *binder.StructArgsBinder
 }
 
 // NewServer creates a server peer.
 func NewServer(cfg SrvConfig, plugin ...tp.Plugin) *Server {
 	doInit()
+	binder := binder.NewStructArgsBinder(func(handlerName, paramName, reason string) *tp.Rerror {
+		return tp.NewRerror(
+			100001,
+			"Invalid Parameter",
+			fmt.Sprintf(`{"handler": %q, "param": %q, "reason": %q}`, handlerName, paramName, reason),
+		)
+	})
 	plugin = append(
-		[]tp.Plugin{
-			binder.NewStructArgsBinder(RerrCodeBind, "invalid parameter"),
-		},
+		[]tp.Plugin{binder},
 		plugin...,
 	)
 	if cfg.EnableHeartbeat {
@@ -113,13 +120,19 @@ func NewServer(cfg SrvConfig, plugin ...tp.Plugin) *Server {
 		}
 	}
 	return &Server{
-		peer: peer,
+		peer:   peer,
+		binder: binder,
 	}
 }
 
 // Peer returns the peer
 func (s *Server) Peer() tp.Peer {
 	return s.peer
+}
+
+// SetBindErrorFunc sets the binding or balidating error function.
+func (s *Server) SetBindErrorFunc(fn binder.ErrorFunc) {
+	s.binder.SetErrorFunc(fn)
 }
 
 // Router returns the root router of pull or push handlers.
