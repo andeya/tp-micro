@@ -1,13 +1,12 @@
 package main
 
 import (
-	"time"
-
 	tp "github.com/henrylee2cn/teleport"
 	micro "github.com/henrylee2cn/tp-micro"
 )
 
 func main() {
+	tp.SetLoggerLevel("ERROR")
 	cli := micro.NewClient(
 		micro.CliConfig{
 			Failover:        3,
@@ -15,6 +14,7 @@ func main() {
 		},
 		micro.NewStaticLinker(":9090"),
 	)
+	defer cli.Close()
 
 	type Args struct {
 		A int
@@ -22,7 +22,7 @@ func main() {
 	}
 
 	var reply int
-	rerr := cli.Pull("/static/p/divide", &Args{
+	rerr := cli.Pull("/static/p/divide?x=testquery_x&xy_z=testquery_xy_z", &Args{
 		A: 10,
 		B: 2,
 	}, &reply).Rerror()
@@ -32,8 +32,9 @@ func main() {
 	if rerr != nil {
 		tp.Fatalf("%v", rerr)
 	}
-	tp.Infof("10/2=%d", reply)
-	rerr = cli.Pull("/static/p/divide", &Args{
+	tp.Printf("test 10/2=%d", reply)
+
+	rerr = cli.Pull("/static/p/divide?x=testquery_x&xy_z=testquery_xy_z", &Args{
 		A: 10,
 		B: 0,
 	}, &reply).Rerror()
@@ -43,17 +44,14 @@ func main() {
 	if rerr == nil {
 		tp.Fatalf("%v", rerr)
 	}
-	tp.Infof("test binding error: ok: %v", rerr)
+	tp.Printf("test 10/0:%v", rerr)
 
-	time.Sleep(time.Second * 5)
-
-	cli.Close()
 	rerr = cli.Pull("/static/p/divide", &Args{
 		A: 10,
 		B: 5,
 	}, &reply).Rerror()
 	if rerr == nil {
-		tp.Fatalf("test closing client: fail")
+		tp.Fatalf("%v", rerr)
 	}
-	tp.Infof("test closing client: ok: %v", rerr)
+	tp.Printf("test 10/5:%v", rerr)
 }

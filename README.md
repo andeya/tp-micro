@@ -481,6 +481,90 @@ type CliConfig struct {
 }
 ```
 
+### Binder(Param-Tags)
+
+tag   |   key    | required |     value     |   desc
+------|----------|----------|---------------|----------------------------------
+param |    query    | no |     -      | It indicates that the parameter is from the URI query part, else the parameter is from body. e.g. `/a/b?x={query}`
+param |   desc   |      no      |     (e.g.`id`)   | Parameter Description
+param |   len    |      no      |   (e.g.`3:6`)  | Length range [a,b] of parameter's value
+param |   range  |      no      |   (e.g.`0:10`)   | Numerical range [a,b] of parameter's value
+param |  nonzero |      no      |    -    | Not allowed to zero
+param |  regexp  |      no      |   (e.g.`^\w+$`)  | Regular expression validation
+param |   rerr   |      no      |(e.g.`100002:wrong password format`)| Custom error code and message
+
+NOTES:
+* `param:"-"` means ignore
+* Encountered untagged exportable anonymous structure field, automatic recursive resolution
+* Parameter name is the name of the structure field converted to snake format
+
+- Field-Types
+
+base    |   slice    | special
+--------|------------|------------
+string  |  []string  | [][]byte
+byte    |  []byte    | [][]uint8
+uint8   |  []uint8   | struct
+bool    |  []bool    |
+int     |  []int     |
+int8    |  []int8    |
+int16   |  []int16   |
+int32   |  []int32   |
+int64   |  []int64   |
+uint8   |  []uint8   |
+uint16  |  []uint16  |
+uint32  |  []uint32  |
+uint64  |  []uint64  |
+float32 |  []float32 |
+float64 |  []float64 |
+
+#### Example
+
+```go
+package main
+
+import (
+  tp "github.com/henrylee2cn/teleport"
+  micro "github.com/henrylee2cn/tp-micro"
+)
+
+type (
+  // Args args
+  Args struct {
+    A int
+    B int `param:"<range:1:100>"`
+    Query
+    XyZ string `param:"<query><nonzero><rerr: 100002: Parameter cannot be empty>"`
+  }
+  Query struct {
+    X string `param:"<query>"`
+  }
+)
+
+// P handler
+type P struct {
+  tp.PullCtx
+}
+
+// Divide divide API
+func (p *P) Divide(args *Args) (int, *tp.Rerror) {
+  tp.Infof("query args x: %s, xy_z: %s", args.Query.X, args.XyZ)
+  return args.A / args.B, nil
+}
+
+func main() {
+  srv := micro.NewServer(micro.SrvConfig{
+    ListenAddress:   ":9090",
+    EnableHeartbeat: true,
+  })
+  group := srv.SubRoute("/static")
+  group.RoutePull(new(P))
+  srv.ListenAndServe()
+}
+```
+
+[Detail Example](https://github.com/henrylee2cn/tp-micro/tree/master/examples/binder)
+
 ### Optimize
 
 - SetPacketSizeLimit sets max packet size.
