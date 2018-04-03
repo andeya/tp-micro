@@ -98,13 +98,7 @@ type Server struct {
 // NewServer creates a server peer.
 func NewServer(cfg SrvConfig, plugin ...tp.Plugin) *Server {
 	doInit()
-	binder := binder.NewStructArgsBinder(func(handlerName, paramName, reason string) *tp.Rerror {
-		return tp.NewRerror(
-			100001,
-			"Invalid Parameter",
-			fmt.Sprintf(`{"handler": %q, "param": %q, "reason": %q}`, handlerName, paramName, reason),
-		)
-	})
+	binder := binder.NewStructArgsBinder(nil)
 	plugin = append(
 		[]tp.Plugin{binder},
 		plugin...,
@@ -119,10 +113,12 @@ func NewServer(cfg SrvConfig, plugin ...tp.Plugin) *Server {
 			tp.Fatalf("%v", err)
 		}
 	}
-	return &Server{
+	s := &Server{
 		peer:   peer,
 		binder: binder,
 	}
+	s.SetBindErrorFunc(nil)
+	return s
 }
 
 // Peer returns the peer
@@ -131,8 +127,19 @@ func (s *Server) Peer() tp.Peer {
 }
 
 // SetBindErrorFunc sets the binding or balidating error function.
+// Note: If fn=nil, set as default.
 func (s *Server) SetBindErrorFunc(fn binder.ErrorFunc) {
-	s.binder.SetErrorFunc(fn)
+	if fn != nil {
+		s.binder.SetErrorFunc(fn)
+		return
+	}
+	s.binder.SetErrorFunc(func(handlerName, paramName, reason string) *tp.Rerror {
+		return tp.NewRerror(
+			100001,
+			"Invalid Parameter",
+			fmt.Sprintf(`{"handler": %q, "param": %q, "reason": %q}`, handlerName, paramName, reason),
+		)
+	})
 }
 
 // Router returns the root router of pull or push handlers.
