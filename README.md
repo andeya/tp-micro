@@ -482,7 +482,7 @@ type CliConfig struct {
 }
 ```
 
-### Binder(Param-Tags)
+#### Param-Tags
 
 tag   |   key    | required |     value     |   desc
 ------|----------|----------|---------------|----------------------------------
@@ -496,12 +496,13 @@ param |  regexp  |      no      |   (e.g.`^\w+$`)  | Regular expression validati
 param |   rerr   |      no      |(e.g.`100002:wrong password format`)| Custom error code and message
 
 NOTES:
+
 * `param:"-"` means ignore
 * Encountered untagged exportable anonymous structure field, automatic recursive resolution
 * Parameter name is the name of the structure field converted to snake format
 * If the parameter is not from `query` or `swap`, it is the default from the body
 
-- Field-Types
+#### Field-Types
 
 base    |   slice    | special
 --------|------------|------------
