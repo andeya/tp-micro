@@ -116,15 +116,15 @@ type Client struct {
 }
 
 // NewClient creates a client peer.
-func NewClient(cfg CliConfig, linker Linker, plugin ...tp.Plugin) *Client {
+func NewClient(cfg CliConfig, linker Linker, globalLeftPlugin ...tp.Plugin) *Client {
 	doInit()
 	if err := cfg.Check(); err != nil {
 		tp.Fatalf("%v", err)
 	}
 	if cfg.HeartbeatSecond > 0 {
-		plugin = append(plugin, heartbeat.NewPing(cfg.HeartbeatSecond))
+		globalLeftPlugin = append(globalLeftPlugin, heartbeat.NewPing(cfg.HeartbeatSecond))
 	}
-	peer := tp.NewPeer(cfg.peerConfig(), plugin...)
+	peer := tp.NewPeer(cfg.peerConfig(), globalLeftPlugin...)
 	if len(cfg.TlsCertFile) > 0 && len(cfg.TlsKeyFile) > 0 {
 		err := peer.SetTlsConfigFromFile(cfg.TlsCertFile, cfg.TlsKeyFile)
 		if err != nil {
@@ -168,6 +168,11 @@ func (c *Client) SetProtoFunc(protoFunc socket.ProtoFunc) {
 // Peer returns the peer.
 func (c *Client) Peer() tp.Peer {
 	return c.peer
+}
+
+// PluginContainer returns the global plugin container.
+func (c *Client) PluginContainer() *tp.PluginContainer {
+	return c.peer.PluginContainer()
 }
 
 // SubRoute adds handler group.

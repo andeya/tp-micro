@@ -96,17 +96,14 @@ type Server struct {
 }
 
 // NewServer creates a server peer.
-func NewServer(cfg SrvConfig, plugin ...tp.Plugin) *Server {
+func NewServer(cfg SrvConfig, globalLeftPlugin ...tp.Plugin) *Server {
 	doInit()
-	binder := binder.NewStructArgsBinder(nil)
-	plugin = append(
-		[]tp.Plugin{binder},
-		plugin...,
-	)
 	if cfg.EnableHeartbeat {
-		plugin = append(plugin, heartbeat.NewPong())
+		globalLeftPlugin = append(globalLeftPlugin, heartbeat.NewPong())
 	}
-	peer := tp.NewPeer(cfg.peerConfig(), plugin...)
+	peer := tp.NewPeer(cfg.peerConfig(), globalLeftPlugin...)
+	binder := binder.NewStructArgsBinder(nil)
+	peer.PluginContainer().AppendRight(binder)
 	if len(cfg.TlsCertFile) > 0 && len(cfg.TlsKeyFile) > 0 {
 		err := peer.SetTlsConfigFromFile(cfg.TlsCertFile, cfg.TlsKeyFile)
 		if err != nil {
@@ -124,6 +121,11 @@ func NewServer(cfg SrvConfig, plugin ...tp.Plugin) *Server {
 // Peer returns the peer
 func (s *Server) Peer() tp.Peer {
 	return s.peer
+}
+
+// PluginContainer returns the global plugin container.
+func (s *Server) PluginContainer() *tp.PluginContainer {
+	return s.peer.PluginContainer()
 }
 
 // SetBindErrorFunc sets the binding or balidating error function.
