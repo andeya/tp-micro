@@ -485,7 +485,8 @@ type CliConfig struct {
 
 tag   |   key    | required |     value     |   desc
 ------|----------|----------|---------------|----------------------------------
-param |    query    | no |     -      | It indicates that the parameter is from the URI query part, else the parameter is from body. e.g. `/a/b?x={query}`
+param |   query    | no |     -      | It indicates that the parameter is from the URI query part. e.g. `/a/b?x={query}`
+param |   swap    | no |     -      | It indicates that the parameter is from the context swap.
 param |   desc   |      no      |     (e.g.`id`)   | Parameter Description
 param |   len    |      no      |   (e.g.`3:6`)  | Length range [a,b] of parameter's value
 param |   range  |      no      |   (e.g.`0:10`)   | Numerical range [a,b] of parameter's value
@@ -497,6 +498,7 @@ NOTES:
 * `param:"-"` means ignore
 * Encountered untagged exportable anonymous structure field, automatic recursive resolution
 * Parameter name is the name of the structure field converted to snake format
+* If the parameter is not from `query` or `swap`, it is the default from the body
 
 - Field-Types
 
