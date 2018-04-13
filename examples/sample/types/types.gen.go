@@ -4,7 +4,7 @@
 package types
 
 import (
-	"github.com/henrylee2cn/tp-micro/template/logic/model"
+	"github.com/henrylee2cn/tp-micro/examples/sample/logic/model"
 )
 
 // HomeReply home reply
@@ -14,7 +14,7 @@ type HomeReply struct {
 
 type (
 	// DivideArgs divide api args
-	DivideArgs model.DivideArgs
+	DivideArgs = model.DivideArgs
 	// DivideReply divide api result
 	DivideReply struct {
 		// quotient

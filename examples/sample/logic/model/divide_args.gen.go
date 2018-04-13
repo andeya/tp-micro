@@ -23,7 +23,6 @@ type DivideArgs struct {
 	B         float64 `json:"b" param:"<range: 0.01:100000>"`
 	CreatedAt int64   `json:"created_at"`
 	UpdatedAt int64   `json:"updated_at"`
-	Deleted   bool    `json:"deleted"`
 }
 
 // TableName implements 'github.com/xiaoenai/ants/model'.Cacheable
@@ -39,10 +38,10 @@ func InsertDivideArgs(_d *DivideArgs, tx ...*sqlx.Tx) (int64, error) {
 	}
 	return _d.Id, divideArgsDB.TransactCallback(func(tx *sqlx.Tx) error {
 		var query string
-		if _d.Id == 0 {
-			query = "INSERT INTO `divide_args` (`id`,`a`,`b`,`created_at`,`updated_at`,`deleted`,updated_at,created_at,deleted)VALUES(:id,:a,:b,:created_at,:updated_at,:deleted,:updated_at,:created_at,:deleted);"
+		if _d.Id > 0 {
+			query = "INSERT INTO `divide_args` (id,`a`,`b`,`created_at`,`updated_at`)VALUES(:id,:a,:b,:created_at,:updated_at);"
 		} else {
-			query = "INSERT INTO `divide_args` (id,`id`,`a`,`b`,`created_at`,`updated_at`,`deleted`,updated_at,created_at,deleted)VALUES(:id,:id,:a,:b,:created_at,:updated_at,:deleted,:updated_at,:created_at,:deleted);"
+			query = "INSERT INTO `divide_args` (`a`,`b`,`created_at`,`updated_at`)VALUES(:a,:b,:created_at,:updated_at);"
 		}
 		r, err := tx.NamedExec(query, _d)
 		if err != nil {
@@ -61,7 +60,7 @@ func InsertDivideArgs(_d *DivideArgs, tx ...*sqlx.Tx) (int64, error) {
 func UpdateDivideArgsById(_d *DivideArgs, tx ...*sqlx.Tx) error {
 	return divideArgsDB.TransactCallback(func(tx *sqlx.Tx) error {
 		_d.UpdatedAt = coarsetime.FloorTimeNow().Unix()
-		_, err := tx.NamedExec("UPDATE `divide_args` SET `id`=:id,`a`=:a,`b`=:b,`created_at`=:created_at,`updated_at`=:updated_at,`deleted`=:deleted,updated_at=:updated_at WHERE id=:id LIMIT 1;", _d)
+		_, err := tx.NamedExec("UPDATE `divide_args` SET `a`=:a,`b`=:b,`created_at`=:created_at,`updated_at`=:updated_at WHERE id=:id LIMIT 1;", _d)
 		if err != nil {
 			return err
 		}
@@ -72,16 +71,13 @@ func UpdateDivideArgsById(_d *DivideArgs, tx ...*sqlx.Tx) error {
 // DeleteDivideArgsById delete a DivideArgs data in database by id
 func DeleteDivideArgsById(id int64, tx ...*sqlx.Tx) error {
 	return divideArgsDB.TransactCallback(func(tx *sqlx.Tx) error {
-		_d := &DivideArgs{
-			Id:        id,
-			UpdatedAt: coarsetime.FloorTimeNow().Unix(),
-			Deleted:   true,
-		}
-		_, err := tx.Exec("UPDATE `divide_args` SET updated_at=?, deleted=1 WHERE id=?;", _d.UpdatedAt, id)
+		_, err := tx.Exec("DELETE FROM `divide_args` WHERE id=?;", id)
 		if err != nil {
 			return err
 		}
-		return divideArgsDB.PutCache(_d)
+		return divideArgsDB.PutCache(&DivideArgs{
+			Id: id,
+		})
 	}, tx...)
 }
 
@@ -113,7 +109,7 @@ func GetDivideArgsById(id int64) (*DivideArgs, bool, error) {
 // if @reply bool=false error=nil, means the data is not exist.
 func GetDivideArgsByWhere(whereCond string, args ...interface{}) (*DivideArgs, bool, error) {
 	var _d = new(DivideArgs)
-	err := divideArgsDB.Get(_d, "SELECT id,`id`,`a`,`b`,`created_at`,`updated_at`,`deleted`,updated_at,created_at,deleted FROM `divide_args` WHERE "+whereCond+" LIMIT 1;", args...)
+	err := divideArgsDB.Get(_d, "SELECT id,`a`,`b`,`created_at`,`updated_at` FROM `divide_args` WHERE "+whereCond+" LIMIT 1;", args...)
 	switch err {
 	case nil:
 		return _d, true, nil
@@ -127,7 +123,7 @@ func GetDivideArgsByWhere(whereCond string, args ...interface{}) (*DivideArgs, b
 // SelectDivideArgsByWhere query some DivideArgs data from database by WHERE condition
 func SelectDivideArgsByWhere(whereCond string, args ...interface{}) ([]*DivideArgs, error) {
 	var objs = new([]*DivideArgs)
-	err := divideArgsDB.Select(objs, "SELECT id,`id`,`a`,`b`,`created_at`,`updated_at`,`deleted`,updated_at,created_at,deleted FROM `divide_args` WHERE "+whereCond, args...)
+	err := divideArgsDB.Select(objs, "SELECT id,`a`,`b`,`created_at`,`updated_at` FROM `divide_args` WHERE "+whereCond, args...)
 	return *objs, err
 }
 

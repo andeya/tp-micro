@@ -10,7 +10,7 @@ import (
 	"github.com/henrylee2cn/tp-micro/discovery"
 	"github.com/henrylee2cn/tp-micro/discovery/etcd"
 
-	"github.com/henrylee2cn/tp-micro/template/types"
+	"github.com/henrylee2cn/tp-micro/examples/sample/types"
 )
 
 var client *micro.Client
@@ -31,18 +31,18 @@ func InitWithClient(cli *micro.Client) {
 // Home comment...
 func Home(args *struct{}, setting ...socket.PacketSetting) (*types.HomeReply, *tp.Rerror) {
 	reply := new(types.HomeReply)
-	rerr := client.Pull("/template/home", args, reply, setting...).Rerror()
+	rerr := client.Pull("/sample/home", args, reply, setting...).Rerror()
 	return reply, rerr
 }
 
 // Math_Divide handler
 func Math_Divide(args *types.DivideArgs, setting ...socket.PacketSetting) (*types.DivideReply, *tp.Rerror) {
 	reply := new(types.DivideReply)
-	rerr := client.Pull("/template/math/divide", args, reply, setting...).Rerror()
+	rerr := client.Pull("/sample/math/divide", args, reply, setting...).Rerror()
 	return reply, rerr
 }
 
 // Stat comment...
 func Stat(args *types.StatArgs, setting ...socket.PacketSetting) *tp.Rerror {
-	return client.Push("/template/stat", args, setting...)
+	return client.Push("/sample/stat", args, setting...)
 }

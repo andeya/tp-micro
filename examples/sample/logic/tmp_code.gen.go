@@ -7,8 +7,8 @@ package logic
 import (
 	tp "github.com/henrylee2cn/teleport"
 
-	"github.com/henrylee2cn/tp-micro/template/types"
-	// "github.com/henrylee2cn/tp-micro/template/rerrs"
+	"github.com/henrylee2cn/tp-micro/examples/sample/types"
+	// "github.com/henrylee2cn/tp-micro/examples/sample/rerrs"
 )
 
 // Home comment...

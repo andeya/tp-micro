@@ -6,8 +6,8 @@ package api
 import (
 	tp "github.com/henrylee2cn/teleport"
 
-	"github.com/henrylee2cn/tp-micro/template/logic"
-	"github.com/henrylee2cn/tp-micro/template/types"
+	"github.com/henrylee2cn/tp-micro/examples/sample/logic"
+	"github.com/henrylee2cn/tp-micro/examples/sample/types"
 )
 
 // Home comment...

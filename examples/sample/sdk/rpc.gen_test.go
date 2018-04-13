@@ -10,7 +10,7 @@ import (
 	micro "github.com/henrylee2cn/tp-micro"
 	"github.com/henrylee2cn/tp-micro/discovery/etcd"
 
-	"github.com/henrylee2cn/tp-micro/template/types"
+	"github.com/henrylee2cn/tp-micro/examples/sample/types"
 )
 
 // TestSdk test SDK.
