@@ -129,7 +129,7 @@ func main() {
 
 ```sh
 go get -u -f -d github.com/xiaoenai/ants/...
-cd $GOPATH/src/github.com/xiaoenai/ants/ant
+cd $GOPATH/src/github.com/xiaoenai/ants/cmd/ant
 go install
 ```
 
@@ -254,7 +254,7 @@ OPTIONS:
 
 example: `ant run -x .yaml -p myant` or `ant run`
 
-[更多 Ant 命令](https://github.com/xiaoenai/ants/tree/master/ant)
+[更多 Ant 命令](https://github.com/xiaoenai/ants/tree/master/cmd/ant)
 
 
 ## 用法

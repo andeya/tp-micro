@@ -134,7 +134,7 @@ Command ant is deployment tools of ant microservice frameware.
 
 ```sh
 go get -u -f -d github.com/xiaoenai/ants/...
-cd $GOPATH/src/github.com/xiaoenai/ants/ant
+cd $GOPATH/src/github.com/xiaoenai/ants/cmd/ant
 go install
 ```
 
@@ -258,7 +258,7 @@ OPTIONS:
 
 example: `ant run -x .yaml -p myant` or `ant run`
 
-[More Ant Command](https://github.com/xiaoenai/ants/tree/master/ant)
+[More Ant Command](https://github.com/xiaoenai/ants/tree/master/cmd/ant)
 
 ## Usage
 
