@@ -218,6 +218,7 @@ type StatArgs struct {
 ```
 ├── README.md
 ├── main.go
+├── config.go
 ├── api
 │   ├── handlers.gen.go
 │   ├── handlers.go
