@@ -26,3 +26,6 @@ type (
 type StatArgs struct {
 	Ts int64 `json:"ts"` // timestamps
 }
+
+// User user info
+type User = model.User

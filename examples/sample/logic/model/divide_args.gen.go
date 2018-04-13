@@ -9,10 +9,9 @@ import (
 
 	"github.com/henrylee2cn/goutil/coarsetime"
 	tp "github.com/henrylee2cn/teleport"
+	"github.com/xiaoenai/ants/model"
 	"github.com/xiaoenai/ants/model/sqlx"
 )
-
-var divideArgsDB, _ = dbHandler.RegCacheableDB(new(DivideArgs), time.Hour*24, ``)
 
 // DivideArgs divide api args
 type DivideArgs struct {
@@ -30,7 +29,14 @@ func (*DivideArgs) TableName() string {
 	return "divide_args"
 }
 
-// InsertDivideArgs insert a DivideArgs data into database
+var divideArgsDB, _ = dbHandler.RegCacheableDB(new(DivideArgs), time.Hour*24, ``)
+
+// GetDivideArgsDB returns the DivideArgs DB handler.
+func GetDivideArgsDB() *model.CacheableDB {
+	return divideArgsDB
+}
+
+// InsertDivideArgs insert a DivideArgs data into database.
 func InsertDivideArgs(_d *DivideArgs, tx ...*sqlx.Tx) (int64, error) {
 	_d.UpdatedAt = coarsetime.FloorTimeNow().Unix()
 	if _d.CreatedAt == 0 {
@@ -56,7 +62,7 @@ func InsertDivideArgs(_d *DivideArgs, tx ...*sqlx.Tx) (int64, error) {
 	}, tx...)
 }
 
-// UpdateDivideArgsById update the DivideArgs data in database by id
+// UpdateDivideArgsById update the DivideArgs data in database by id.
 func UpdateDivideArgsById(_d *DivideArgs, tx ...*sqlx.Tx) error {
 	return divideArgsDB.TransactCallback(func(tx *sqlx.Tx) error {
 		_d.UpdatedAt = coarsetime.FloorTimeNow().Unix()
@@ -68,7 +74,7 @@ func UpdateDivideArgsById(_d *DivideArgs, tx ...*sqlx.Tx) error {
 	}, tx...)
 }
 
-// DeleteDivideArgsById delete a DivideArgs data in database by id
+// DeleteDivideArgsById delete a DivideArgs data in database by id.
 func DeleteDivideArgsById(id int64, tx ...*sqlx.Tx) error {
 	return divideArgsDB.TransactCallback(func(tx *sqlx.Tx) error {
 		_, err := tx.Exec("DELETE FROM `divide_args` WHERE id=?;", id)
@@ -81,8 +87,8 @@ func DeleteDivideArgsById(id int64, tx ...*sqlx.Tx) error {
 	}, tx...)
 }
 
-// GetDivideArgsById query a DivideArgs data from database by id
-// if @reply bool=false error=nil, means the data is not exist.
+// GetDivideArgsById query a DivideArgs data from database by id.
+// If @reply bool=false error=nil, means the data is not exist.
 func GetDivideArgsById(id int64) (*DivideArgs, bool, error) {
 	var _d = &DivideArgs{
 		Id: id,
@@ -106,7 +112,7 @@ func GetDivideArgsById(id int64) (*DivideArgs, bool, error) {
 }
 
 // GetDivideArgsByWhere query a DivideArgs data from database by WHERE condition.
-// if @reply bool=false error=nil, means the data is not exist.
+// If @reply bool=false error=nil, means the data is not exist.
 func GetDivideArgsByWhere(whereCond string, args ...interface{}) (*DivideArgs, bool, error) {
 	var _d = new(DivideArgs)
 	err := divideArgsDB.Get(_d, "SELECT id,`a`,`b`,`created_at`,`updated_at` FROM `divide_args` WHERE "+whereCond+" LIMIT 1;", args...)
@@ -120,14 +126,14 @@ func GetDivideArgsByWhere(whereCond string, args ...interface{}) (*DivideArgs, b
 	}
 }
 
-// SelectDivideArgsByWhere query some DivideArgs data from database by WHERE condition
+// SelectDivideArgsByWhere query some DivideArgs data from database by WHERE condition.
 func SelectDivideArgsByWhere(whereCond string, args ...interface{}) ([]*DivideArgs, error) {
 	var objs = new([]*DivideArgs)
 	err := divideArgsDB.Select(objs, "SELECT id,`a`,`b`,`created_at`,`updated_at` FROM `divide_args` WHERE "+whereCond, args...)
 	return *objs, err
 }
 
-// CountDivideArgsByWhere count DivideArgs data number from database by WHERE condition
+// CountDivideArgsByWhere count DivideArgs data number from database by WHERE condition.
 func CountDivideArgsByWhere(whereCond string, args ...interface{}) (int64, error) {
 	var count int64
 	err := divideArgsDB.Get(&count, "SELECT count(1) FROM `divide_args` WHERE "+whereCond, args...)
