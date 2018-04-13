@@ -50,32 +50,32 @@ go get -u -f github.com/henrylee2cn/tp-micro
 package main
 
 import (
-  micro "github.com/henrylee2cn/tp-micro"
-  tp "github.com/henrylee2cn/teleport"
+    micro "github.com/henrylee2cn/tp-micro"
+    tp "github.com/henrylee2cn/teleport"
 )
 
 // Args args
 type Args struct {
-  A int
-  B int `param:"<range:1:>"`
+    A int
+    B int `param:"<range:1:>"`
 }
 
 // P handler
 type P struct {
-  tp.PullCtx
+    tp.PullCtx
 }
 
 // Divide divide API
 func (p *P) Divide(args *Args) (int, *tp.Rerror) {
-  return args.A / args.B, nil
+    return args.A / args.B, nil
 }
 
 func main() {
-  srv := micro.NewServer(micro.SrvConfig{
-    ListenAddress: ":9090",
-  })
-  srv.RoutePull(new(P))
-  srv.ListenAndServe()
+    srv := micro.NewServer(micro.SrvConfig{
+        ListenAddress: ":9090",
+    })
+    srv.RoutePull(new(P))
+    srv.ListenAndServe()
 }
 ```
 
@@ -85,39 +85,39 @@ func main() {
 package main
 
 import (
-  micro "github.com/henrylee2cn/tp-micro"
-  tp "github.com/henrylee2cn/teleport"
+    micro "github.com/henrylee2cn/tp-micro"
+    tp "github.com/henrylee2cn/teleport"
 )
 
 func main() {
-  cli := micro.NewClient(
-    micro.CliConfig{},
-    micro.NewStaticLinker(":9090"),
-  )
-  defer cli.Close()
+    cli := micro.NewClient(
+        micro.CliConfig{},
+        micro.NewStaticLinker(":9090"),
+    )
+    defer cli.Close()
 
-  type Args struct {
-    A int
-    B int
-  }
+    type Args struct {
+        A int
+        B int
+    }
 
-  var reply int
-  rerr := cli.Pull("/p/divide", &Args{
-    A: 10,
-    B: 2,
-  }, &reply).Rerror()
-  if rerr != nil {
-    tp.Fatalf("%v", rerr)
-  }
-  tp.Infof("10/2=%d", reply)
-  rerr = cli.Pull("/p/divide", &Args{
-    A: 10,
-    B: 0,
-  }, &reply).Rerror()
-  if rerr == nil {
-    tp.Fatalf("%v", rerr)
-  }
-  tp.Infof("test binding error: ok: %v", rerr)
+    var reply int
+    rerr := cli.Pull("/p/divide", &Args{
+        A: 10,
+        B: 2,
+    }, &reply).Rerror()
+    if rerr != nil {
+        tp.Fatalf("%v", rerr)
+    }
+    tp.Infof("10/2=%d", reply)
+    rerr = cli.Pull("/p/divide", &Args{
+        A: 10,
+        B: 0,
+    }, &reply).Rerror()
+    if rerr == nil {
+        tp.Fatalf("%v", rerr)
+    }
+    tp.Infof("test binding error: ok: %v", rerr)
 }
 ```
 
@@ -176,6 +176,11 @@ type __API__PUSH__ interface {
     Stat(*StatArgs)
 }
 
+// MODEL create model
+type __MODEL__ struct {
+    DivideArgs
+}
+
 // Math controller
 type Math interface {
     // Divide handler
@@ -219,6 +224,9 @@ type StatArgs struct {
 │   ├── router.gen.go
 │   └── router.go
 ├── logic
+│   ├── model
+│   │   ├── init.go
+│   │   └── xxx.gen.go
 │   └── tmp_code.gen.go
 ├── rerrs
 │   └── rerrs.go

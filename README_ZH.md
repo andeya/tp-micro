@@ -46,32 +46,32 @@ go get -u -f github.com/henrylee2cn/tp-micro
 package main
 
 import (
-  micro "github.com/henrylee2cn/tp-micro"
-  tp "github.com/henrylee2cn/teleport"
+    micro "github.com/henrylee2cn/tp-micro"
+    tp "github.com/henrylee2cn/teleport"
 )
 
 // Args args
 type Args struct {
-  A int
-  B int `param:"<range:1:>"`
+    A int
+    B int `param:"<range:1:>"`
 }
 
 // P handler
 type P struct {
-  tp.PullCtx
+    tp.PullCtx
 }
 
 // Divide divide API
 func (p *P) Divide(args *Args) (int, *tp.Rerror) {
-  return args.A / args.B, nil
+    return args.A / args.B, nil
 }
 
 func main() {
-  srv := micro.NewServer(micro.SrvConfig{
-    ListenAddress: ":9090",
-  })
-  srv.RoutePull(new(P))
-  srv.ListenAndServe()
+    srv := micro.NewServer(micro.SrvConfig{
+        ListenAddress: ":9090",
+    })
+    srv.RoutePull(new(P))
+    srv.ListenAndServe()
 }
 ```
 
@@ -81,39 +81,39 @@ func main() {
 package main
 
 import (
-  micro "github.com/henrylee2cn/tp-micro"
-  tp "github.com/henrylee2cn/teleport"
+    micro "github.com/henrylee2cn/tp-micro"
+    tp "github.com/henrylee2cn/teleport"
 )
 
 func main() {
-  cli := micro.NewClient(
-    micro.CliConfig{},
-    micro.NewStaticLinker(":9090"),
-  )
-  defer cli.Close()
+    cli := micro.NewClient(
+        micro.CliConfig{},
+        micro.NewStaticLinker(":9090"),
+    )
+    defer cli.Close()
 
-  type Args struct {
-    A int
-    B int
-  }
+    type Args struct {
+        A int
+        B int
+    }
 
-  var reply int
-  rerr := cli.Pull("/p/divide", &Args{
-    A: 10,
-    B: 2,
-  }, &reply).Rerror()
-  if rerr != nil {
-    tp.Fatalf("%v", rerr)
-  }
-  tp.Infof("10/2=%d", reply)
-  rerr = cli.Pull("/p/divide", &Args{
-    A: 10,
-    B: 0,
-  }, &reply).Rerror()
-  if rerr == nil {
-    tp.Fatalf("%v", rerr)
-  }
-  tp.Infof("test binding error: ok: %v", rerr)
+    var reply int
+    rerr := cli.Pull("/p/divide", &Args{
+        A: 10,
+        B: 2,
+    }, &reply).Rerror()
+    if rerr != nil {
+        tp.Fatalf("%v", rerr)
+    }
+    tp.Infof("10/2=%d", reply)
+    rerr = cli.Pull("/p/divide", &Args{
+        A: 10,
+        B: 0,
+    }, &reply).Rerror()
+    if rerr == nil {
+        tp.Fatalf("%v", rerr)
+    }
+    tp.Infof("test binding error: ok: %v", rerr)
 }
 ```
 
@@ -139,14 +139,14 @@ go install
 
 ```
 NAME:
-   ant gen - Generate an ant project
+     ant gen - Generate an ant project
 
 USAGE:
-   ant gen [command options] [arguments...]
+     ant gen [command options] [arguments...]
 
 OPTIONS:
-   --template value, -t value    The template for code generation(relative/absolute)
-   --app_path value, -p value  The path(relative/absolute) of the project
+     --template value, -t value    The template for code generation(relative/absolute)
+     --app_path value, -p value  The path(relative/absolute) of the project
 ```
 
 example: `ant gen -t ./__ant__tpl__.go -p ./myant` or default `ant gen myant`
@@ -169,6 +169,11 @@ type __API__PULL__ interface {
 //  /stat
 type __API__PUSH__ interface {
     Stat(*StatArgs)
+}
+
+// MODEL create model
+type __MODEL__ struct {
+    DivideArgs
 }
 
 // Math controller
@@ -214,6 +219,9 @@ type StatArgs struct {
 │   ├── router.gen.go
 │   └── router.go
 ├── logic
+│   ├── model
+│   │   ├── init.go
+│   │   └── xxx.gen.go
 │   └── tmp_code.gen.go
 ├── rerrs
 │   └── rerrs.go
@@ -223,8 +231,8 @@ type StatArgs struct {
 │   ├── rpc.go
 │   └── rpc_test.go
 └── types
-    ├── types.gen.go
-    └── types.go
+        ├── types.gen.go
+        └── types.go
 ```
 
 
@@ -239,17 +247,17 @@ type StatArgs struct {
 
 ```
 NAME:
-   ant run - Compile and run gracefully (monitor changes) an any existing go project
+     ant run - Compile and run gracefully (monitor changes) an any existing go project
 
 USAGE:
-   ant run [options] [arguments...]
+     ant run [options] [arguments...]
  or
-   ant run [options except -app_path] [arguments...] {app_path}
+     ant run [options except -app_path] [arguments...] {app_path}
 
 OPTIONS:
-   --watch_exts value, -x value  Specified to increase the listening file suffix (default: ".go", ".ini", ".yaml", ".toml", ".xml")
-   --notwatch value, -n value    Not watch files or directories
-   --app_path value, -p value    The path(relative/absolute) of the project
+     --watch_exts value, -x value  Specified to increase the listening file suffix (default: ".go", ".ini", ".yaml", ".toml", ".xml")
+     --notwatch value, -n value    Not watch files or directories
+     --app_path value, -p value    The path(relative/absolute) of the project
 ```
 
 example: `ant run -x .yaml -p myant` or `ant run`
@@ -264,7 +272,7 @@ example: `ant run -x .yaml -p myant` or `ant run`
 ```go
 // Start a server
 var peer1 = tp.NewPeer(tp.PeerConfig{
-    ListenAddress: "0.0.0.0:9090", // for server role
+        ListenAddress: "0.0.0.0:9090", // for server role
 })
 peer1.Listen()
 
@@ -280,11 +288,11 @@ var sess, err = peer2.Dial("127.0.0.1:8080")
 
 ```go
 type Aaa struct {
-    tp.PullCtx
+        tp.PullCtx
 }
 func (x *Aaa) XxZz(args *<T>) (<T>, *tp.Rerror) {
-    ...
-    return r, nil
+        ...
+        return r, nil
 }
 ```
 
@@ -302,8 +310,8 @@ peer.RoutePullFunc((*Aaa).XxZz)
 
 ```go
 func XxZz(ctx tp.PullCtx, args *<T>) (<T>, *tp.Rerror) {
-    ...
-    return r, nil
+        ...
+        return r, nil
 }
 ```
 
@@ -318,11 +326,11 @@ peer.RoutePullFunc(XxZz)
 
 ```go
 type Bbb struct {
-    tp.PushCtx
+        tp.PushCtx
 }
 func (b *Bbb) YyZz(args *<T>) *tp.Rerror {
-    ...
-    return nil
+        ...
+        return nil
 }
 ```
 
@@ -341,8 +349,8 @@ peer.RoutePushFunc((*Bbb).YyZz)
 ```go
 // YyZz register the route: /yy_zz
 func YyZz(ctx tp.PushCtx, args *<T>) *tp.Rerror {
-    ...
-    return nil
+        ...
+        return nil
 }
 ```
 
@@ -357,8 +365,8 @@ peer.RoutePushFunc(YyZz)
 
 ```go
 func XxxUnknownPull (ctx tp.UnknownPullCtx) (interface{}, *tp.Rerror) {
-    ...
-    return r, nil
+        ...
+        return r, nil
 }
 ```
 
@@ -373,8 +381,8 @@ peer.SetUnknownPull(XxxUnknownPull)
 
 ```go
 func XxxUnknownPush(ctx tp.UnknownPushCtx) *tp.Rerror {
-    ...
-    return nil
+        ...
+        return nil
 }
 ```
 
@@ -401,30 +409,30 @@ peer.SetUnknownPush(XxxUnknownPush)
 ```go
 // NewIgnoreCase Returns a ignoreCase plugin.
 func NewIgnoreCase() *ignoreCase {
-    return &ignoreCase{}
+        return &ignoreCase{}
 }
 
 type ignoreCase struct{}
 
 var (
-    _ tp.PostReadPullHeaderPlugin = new(ignoreCase)
-    _ tp.PostReadPushHeaderPlugin = new(ignoreCase)
+        _ tp.PostReadPullHeaderPlugin = new(ignoreCase)
+        _ tp.PostReadPushHeaderPlugin = new(ignoreCase)
 )
 
 func (i *ignoreCase) Name() string {
-    return "ignoreCase"
+        return "ignoreCase"
 }
 
 func (i *ignoreCase) PostReadPullHeader(ctx tp.ReadCtx) *tp.Rerror {
-    // Dynamic transformation path is lowercase
-    ctx.UriObject().Path = strings.ToLower(ctx.UriObject().Path)
-    return nil
+        // Dynamic transformation path is lowercase
+        ctx.UriObject().Path = strings.ToLower(ctx.UriObject().Path)
+        return nil
 }
 
 func (i *ignoreCase) PostReadPushHeader(ctx tp.ReadCtx) *tp.Rerror {
-    // Dynamic transformation path is lowercase
-    ctx.UriObject().Path = strings.ToLower(ctx.UriObject().Path)
-    return nil
+        // Dynamic transformation path is lowercase
+        ctx.UriObject().Path = strings.ToLower(ctx.UriObject().Path)
+        return nil
 }
 ```
 
@@ -447,36 +455,36 @@ peer.SetUnknownPush(XxxUnknownPush)
 ```go
 // SrvConfig server config
 type SrvConfig struct {
-    TlsCertFile       string        `yaml:"tls_cert_file"        ini:"tls_cert_file"        comment:"TLS certificate file path"`
-    TlsKeyFile        string        `yaml:"tls_key_file"         ini:"tls_key_file"         comment:"TLS key file path"`
-    DefaultSessionAge time.Duration `yaml:"default_session_age"  ini:"default_session_age"  comment:"Default session max age, if less than or equal to 0, no time limit; ns,µs,ms,s,m,h"`
-    DefaultContextAge time.Duration `yaml:"default_context_age"  ini:"default_context_age"  comment:"Default PULL or PUSH context max age, if less than or equal to 0, no time limit; ns,µs,ms,s,m,h"`
-    SlowCometDuration time.Duration `yaml:"slow_comet_duration"  ini:"slow_comet_duration"  comment:"Slow operation alarm threshold; ns,µs,ms,s ..."`
-    DefaultBodyCodec  string        `yaml:"default_body_codec"   ini:"default_body_codec"   comment:"Default body codec type id"`
-    PrintBody         bool          `yaml:"print_body"           ini:"print_body"           comment:"Is print body or not"`
-    CountTime         bool          `yaml:"count_time"           ini:"count_time"           comment:"Is count cost time or not"`
-    Network           string        `yaml:"network"              ini:"network"              comment:"Network; tcp, tcp4, tcp6, unix or unixpacket"`
-    ListenAddress     string        `yaml:"listen_address"       ini:"listen_address"       comment:"Listen address; for server role"`
-    EnableHeartbeat   bool          `yaml:"enable_heartbeat"     ini:"enable_heartbeat"     comment:"enable heartbeat"`
+        TlsCertFile       string        `yaml:"tls_cert_file"        ini:"tls_cert_file"        comment:"TLS certificate file path"`
+        TlsKeyFile        string        `yaml:"tls_key_file"         ini:"tls_key_file"         comment:"TLS key file path"`
+        DefaultSessionAge time.Duration `yaml:"default_session_age"  ini:"default_session_age"  comment:"Default session max age, if less than or equal to 0, no time limit; ns,µs,ms,s,m,h"`
+        DefaultContextAge time.Duration `yaml:"default_context_age"  ini:"default_context_age"  comment:"Default PULL or PUSH context max age, if less than or equal to 0, no time limit; ns,µs,ms,s,m,h"`
+        SlowCometDuration time.Duration `yaml:"slow_comet_duration"  ini:"slow_comet_duration"  comment:"Slow operation alarm threshold; ns,µs,ms,s ..."`
+        DefaultBodyCodec  string        `yaml:"default_body_codec"   ini:"default_body_codec"   comment:"Default body codec type id"`
+        PrintBody         bool          `yaml:"print_body"           ini:"print_body"           comment:"Is print body or not"`
+        CountTime         bool          `yaml:"count_time"           ini:"count_time"           comment:"Is count cost time or not"`
+        Network           string        `yaml:"network"              ini:"network"              comment:"Network; tcp, tcp4, tcp6, unix or unixpacket"`
+        ListenAddress     string        `yaml:"listen_address"       ini:"listen_address"       comment:"Listen address; for server role"`
+        EnableHeartbeat   bool          `yaml:"enable_heartbeat"     ini:"enable_heartbeat"     comment:"enable heartbeat"`
 }
 
 // CliConfig client config
 type CliConfig struct {
-    TlsCertFile         string        `yaml:"tls_cert_file"          ini:"tls_cert_file"          comment:"TLS certificate file path"`
-    TlsKeyFile          string        `yaml:"tls_key_file"           ini:"tls_key_file"           comment:"TLS key file path"`
-    DefaultSessionAge   time.Duration `yaml:"default_session_age"    ini:"default_session_age"    comment:"Default session max age, if less than or equal to 0, no time limit; ns,µs,ms,s,m,h"`
-    DefaultContextAge   time.Duration `yaml:"default_context_age"    ini:"default_context_age"    comment:"Default PULL or PUSH context max age, if less than or equal to 0, no time limit; ns,µs,ms,s,m,h"`
-    DefaultDialTimeout  time.Duration `yaml:"default_dial_timeout"   ini:"default_dial_timeout"   comment:"Default maximum duration for dialing; for client role; ns,µs,ms,s,m,h"`
-    RedialTimes         int           `yaml:"redial_times"           ini:"redial_times"           comment:"The maximum times of attempts to redial, after the connection has been unexpectedly broken; for client role"`
-    Failover            int           `yaml:"failover"               ini:"failover"               comment:"The maximum times of failover"`
-    SlowCometDuration   time.Duration `yaml:"slow_comet_duration"    ini:"slow_comet_duration"    comment:"Slow operation alarm threshold; ns,µs,ms,s ..."`
-    DefaultBodyCodec    string        `yaml:"default_body_codec"     ini:"default_body_codec"     comment:"Default body codec type id"`
-    PrintBody           bool          `yaml:"print_body"             ini:"print_body"             comment:"Is print body or not"`
-    CountTime           bool          `yaml:"count_time"             ini:"count_time"             comment:"Is count cost time or not"`
-    Network             string        `yaml:"network"                ini:"network"                comment:"Network; tcp, tcp4, tcp6, unix or unixpacket"`
-    HeartbeatSecond     int           `yaml:"heartbeat_second"       ini:"heartbeat_second"       comment:"When the heartbeat interval(second) is greater than 0, heartbeat is enabled; if it's smaller than 3, change to 3 default"`
-    SessMaxQuota        int           `yaml:"sess_max_quota"         ini:"sess_max_quota"         comment:"The maximum number of sessions in the connection pool"`
-    SessMaxIdleDuration time.Duration `yaml:"sess_max_idle_duration" ini:"sess_max_idle_duration" comment:"The maximum time period for the idle session in the connection pool; ns,µs,ms,s,m,h"`
+        TlsCertFile         string        `yaml:"tls_cert_file"          ini:"tls_cert_file"          comment:"TLS certificate file path"`
+        TlsKeyFile          string        `yaml:"tls_key_file"           ini:"tls_key_file"           comment:"TLS key file path"`
+        DefaultSessionAge   time.Duration `yaml:"default_session_age"    ini:"default_session_age"    comment:"Default session max age, if less than or equal to 0, no time limit; ns,µs,ms,s,m,h"`
+        DefaultContextAge   time.Duration `yaml:"default_context_age"    ini:"default_context_age"    comment:"Default PULL or PUSH context max age, if less than or equal to 0, no time limit; ns,µs,ms,s,m,h"`
+        DefaultDialTimeout  time.Duration `yaml:"default_dial_timeout"   ini:"default_dial_timeout"   comment:"Default maximum duration for dialing; for client role; ns,µs,ms,s,m,h"`
+        RedialTimes         int           `yaml:"redial_times"           ini:"redial_times"           comment:"The maximum times of attempts to redial, after the connection has been unexpectedly broken; for client role"`
+        Failover            int           `yaml:"failover"               ini:"failover"               comment:"The maximum times of failover"`
+        SlowCometDuration   time.Duration `yaml:"slow_comet_duration"    ini:"slow_comet_duration"    comment:"Slow operation alarm threshold; ns,µs,ms,s ..."`
+        DefaultBodyCodec    string        `yaml:"default_body_codec"     ini:"default_body_codec"     comment:"Default body codec type id"`
+        PrintBody           bool          `yaml:"print_body"             ini:"print_body"             comment:"Is print body or not"`
+        CountTime           bool          `yaml:"count_time"             ini:"count_time"             comment:"Is count cost time or not"`
+        Network             string        `yaml:"network"                ini:"network"                comment:"Network; tcp, tcp4, tcp6, unix or unixpacket"`
+        HeartbeatSecond     int           `yaml:"heartbeat_second"       ini:"heartbeat_second"       comment:"When the heartbeat interval(second) is greater than 0, heartbeat is enabled; if it's smaller than 3, change to 3 default"`
+        SessMaxQuota        int           `yaml:"sess_max_quota"         ini:"sess_max_quota"         comment:"The maximum number of sessions in the connection pool"`
+        SessMaxIdleDuration time.Duration `yaml:"sess_max_idle_duration" ini:"sess_max_idle_duration" comment:"The maximum time period for the idle session in the connection pool; ns,µs,ms,s,m,h"`
 }
 ```
 
@@ -529,42 +537,42 @@ float64 |  []float64 |
 package main
 
 import (
-  tp "github.com/henrylee2cn/teleport"
-  micro "github.com/henrylee2cn/tp-micro"
+    tp "github.com/henrylee2cn/teleport"
+    micro "github.com/henrylee2cn/tp-micro"
 )
 
 type (
-  // Args args
-  Args struct {
-    A int
-    B int `param:"<range:1:100>"`
-    Query
-    XyZ string `param:"<query><nonzero><rerr: 100002: Parameter cannot be empty>"`
-  }
-  Query struct {
-    X string `param:"<query>"`
-  }
+    // Args args
+    Args struct {
+        A int
+        B int `param:"<range:1:100>"`
+        Query
+        XyZ string `param:"<query><nonzero><rerr: 100002: Parameter cannot be empty>"`
+    }
+    Query struct {
+        X string `param:"<query>"`
+    }
 )
 
 // P handler
 type P struct {
-  tp.PullCtx
+    tp.PullCtx
 }
 
 // Divide divide API
 func (p *P) Divide(args *Args) (int, *tp.Rerror) {
-  tp.Infof("query args x: %s, xy_z: %s", args.Query.X, args.XyZ)
-  return args.A / args.B, nil
+    tp.Infof("query args x: %s, xy_z: %s", args.Query.X, args.XyZ)
+    return args.A / args.B, nil
 }
 
 func main() {
-  srv := micro.NewServer(micro.SrvConfig{
-    ListenAddress:   ":9090",
-    EnableHeartbeat: true,
-  })
-  group := srv.SubRoute("/static")
-  group.RoutePull(new(P))
-  srv.ListenAndServe()
+    srv := micro.NewServer(micro.SrvConfig{
+        ListenAddress:   ":9090",
+        EnableHeartbeat: true,
+    })
+    group := srv.SubRoute("/static")
+    group.RoutePull(new(P))
+    srv.ListenAndServe()
 }
 ```
 
@@ -574,42 +582,42 @@ func main() {
 ### 通信优化
 
 - SetPacketSizeLimit 设置包大小的上限，
-  如果 maxSize<=0，上限默认为最大 uint32
+    如果 maxSize<=0，上限默认为最大 uint32
 
-    ```go
-    func SetPacketSizeLimit(maxPacketSize uint32)
-    ```
+        ```go
+        func SetPacketSizeLimit(maxPacketSize uint32)
+        ```
 
 - SetSocketKeepAlive 是否允许操作系统的发送TCP的keepalive探测包
 
-    ```go
-    func SetSocketKeepAlive(keepalive bool)
-    ```
+        ```go
+        func SetSocketKeepAlive(keepalive bool)
+        ```
 
 
 - SetSocketKeepAlivePeriod 设置操作系统的TCP发送keepalive探测包的频度
 
-    ```go
-    func SetSocketKeepAlivePeriod(d time.Duration)
-    ```
+        ```go
+        func SetSocketKeepAlivePeriod(d time.Duration)
+        ```
 
 - SetSocketNoDelay 是否禁用Nagle算法，禁用后将不在合并较小数据包进行批量发送，默认为禁用
 
-    ```go
-    func SetSocketNoDelay(_noDelay bool)
-    ```
+        ```go
+        func SetSocketNoDelay(_noDelay bool)
+        ```
 
 - SetSocketReadBuffer 设置操作系统的TCP读缓存区的大小
 
-    ```go
-    func SetSocketReadBuffer(bytes int)
-    ```
+        ```go
+        func SetSocketReadBuffer(bytes int)
+        ```
 
 - SetSocketWriteBuffer 设置操作系统的TCP写缓存区的大小
 
-    ```go
-    func SetSocketWriteBuffer(bytes int)
-    ```
+        ```go
+        func SetSocketWriteBuffer(bytes int)
+        ```
 
 [More Usage](https://github.com/henrylee2cn/teleport)
 
