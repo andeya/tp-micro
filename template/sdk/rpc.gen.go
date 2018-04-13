@@ -7,16 +7,19 @@ import (
 	tp "github.com/henrylee2cn/teleport"
 	"github.com/henrylee2cn/teleport/socket"
 	micro "github.com/henrylee2cn/tp-micro"
-	"github.com/henrylee2cn/tp-micro/examples/template/types"
+	"github.com/henrylee2cn/tp-micro/discovery"
+	"github.com/henrylee2cn/tp-micro/discovery/etcd"
+
+	"github.com/henrylee2cn/tp-micro/template/types"
 )
 
 var client *micro.Client
 
 // Init init client with config and linker.
-func Init(cliConfig micro.CliConfig, linker micro.Linker) {
+func Init(cliConfig micro.CliConfig, etcdConfing etcd.EasyConfig) {
 	client = micro.NewClient(
 		cliConfig,
-		linker,
+		discovery.NewLinker(etcdConfing),
 	)
 }
 

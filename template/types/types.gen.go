@@ -3,6 +3,10 @@
 
 package types
 
+import (
+	"github.com/henrylee2cn/tp-micro/template/logic/model"
+)
+
 // HomeReply home reply
 type HomeReply struct {
 	Content string `json:"content"` // text
@@ -10,13 +14,7 @@ type HomeReply struct {
 
 type (
 	// DivideArgs divide api args
-	DivideArgs struct {
-		// dividend
-		A float64 `json:"a"`
-		// divisor
-		B float64 `json:"b" param:"<range: 0.01:100000>"`
-	}
-
+	DivideArgs model.DivideArgs
 	// DivideReply divide api result
 	DivideReply struct {
 		// quotient

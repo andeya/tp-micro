@@ -6,17 +6,19 @@ package logic
 
 import (
 	tp "github.com/henrylee2cn/teleport"
-	"github.com/henrylee2cn/tp-micro/examples/template/types"
+
+	"github.com/henrylee2cn/tp-micro/template/types"
+	// "github.com/henrylee2cn/tp-micro/template/rerrs"
 )
 
 // Home comment...
 func Home(ctx tp.PullCtx, args *struct{}) (*types.HomeReply, *tp.Rerror) {
-	return &types.HomeReply{}, nil
+	return new(types.HomeReply), nil
 }
 
 // Math_Divide handler
 func Math_Divide(ctx tp.PullCtx, args *types.DivideArgs) (*types.DivideReply, *tp.Rerror) {
-	return &types.DivideReply{}, nil
+	return new(types.DivideReply), nil
 }
 
 // Stat comment...

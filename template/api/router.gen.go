@@ -19,7 +19,7 @@ func Route(root string, router *tp.Router) {
 
 	// PULL APIs...
 	group.RoutePullFunc(Home)
-	group.RoutePull(&Math{})
+	group.RoutePull(new(Math))
 
 	// PUSH APIs...
 	group.RoutePushFunc(Stat)

@@ -8,7 +8,9 @@ import (
 
 	tp "github.com/henrylee2cn/teleport"
 	micro "github.com/henrylee2cn/tp-micro"
-	"github.com/henrylee2cn/tp-micro/examples/template/types"
+	"github.com/henrylee2cn/tp-micro/discovery/etcd"
+
+	"github.com/henrylee2cn/tp-micro/template/types"
 )
 
 // TestSdk test SDK.
@@ -18,11 +20,13 @@ func TestSdk(t *testing.T) {
 			Failover:        3,
 			HeartbeatSecond: 4,
 		},
-		micro.NewStaticLinker(":9090"),
+		etcd.EasyConfig{
+			Endpoints: []string{"http://127.0.0.1:2379"},
+		},
 	)
 
 	{
-		reply, rerr := Home(&struct{}{})
+		reply, rerr := Home(new(struct{}))
 		if rerr != nil {
 			tp.Errorf("Home: rerr: %v", rerr)
 		} else {
@@ -30,7 +34,7 @@ func TestSdk(t *testing.T) {
 		}
 	}
 	{
-		reply, rerr := Math_Divide(&types.DivideArgs{})
+		reply, rerr := Math_Divide(new(types.DivideArgs))
 		if rerr != nil {
 			tp.Errorf("Math_Divide: rerr: %v", rerr)
 		} else {
@@ -38,7 +42,7 @@ func TestSdk(t *testing.T) {
 		}
 	}
 	{
-		rerr := Stat(&types.StatArgs{})
+		rerr := Stat(new(types.StatArgs))
 		tp.Infof("Stat: rerr: %v", rerr)
 	}
 }
