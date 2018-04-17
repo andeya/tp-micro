@@ -8,6 +8,7 @@ import (
 	tp "github.com/henrylee2cn/teleport"
 
 	"github.com/henrylee2cn/tp-micro/examples/sample/types"
+	// "github.com/henrylee2cn/tp-micro/examples/sample/logic/model"
 	// "github.com/henrylee2cn/tp-micro/examples/sample/rerrs"
 )
 

@@ -15,7 +15,7 @@ import (
 
 var client *micro.Client
 
-// Init init client with config and linker.
+// Init initializes client with configs.
 func Init(cliConfig micro.CliConfig, etcdConfing etcd.EasyConfig) {
 	client = micro.NewClient(
 		cliConfig,
@@ -23,7 +23,7 @@ func Init(cliConfig micro.CliConfig, etcdConfing etcd.EasyConfig) {
 	)
 }
 
-// InitWithClient init client with current client.
+// InitWithClient initializes client with specified object.
 func InitWithClient(cli *micro.Client) {
 	client = cli
 }
