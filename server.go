@@ -137,7 +137,7 @@ func (s *Server) SetBindErrorFunc(fn binder.ErrorFunc) {
 	}
 	s.binder.SetErrorFunc(func(handlerName, paramName, reason string) *tp.Rerror {
 		return tp.NewRerror(
-			100001,
+			400,
 			"Invalid Parameter",
 			fmt.Sprintf(`{"handler": %q, "param": %q, "reason": %q}`, handlerName, paramName, reason),
 		)

@@ -23,16 +23,6 @@ import (
 	tp "github.com/henrylee2cn/teleport"
 )
 
-// error codes
-const (
-	RerrCodeClientClosed int32 = 100000
-)
-
-var (
-	// RerrClosed reply error: client is closed
-	RerrClosed = tp.NewRerror(RerrCodeClientClosed, "client is closed", "")
-)
-
 // InnerIpPort returns the service's intranet address, such as '192.168.1.120:8080'.
 func InnerIpPort(port string) (string, error) {
 	host, err := goutil.IntranetIP()

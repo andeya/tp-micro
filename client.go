@@ -115,6 +115,11 @@ type Client struct {
 	maxTry              int
 }
 
+var (
+	// rerrClosed reply error: client is closed.
+	rerrClosed = tp.NewRerror(100, "client is closed", "")
+)
+
 // NewClient creates a client peer.
 func NewClient(cfg CliConfig, linker Linker, globalLeftPlugin ...tp.Plugin) *Client {
 	doInit()
@@ -215,7 +220,7 @@ func (c *Client) AsyncPull(
 	}
 	select {
 	case <-c.closeCh:
-		pullCmd := tp.NewFakePullCmd(uri, args, reply, RerrClosed)
+		pullCmd := tp.NewFakePullCmd(uri, args, reply, rerrClosed)
 		pullCmdChan <- pullCmd
 		return pullCmd
 	default:
@@ -239,7 +244,7 @@ func (c *Client) AsyncPull(
 func (c *Client) Pull(uri string, args interface{}, reply interface{}, setting ...socket.PacketSetting) tp.PullCmd {
 	select {
 	case <-c.closeCh:
-		return tp.NewFakePullCmd(uri, args, reply, RerrClosed)
+		return tp.NewFakePullCmd(uri, args, reply, rerrClosed)
 	default:
 	}
 	var (
@@ -275,7 +280,7 @@ func (c *Client) Pull(uri string, args interface{}, reply interface{}, setting .
 func (c *Client) Push(uri string, args interface{}, setting ...socket.PacketSetting) *tp.Rerror {
 	select {
 	case <-c.closeCh:
-		return RerrClosed
+		return rerrClosed
 	default:
 	}
 	var (
