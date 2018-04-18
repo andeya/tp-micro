@@ -113,6 +113,7 @@ type Client struct {
 	closeCh             chan struct{}
 	closeMu             sync.Mutex
 	maxTry              int
+	heartbeatPing       heartbeat.Ping
 }
 
 var (
@@ -126,8 +127,10 @@ func NewClient(cfg CliConfig, linker Linker, globalLeftPlugin ...tp.Plugin) *Cli
 	if err := cfg.Check(); err != nil {
 		tp.Fatalf("%v", err)
 	}
+	var heartbeatPing heartbeat.Ping
 	if cfg.HeartbeatSecond > 0 {
-		globalLeftPlugin = append(globalLeftPlugin, heartbeat.NewPing(cfg.HeartbeatSecond))
+		heartbeatPing = heartbeat.NewPing(cfg.HeartbeatSecond, false)
+		globalLeftPlugin = append(globalLeftPlugin, heartbeatPing)
 	}
 	peer := tp.NewPeer(cfg.peerConfig(), globalLeftPlugin...)
 	if len(cfg.TlsCertFile) > 0 && len(cfg.TlsKeyFile) > 0 {
@@ -143,6 +146,7 @@ func NewClient(cfg CliConfig, linker Linker, globalLeftPlugin ...tp.Plugin) *Cli
 		sessMaxIdleDuration: cfg.SessMaxIdleDuration,
 		closeCh:             make(chan struct{}),
 		maxTry:              cfg.Failover + 1,
+		heartbeatPing:       heartbeatPing,
 	}
 	cli.circuitBreaker = newCircuitBreaker(
 		cfg.CircuitBreaker.Enable,
@@ -178,6 +182,16 @@ func (c *Client) Peer() tp.Peer {
 // PluginContainer returns the global plugin container.
 func (c *Client) PluginContainer() *tp.PluginContainer {
 	return c.peer.PluginContainer()
+}
+
+// UsePullHeartbeat uses PULL method to ping.
+func (c *Client) UsePullHeartbeat() {
+	c.heartbeatPing.UsePull()
+}
+
+// UsePushHeartbeat uses PUSH method to ping.
+func (c *Client) UsePushHeartbeat() {
+	c.heartbeatPing.UsePush()
 }
 
 // SubRoute adds handler group.

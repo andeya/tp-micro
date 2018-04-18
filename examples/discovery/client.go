@@ -23,14 +23,13 @@ func main() {
 				Enable:          true,
 				ErrorPercentage: 50,
 			},
-			HeartbeatSecond: 5,
+			HeartbeatSecond: 3,
 		},
 		discovery.NewLinker(etcd.EasyConfig{
 			Endpoints: []string{"http://127.0.0.1:2379"},
 		}),
 	)
 	defer cli.Close()
-
 	var reply = new(pb.PbTest)
 	rerr := cli.Pull(
 		"/group/home/test",
@@ -43,4 +42,8 @@ func main() {
 		tp.Infof("pull reply: %v", reply)
 	}
 
+	// test heartbeat
+	time.Sleep(10e9)
+	cli.UsePullHeartbeat()
+	time.Sleep(10e9)
 }
