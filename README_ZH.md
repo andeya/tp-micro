@@ -222,6 +222,8 @@ type User struct {
 ├── README.md
 ├── main.go
 ├── config.go
+├── config
+│   └── config.yaml
 ├── api
 │   ├── handlers.gen.go
 │   ├── handlers.go
@@ -239,11 +241,12 @@ type User struct {
 │   ├── rpc.gen_test.go
 │   ├── rpc.go
 │   └── rpc_test.go
-└── types
-        ├── types.gen.go
-        └── types.go
+├── types
+│   ├── types.gen.go
+│   └── types.go
+└── log
+    └── PID
 ```
-
 
 说明：
 
