@@ -4,7 +4,7 @@ sample:
     tls_key_file: ""
     default_session_age: 0s
     default_context_age: 0s
-    slow_comet_duration: 0s
+    slow_comet_duration: 500ms
     default_body_codec: ""
     print_detail: true
     count_time: true

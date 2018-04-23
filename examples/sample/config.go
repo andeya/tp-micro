@@ -1,6 +1,8 @@
 package main
 
 import (
+	"time"
+
 	"github.com/henrylee2cn/cfgo"
 	"github.com/henrylee2cn/goutil"
 	tp "github.com/henrylee2cn/teleport"
@@ -38,10 +40,11 @@ func (c *config) Reload(bind cfgo.BindFunc) error {
 
 var cfg = &config{
 	Srv: micro.SrvConfig{
-		ListenAddress:   ":9090",
-		EnableHeartbeat: true,
-		PrintDetail:     true,
-		CountTime:       true,
+		ListenAddress:     ":9090",
+		EnableHeartbeat:   true,
+		PrintDetail:       true,
+		CountTime:         true,
+		SlowCometDuration: time.Millisecond * 500,
 	},
 	Etcd: etcd.EasyConfig{
 		Endpoints: []string{"http://127.0.0.1:2379"},
