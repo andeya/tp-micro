@@ -40,7 +40,7 @@ type (
 		Failover            int                  `yaml:"failover"               ini:"failover"               comment:"The maximum times of failover"`
 		SlowCometDuration   time.Duration        `yaml:"slow_comet_duration"    ini:"slow_comet_duration"    comment:"Slow operation alarm threshold; ns,µs,ms,s ..."`
 		DefaultBodyCodec    string               `yaml:"default_body_codec"     ini:"default_body_codec"     comment:"Default body codec type id"`
-		PrintBody           bool                 `yaml:"print_body"             ini:"print_body"             comment:"Is print body or not"`
+		PrintDetail         bool                 `yaml:"print_detail"           ini:"print_detail"           comment:"Is print body and metadata or not"`
 		CountTime           bool                 `yaml:"count_time"             ini:"count_time"             comment:"Is count cost time or not"`
 		Network             string               `yaml:"network"                ini:"network"                comment:"Network; tcp, tcp4, tcp6, unix or unixpacket"`
 		HeartbeatSecond     int                  `yaml:"heartbeat_second"       ini:"heartbeat_second"       comment:"When the heartbeat interval(second) is greater than 0, heartbeat is enabled; if it's smaller than 3, change to 3 default"`
@@ -97,7 +97,7 @@ func (c *CliConfig) peerConfig() tp.PeerConfig {
 		RedialTimes:        int32(c.RedialTimes),
 		SlowCometDuration:  c.SlowCometDuration,
 		DefaultBodyCodec:   c.DefaultBodyCodec,
-		PrintBody:          c.PrintBody,
+		PrintDetail:        c.PrintDetail,
 		CountTime:          c.CountTime,
 		Network:            c.Network,
 	}

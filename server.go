@@ -37,7 +37,7 @@ type SrvConfig struct {
 	DefaultContextAge time.Duration `yaml:"default_context_age"  ini:"default_context_age"  comment:"Default PULL or PUSH context max age, if less than or equal to 0, no time limit; ns,µs,ms,s,m,h"`
 	SlowCometDuration time.Duration `yaml:"slow_comet_duration"  ini:"slow_comet_duration"  comment:"Slow operation alarm threshold; ns,µs,ms,s ..."`
 	DefaultBodyCodec  string        `yaml:"default_body_codec"   ini:"default_body_codec"   comment:"Default body codec type id"`
-	PrintBody         bool          `yaml:"print_body"           ini:"print_body"           comment:"Is print body or not"`
+	PrintDetail       bool          `yaml:"print_detail"         ini:"print_detail"         comment:"Is print body and metadata or not"`
 	CountTime         bool          `yaml:"count_time"           ini:"count_time"           comment:"Is count cost time or not"`
 	Network           string        `yaml:"network"              ini:"network"              comment:"Network; tcp, tcp4, tcp6, unix or unixpacket"`
 	ListenAddress     string        `yaml:"listen_address"       ini:"listen_address"       comment:"Listen address; for server role"`
@@ -82,7 +82,7 @@ func (s *SrvConfig) peerConfig() tp.PeerConfig {
 		DefaultContextAge: s.DefaultContextAge,
 		SlowCometDuration: s.SlowCometDuration,
 		DefaultBodyCodec:  s.DefaultBodyCodec,
-		PrintBody:         s.PrintBody,
+		PrintDetail:       s.PrintDetail,
 		CountTime:         s.CountTime,
 		Network:           s.Network,
 		ListenAddress:     s.ListenAddress,

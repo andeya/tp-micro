@@ -8,7 +8,7 @@ micro_cli:
   failover: 0
   slow_comet_duration: 0s
   default_body_codec: ""
-  print_body: false
+  print_detail: false
   count_time: false
   network: ""
   heartbeat_second: 0
@@ -27,7 +27,7 @@ micro_srv:
   enable_heartbeat: false
   listen_address: :9090
   network: ""
-  print_body: false
+  print_detail: false
   slow_comet_duration: 0s
   tls_cert_file: ""
   tls_key_file: ""
