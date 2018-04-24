@@ -19,7 +19,7 @@ import (
 )
 
 // NotFoundService error: not found service in linker.
-var NotFoundService = tp.NewRerror(tp.CodeDialFailed, "Dial Failed", "not found service")
+var NotFoundService = tp.NewRerror(tp.CodeNotFound, "Not found Service", "not found service")
 
 // Linker linker for client.
 type Linker interface {
