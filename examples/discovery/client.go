@@ -11,6 +11,7 @@ import (
 )
 
 func main() {
+	// discovery.SetServiceNamespace("test@")
 	tp.SetSocketNoDelay(false)
 	tp.SetShutdown(time.Second*20, nil, nil)
 

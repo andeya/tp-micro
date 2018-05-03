@@ -22,10 +22,21 @@ import (
 	"github.com/henrylee2cn/goutil"
 )
 
-const (
-	// ServiceNamespace the service prefix of ETCD key
-	ServiceNamespace = "ANT-SRV@"
+var (
+	// serviceNamespace the service prefix of ETCD key
+	serviceNamespace = "TP-SRV@"
 )
+
+// ServiceNamespace returns the service prefix of ETCD key.
+func ServiceNamespace() string {
+	return serviceNamespace
+}
+
+// SetServiceNamespace sets the service prefix of ETCD key.
+// Note: It should be called the first time after importing this package.
+func SetServiceNamespace(prefix string) {
+	serviceNamespace = prefix
+}
 
 // ServiceInfo serivce info
 type ServiceInfo struct {
@@ -49,9 +60,9 @@ func (s *ServiceInfo) Append(uriPath ...string) {
 }
 
 func createServiceKey(addr string) string {
-	return ServiceNamespace + addr
+	return serviceNamespace + addr
 }
 
 func getHostport(serviceKey string) string {
-	return strings.TrimPrefix(serviceKey, ServiceNamespace)
+	return strings.TrimPrefix(serviceKey, serviceNamespace)
 }

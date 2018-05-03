@@ -27,7 +27,7 @@ import (
 )
 
 const (
-	linkerName = "ETCD(ANT-LINKER)"
+	linkerName = "TP-LINKER(ETCD)"
 )
 
 // Node a service node info.
@@ -142,7 +142,7 @@ func (l *linker) delNode(key string) {
 }
 
 func (l *linker) initNodes() error {
-	resp, err := l.client.Get(context.TODO(), ServiceNamespace, etcd.WithPrefix())
+	resp, err := l.client.Get(context.TODO(), serviceNamespace, etcd.WithPrefix())
 	if err != nil || len(resp.Kvs) == 0 {
 		return err
 	}
@@ -154,7 +154,7 @@ func (l *linker) initNodes() error {
 }
 
 func (l *linker) watchNodes() {
-	rch := l.client.Watch(context.TODO(), ServiceNamespace, etcd.WithPrefix())
+	rch := l.client.Watch(context.TODO(), serviceNamespace, etcd.WithPrefix())
 	for wresp := range rch {
 		for _, ev := range wresp.Events {
 			switch ev.Type {
