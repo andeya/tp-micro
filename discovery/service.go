@@ -77,6 +77,11 @@ func ServicePluginFromEtcd(hostport string, etcdClient *etcd.Client, excludeApis
 	return s
 }
 
+// Etcd returns the etcd client.
+func (s *Service) Etcd() *etcd.Client {
+	return s.client
+}
+
 // ExcludeApi appends apis that must not be registered to etcd.
 func (s *Service) ExcludeApi(excludeApi ...string) {
 	s.excludeApis = append(s.excludeApis, excludeApi...)
