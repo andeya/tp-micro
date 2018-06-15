@@ -117,7 +117,7 @@ type Client struct {
 }
 
 var (
-	// rerrClosed result error: client is closed.
+	// rerrClosed reply error: client is closed.
 	rerrClosed = tp.NewRerror(100, "client is closed", "")
 )
 
@@ -209,7 +209,7 @@ func (c *Client) RoutePushFunc(pushHandleFunc interface{}, plugin ...tp.Plugin) 
 	return c.peer.RoutePushFunc(pushHandleFunc, plugin...)
 }
 
-// AsyncPull sends a packet and receives result asynchronously.
+// AsyncPull sends a packet and receives reply asynchronously.
 // Note:
 //  If the arg is []byte or *[]byte type, it can automatically fill in the body codec name;
 //  If the session is a client role and PeerConfig.RedialTimes>0, it is automatically re-called once after a failure;
@@ -251,7 +251,7 @@ func (c *Client) AsyncPull(
 	return pullCmd
 }
 
-// Pull sends a packet and receives result.
+// Pull sends a packet and receives reply.
 // Note:
 //  If the arg is []byte or *[]byte type, it can automatically fill in the body codec name;
 //  If the session is a client role and PeerConfig.RedialTimes>0, it is automatically re-called once after a failure.
@@ -287,7 +287,7 @@ func (c *Client) Pull(uri string, arg interface{}, result interface{}, setting .
 	return pullCmd
 }
 
-// Push sends a packet, but do not receives result.
+// Push sends a packet, but do not receives reply.
 // Note:
 //  If the arg is []byte or *[]byte type, it can automatically fill in the body codec name;
 //  If the session is a client role and PeerConfig.RedialTimes>0, it is automatically re-called once after a failure.
