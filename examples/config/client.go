@@ -17,18 +17,18 @@ func main() {
 		micro.NewStaticLinker(":9090"),
 	)
 
-	type Args struct {
+	type Arg struct {
 		A int
 		B int
 	}
 
-	var reply int
-	rerr := cli.Pull("/static/divide", &Args{
+	var result int
+	rerr := cli.Pull("/static/divide", &Arg{
 		A: 10,
 		B: 2,
-	}, &reply).Rerror()
+	}, &result).Rerror()
 	if rerr != nil {
 		tp.Fatalf("%v", rerr)
 	}
-	tp.Infof("%d/%d = %d", 10, 2, reply)
+	tp.Infof("%d/%d = %d", 10, 2, result)
 }

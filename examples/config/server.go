@@ -6,15 +6,15 @@ import (
 	micro "github.com/henrylee2cn/tp-micro"
 )
 
-// Args args
-type Args struct {
+// Arg arg
+type Arg struct {
 	A int
 	B int `param:"<range:1:>"`
 }
 
 // Divide divide API
-func Divide(ctx tp.PullCtx, args *Args) (int, *tp.Rerror) {
-	return args.A / args.B, nil
+func Divide(ctx tp.PullCtx, arg *Arg) (int, *tp.Rerror) {
+	return arg.A / arg.B, nil
 }
 
 func main() {

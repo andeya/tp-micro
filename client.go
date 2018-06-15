@@ -117,7 +117,7 @@ type Client struct {
 }
 
 var (
-	// rerrClosed reply error: client is closed.
+	// rerrClosed result error: client is closed.
 	rerrClosed = tp.NewRerror(100, "client is closed", "")
 )
 
@@ -209,15 +209,15 @@ func (c *Client) RoutePushFunc(pushHandleFunc interface{}, plugin ...tp.Plugin) 
 	return c.peer.RoutePushFunc(pushHandleFunc, plugin...)
 }
 
-// AsyncPull sends a packet and receives reply asynchronously.
+// AsyncPull sends a packet and receives result asynchronously.
 // Note:
-//  If the args is []byte or *[]byte type, it can automatically fill in the body codec name;
+//  If the arg is []byte or *[]byte type, it can automatically fill in the body codec name;
 //  If the session is a client role and PeerConfig.RedialTimes>0, it is automatically re-called once after a failure;
 //  Do not support failover to try again.
 func (c *Client) AsyncPull(
 	uri string,
-	args interface{},
-	reply interface{},
+	arg interface{},
+	result interface{},
 	pullCmdChan chan<- tp.PullCmd,
 	setting ...socket.PacketSetting,
 ) tp.PullCmd {
@@ -234,7 +234,7 @@ func (c *Client) AsyncPull(
 	}
 	select {
 	case <-c.closeCh:
-		pullCmd := tp.NewFakePullCmd(uri, args, reply, rerrClosed)
+		pullCmd := tp.NewFakePullCmd(uri, arg, result, rerrClosed)
 		pullCmdChan <- pullCmd
 		return pullCmd
 	default:
@@ -242,23 +242,23 @@ func (c *Client) AsyncPull(
 
 	cliSess, rerr := c.circuitBreaker.selectSession(uri)
 	if rerr != nil {
-		pullCmd := tp.NewFakePullCmd(uri, args, reply, rerr)
+		pullCmd := tp.NewFakePullCmd(uri, arg, result, rerr)
 		pullCmdChan <- pullCmd
 		return pullCmd
 	}
-	pullCmd := cliSess.AsyncPull(uri, args, reply, pullCmdChan, setting...)
+	pullCmd := cliSess.AsyncPull(uri, arg, result, pullCmdChan, setting...)
 	cliSess.feedback(!tp.IsConnRerror(pullCmd.Rerror()))
 	return pullCmd
 }
 
-// Pull sends a packet and receives reply.
+// Pull sends a packet and receives result.
 // Note:
-//  If the args is []byte or *[]byte type, it can automatically fill in the body codec name;
+//  If the arg is []byte or *[]byte type, it can automatically fill in the body codec name;
 //  If the session is a client role and PeerConfig.RedialTimes>0, it is automatically re-called once after a failure.
-func (c *Client) Pull(uri string, args interface{}, reply interface{}, setting ...socket.PacketSetting) tp.PullCmd {
+func (c *Client) Pull(uri string, arg interface{}, result interface{}, setting ...socket.PacketSetting) tp.PullCmd {
 	select {
 	case <-c.closeCh:
-		return tp.NewFakePullCmd(uri, args, reply, rerrClosed)
+		return tp.NewFakePullCmd(uri, arg, result, rerrClosed)
 	default:
 	}
 	var (
@@ -271,9 +271,9 @@ func (c *Client) Pull(uri string, args interface{}, reply interface{}, setting .
 	for i := 0; i < c.maxTry; i++ {
 		cliSess, rerr = c.circuitBreaker.selectSession(uri)
 		if rerr != nil {
-			return tp.NewFakePullCmd(uri, args, reply, rerr)
+			return tp.NewFakePullCmd(uri, arg, result, rerr)
 		}
-		cliSess.AsyncPull(uri, args, reply, pullCmdChan, setting...)
+		cliSess.AsyncPull(uri, arg, result, pullCmdChan, setting...)
 		pullCmd = <-pullCmdChan
 		healthy = !tp.IsConnRerror(pullCmd.Rerror())
 		cliSess.feedback(healthy)
@@ -287,11 +287,11 @@ func (c *Client) Pull(uri string, args interface{}, reply interface{}, setting .
 	return pullCmd
 }
 
-// Push sends a packet, but do not receives reply.
+// Push sends a packet, but do not receives result.
 // Note:
-//  If the args is []byte or *[]byte type, it can automatically fill in the body codec name;
+//  If the arg is []byte or *[]byte type, it can automatically fill in the body codec name;
 //  If the session is a client role and PeerConfig.RedialTimes>0, it is automatically re-called once after a failure.
-func (c *Client) Push(uri string, args interface{}, setting ...socket.PacketSetting) *tp.Rerror {
+func (c *Client) Push(uri string, arg interface{}, setting ...socket.PacketSetting) *tp.Rerror {
 	select {
 	case <-c.closeCh:
 		return rerrClosed
@@ -307,7 +307,7 @@ func (c *Client) Push(uri string, args interface{}, setting ...socket.PacketSett
 		if rerr != nil {
 			return rerr
 		}
-		rerr = cliSess.Push(uri, args, setting...)
+		rerr = cliSess.Push(uri, arg, setting...)
 		healthy = !tp.IsConnRerror(rerr)
 		cliSess.feedback(healthy)
 		if healthy {

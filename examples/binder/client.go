@@ -16,28 +16,28 @@ func main() {
 	)
 	defer cli.Close()
 
-	type Args struct {
+	type Arg struct {
 		A int
 		B int
 	}
 
-	var reply int
-	rerr := cli.Pull("/static/p/divide?x=testquery_x&xy_z=testquery_xy_z", &Args{
+	var result int
+	rerr := cli.Pull("/static/p/divide?x=testquery_x&xy_z=testquery_xy_z", &Arg{
 		A: 10,
 		B: 2,
-	}, &reply).Rerror()
+	}, &result).Rerror()
 	if tp.IsConnRerror(rerr) {
 		tp.Fatalf("has conn rerror: %v", rerr)
 	}
 	if rerr != nil {
 		tp.Fatalf("%v", rerr)
 	}
-	tp.Printf("test 10/2=%d", reply)
+	tp.Printf("test 10/2=%d", result)
 
-	rerr = cli.Pull("/static/p/divide?x=testquery_x&xy_z=testquery_xy_z", &Args{
+	rerr = cli.Pull("/static/p/divide?x=testquery_x&xy_z=testquery_xy_z", &Arg{
 		A: 10,
 		B: 0,
-	}, &reply).Rerror()
+	}, &result).Rerror()
 	if tp.IsConnRerror(rerr) {
 		tp.Fatalf("has conn rerror: %v", rerr)
 	}
@@ -46,10 +46,10 @@ func main() {
 	}
 	tp.Printf("test 10/0:%v", rerr)
 
-	rerr = cli.Pull("/static/p/divide", &Args{
+	rerr = cli.Pull("/static/p/divide", &Arg{
 		A: 10,
 		B: 5,
-	}, &reply).Rerror()
+	}, &result).Rerror()
 	if rerr == nil {
 		tp.Fatalf("%v", rerr)
 	}

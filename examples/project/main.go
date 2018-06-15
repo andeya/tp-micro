@@ -4,7 +4,7 @@ import (
 	micro "github.com/henrylee2cn/tp-micro"
 	"github.com/henrylee2cn/tp-micro/discovery"
 
-	"github.com/henrylee2cn/tp-micro/examples/sample/api"
+	"github.com/henrylee2cn/tp-micro/examples/project/api"
 )
 
 func main() {
@@ -12,6 +12,6 @@ func main() {
 		cfg.Srv,
 		discovery.ServicePlugin(cfg.Srv.InnerIpPort(), cfg.Etcd),
 	)
-	api.Route("/sample", srv.Router())
+	api.Route("/project", srv.Router())
 	srv.ListenAndServe()
 }

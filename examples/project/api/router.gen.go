@@ -8,19 +8,19 @@ import (
 )
 
 // Route registers handlers to router.
-func Route(root string, router *tp.Router) {
+func Route(_root string, _router *tp.Router) {
 	// root router group
-	group := router.SubRoute(root)
+	_group := _router.SubRoute(_root)
 
 	// custom router
-	customRoute(group.ToRouter())
+	customRoute(_group.ToRouter())
 
 	// automatically generated router
 
 	// PULL APIs...
-	group.RoutePullFunc(Home)
-	group.RoutePull(new(Math))
+	_group.RoutePullFunc(Home)
+	_group.RoutePull(new(Math))
 
 	// PUSH APIs...
-	group.RoutePushFunc(Stat)
+	_group.RoutePushFunc(Stat)
 }

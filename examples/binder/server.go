@@ -6,8 +6,8 @@ import (
 )
 
 type (
-	// Args args
-	Args struct {
+	// Arg arg
+	Arg struct {
 		A int
 		B int `param:"<range:1:100>"`
 		Query
@@ -24,9 +24,9 @@ type P struct {
 }
 
 // Divide divide API
-func (p *P) Divide(args *Args) (int, *tp.Rerror) {
-	tp.Infof("query args x: %s, xy_z: %s", args.Query.X, args.XyZ)
-	return args.A / args.B, nil
+func (p *P) Divide(arg *Arg) (int, *tp.Rerror) {
+	tp.Infof("query arg x: %s, xy_z: %s", arg.Query.X, arg.XyZ)
+	return arg.A / arg.B, nil
 }
 
 func main() {

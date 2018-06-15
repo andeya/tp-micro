@@ -11,7 +11,7 @@ import (
 	"github.com/xiaoenai/ants/model"
 	"github.com/xiaoenai/ants/model/redis"
 
-	mod "github.com/henrylee2cn/tp-micro/examples/sample/logic/model"
+	mod "github.com/henrylee2cn/tp-micro/examples/project/logic/model"
 )
 
 type config struct {
@@ -58,5 +58,5 @@ var cfg = &config{
 
 func init() {
 	goutil.WritePidFile()
-	cfgo.MustReg("sample", cfg)
+	cfgo.MustReg("project", cfg)
 }

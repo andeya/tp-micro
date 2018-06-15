@@ -40,7 +40,7 @@ func InsertUser(_u *User, tx ...*sqlx.Tx) (int64, error) {
 	if _u.CreatedAt == 0 {
 		_u.CreatedAt = _u.UpdatedAt
 	}
-	return _u.Id, userDB.TransactCallback(func(tx *sqlx.Tx) error {
+	return _u.Id, userDB.Callback(func(tx model.DbOrTx) error {
 		var query string
 		if _u.Id > 0 {
 			query = "INSERT INTO `user` (id,`name`,`age`,`created_at`,`updated_at`)VALUES(:id,:name,:age,:created_at,:updated_at);"
@@ -56,38 +56,71 @@ func InsertUser(_u *User, tx ...*sqlx.Tx) (int64, error) {
 			return err
 		}
 		_u.Id = id
-		return userDB.PutCache(_u)
+		err = userDB.PutCache(_u)
+		if err != nil {
+			tp.Errorf("%s", err.Error())
+		}
+		return nil
 	}, tx...)
 }
 
-// UpdateUserById update the User data in database by id.
-func UpdateUserById(_u *User, tx ...*sqlx.Tx) error {
-	return userDB.TransactCallback(func(tx *sqlx.Tx) error {
+// UpdateUserByPrimary update the User data in database by primary key.
+// NOTE:
+//  _updateFields' members must be snake format;
+//  Automatic update updated_at field;
+//  Don't update the primary key and the created_at key;
+//  Update all fields except the primary key and the created_at key if _updateFields is empty.
+func UpdateUserByPrimary(_u *User, _updateFields []string, tx ...*sqlx.Tx) error {
+	return userDB.Callback(func(tx model.DbOrTx) error {
 		_u.UpdatedAt = coarsetime.FloorTimeNow().Unix()
-		_, err := tx.NamedExec("UPDATE `user` SET `name`=:name,`age`=:age,`created_at`=:created_at,`updated_at`=:updated_at WHERE id=:id LIMIT 1;", _u)
+		var err error
+		if len(_updateFields) == 0 {
+			_, err = tx.NamedExec("UPDATE `user` SET `name`=:name,`age`=:age,`updated_at`=:updated_at WHERE id=:id LIMIT 1;", _u)
+		} else {
+			var query = "UPDATE `user` SET "
+			for _, s := range _updateFields {
+				if s == "updated_at" || s == "id" || s == "created_at" {
+					continue
+				}
+				query += "`" + s + "`=:" + s + ","
+			}
+			if query[len(query)-1] != ',' {
+				return nil
+			}
+			query += "`updated_at`=:updated_at WHERE id=:id LIMIT 1;"
+			_, err = tx.NamedExec(query, _u)
+		}
 		if err != nil {
 			return err
 		}
-		return userDB.PutCache(_u)
+		err = userDB.PutCache(_u)
+		if err != nil {
+			tp.Errorf("%s", err.Error())
+		}
+		return nil
 	}, tx...)
 }
 
-// DeleteUserById delete a User data in database by id.
-func DeleteUserById(id int64, tx ...*sqlx.Tx) error {
-	return userDB.TransactCallback(func(tx *sqlx.Tx) error {
+// DeleteUserByPrimary delete a User data in database by primary key.
+func DeleteUserByPrimary(id int64, tx ...*sqlx.Tx) error {
+	return userDB.Callback(func(tx model.DbOrTx) error {
 		_, err := tx.Exec("DELETE FROM `user` WHERE id=?;", id)
 		if err != nil {
 			return err
 		}
-		return userDB.PutCache(&User{
+		err = userDB.PutCache(&User{
 			Id: id,
 		})
+		if err != nil {
+			tp.Errorf("%s", err.Error())
+		}
+		return nil
 	}, tx...)
 }
 
-// GetUserById query a User data from database by id.
-// If @reply bool=false error=nil, means the data is not exist.
-func GetUserById(id int64) (*User, bool, error) {
+// GetUserByPrimary query a User data from database by primary key.
+// If @return bool=false error=nil, means the data is not exist.
+func GetUserByPrimary(id int64) (*User, bool, error) {
 	var _u = &User{
 		Id: id,
 	}
@@ -110,10 +143,10 @@ func GetUserById(id int64) (*User, bool, error) {
 }
 
 // GetUserByWhere query a User data from database by WHERE condition.
-// If @reply bool=false error=nil, means the data is not exist.
-func GetUserByWhere(whereCond string, args ...interface{}) (*User, bool, error) {
+// If @return bool=false error=nil, means the data is not exist.
+func GetUserByWhere(whereCond string, arg ...interface{}) (*User, bool, error) {
 	var _u = new(User)
-	err := userDB.Get(_u, "SELECT id,`name`,`age`,`created_at`,`updated_at` FROM `user` WHERE "+whereCond+" LIMIT 1;", args...)
+	err := userDB.Get(_u, "SELECT id,`name`,`age`,`created_at`,`updated_at` FROM `user` WHERE "+whereCond+" LIMIT 1;", arg...)
 	switch err {
 	case nil:
 		return _u, true, nil
@@ -125,15 +158,15 @@ func GetUserByWhere(whereCond string, args ...interface{}) (*User, bool, error) 
 }
 
 // SelectUserByWhere query some User data from database by WHERE condition.
-func SelectUserByWhere(whereCond string, args ...interface{}) ([]*User, error) {
+func SelectUserByWhere(whereCond string, arg ...interface{}) ([]*User, error) {
 	var objs = new([]*User)
-	err := userDB.Select(objs, "SELECT id,`name`,`age`,`created_at`,`updated_at` FROM `user` WHERE "+whereCond, args...)
+	err := userDB.Select(objs, "SELECT id,`name`,`age`,`created_at`,`updated_at` FROM `user` WHERE "+whereCond, arg...)
 	return *objs, err
 }
 
 // CountUserByWhere count User data number from database by WHERE condition.
-func CountUserByWhere(whereCond string, args ...interface{}) (int64, error) {
+func CountUserByWhere(whereCond string, arg ...interface{}) (int64, error) {
 	var count int64
-	err := userDB.Get(&count, "SELECT count(1) FROM `user` WHERE "+whereCond, args...)
+	err := userDB.Get(&count, "SELECT count(1) FROM `user` WHERE "+whereCond, arg...)
 	return count, err
 }

@@ -1,4 +1,4 @@
-sample:
+project:
   srv:
     tls_cert_file: ""
     tls_key_file: ""

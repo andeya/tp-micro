@@ -10,7 +10,7 @@ import (
 	"github.com/henrylee2cn/tp-micro/discovery"
 	"github.com/henrylee2cn/tp-micro/discovery/etcd"
 
-	"github.com/henrylee2cn/tp-micro/examples/sample/types"
+	"github.com/henrylee2cn/tp-micro/examples/project/args"
 )
 
 var client *micro.Client
@@ -29,20 +29,20 @@ func InitWithClient(cli *micro.Client) {
 }
 
 // Home comment...
-func Home(args *struct{}, setting ...socket.PacketSetting) (*types.HomeReply, *tp.Rerror) {
-	reply := new(types.HomeReply)
-	rerr := client.Pull("/sample/home", args, reply, setting...).Rerror()
-	return reply, rerr
+func Home(arg *struct{}, setting ...socket.PacketSetting) (*args.HomeResult, *tp.Rerror) {
+	result := new(args.HomeResult)
+	rerr := client.Pull("/project/home", arg, result, setting...).Rerror()
+	return result, rerr
 }
 
 // Math_Divide handler
-func Math_Divide(args *types.DivideArgs, setting ...socket.PacketSetting) (*types.DivideReply, *tp.Rerror) {
-	reply := new(types.DivideReply)
-	rerr := client.Pull("/sample/math/divide", args, reply, setting...).Rerror()
-	return reply, rerr
+func Math_Divide(arg *args.DivideArg, setting ...socket.PacketSetting) (*args.DivideResult, *tp.Rerror) {
+	result := new(args.DivideResult)
+	rerr := client.Pull("/project/math/divide", arg, result, setting...).Rerror()
+	return result, rerr
 }
 
 // Stat comment...
-func Stat(args *types.StatArgs, setting ...socket.PacketSetting) *tp.Rerror {
-	return client.Push("/sample/stat", args, setting...)
+func Stat(arg *args.StatArg, setting ...socket.PacketSetting) *tp.Rerror {
+	return client.Push("/project/stat", arg, setting...)
 }

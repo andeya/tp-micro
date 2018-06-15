@@ -10,7 +10,7 @@ import (
 	micro "github.com/henrylee2cn/tp-micro"
 	"github.com/henrylee2cn/tp-micro/discovery/etcd"
 
-	"github.com/henrylee2cn/tp-micro/examples/sample/types"
+	"github.com/henrylee2cn/tp-micro/examples/project/args"
 )
 
 // TestSdk test SDK.
@@ -26,23 +26,23 @@ func TestSdk(t *testing.T) {
 	)
 
 	{
-		reply, rerr := Home(new(struct{}))
+		result, rerr := Home(new(struct{}))
 		if rerr != nil {
 			tp.Errorf("Home: rerr: %v", rerr)
 		} else {
-			tp.Infof("Home: reply: %#v", reply)
+			tp.Infof("Home: result: %#v", result)
 		}
 	}
 	{
-		reply, rerr := Math_Divide(new(types.DivideArgs))
+		result, rerr := Math_Divide(new(args.DivideArg))
 		if rerr != nil {
 			tp.Errorf("Math_Divide: rerr: %v", rerr)
 		} else {
-			tp.Infof("Math_Divide: reply: %#v", reply)
+			tp.Infof("Math_Divide: result: %#v", result)
 		}
 	}
 	{
-		rerr := Stat(new(types.StatArgs))
+		rerr := Stat(new(args.StatArg))
 		tp.Infof("Stat: rerr: %v", rerr)
 	}
 }
