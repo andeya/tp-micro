@@ -1,4 +1,6 @@
 micro_cli:
+  network: ""
+  local_address: 0.0.0.0:6014
   tls_cert_file: ""
   tls_key_file: ""
   default_session_age: 0s
@@ -10,7 +12,6 @@ micro_cli:
   default_body_codec: ""
   print_detail: false
   count_time: false
-  network: ""
   heartbeat_second: 0
   sess_max_quota: 100
   sess_max_idle_duration: 3m0s

@@ -31,6 +31,8 @@ type (
 	//  yaml tag is used for github.com/henrylee2cn/cfgo
 	//  ini tag is used for github.com/henrylee2cn/ini
 	CliConfig struct {
+		Network             string               `yaml:"network"                ini:"network"                comment:"Network; tcp, tcp4, tcp6, unix or unixpacket"`
+		LocalAddress        string               `yaml:"local_address"          ini:"local_address"          comment:"Local address; for client role"`
 		TlsCertFile         string               `yaml:"tls_cert_file"          ini:"tls_cert_file"          comment:"TLS certificate file path"`
 		TlsKeyFile          string               `yaml:"tls_key_file"           ini:"tls_key_file"           comment:"TLS key file path"`
 		DefaultSessionAge   time.Duration        `yaml:"default_session_age"    ini:"default_session_age"    comment:"Default session max age, if less than or equal to 0, no time limit; ns,µs,ms,s,m,h"`
@@ -42,7 +44,6 @@ type (
 		DefaultBodyCodec    string               `yaml:"default_body_codec"     ini:"default_body_codec"     comment:"Default body codec type id"`
 		PrintDetail         bool                 `yaml:"print_detail"           ini:"print_detail"           comment:"Is print body and metadata or not"`
 		CountTime           bool                 `yaml:"count_time"             ini:"count_time"             comment:"Is count cost time or not"`
-		Network             string               `yaml:"network"                ini:"network"                comment:"Network; tcp, tcp4, tcp6, unix or unixpacket"`
 		HeartbeatSecond     int                  `yaml:"heartbeat_second"       ini:"heartbeat_second"       comment:"When the heartbeat interval(second) is greater than 0, heartbeat is enabled; if it's smaller than 3, change to 3 default"`
 		SessMaxQuota        int                  `yaml:"sess_max_quota"         ini:"sess_max_quota"         comment:"The maximum number of sessions in the connection pool"`
 		SessMaxIdleDuration time.Duration        `yaml:"sess_max_idle_duration" ini:"sess_max_idle_duration" comment:"The maximum time period for the idle session in the connection pool; ns,µs,ms,s,m,h"`
@@ -100,6 +101,7 @@ func (c *CliConfig) peerConfig() tp.PeerConfig {
 		PrintDetail:        c.PrintDetail,
 		CountTime:          c.CountTime,
 		Network:            c.Network,
+		LocalAddress:       c.LocalAddress,
 	}
 }
 
