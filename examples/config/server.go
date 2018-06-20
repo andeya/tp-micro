@@ -18,10 +18,7 @@ func Divide(ctx tp.PullCtx, arg *Arg) (int, *tp.Rerror) {
 }
 
 func main() {
-	cfg := micro.SrvConfig{
-		ListenAddress: ":9090",
-	}
-
+	cfg := micro.SrvConfig{}
 	// auto create and sync config/config.yaml
 	cfgo.MustGet("config/config.yaml", true).MustReg("micro_srv", &cfg)
 

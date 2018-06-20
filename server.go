@@ -17,6 +17,7 @@ package micro
 import (
 	"fmt"
 	"net"
+	"strconv"
 	"time"
 
 	"github.com/henrylee2cn/cfgo"
@@ -46,10 +47,17 @@ type SrvConfig struct {
 
 // Reload Bi-directionally synchronizes config between YAML file and memory.
 func (s *SrvConfig) Reload(bind cfgo.BindFunc) error {
-	return bind()
+	err := bind()
+	if len(s.Network) == 0 {
+		s.Network = "tcp"
+	}
+	if len(s.ListenAddress) == 0 {
+		s.ListenAddress = "0.0.0.0:9090"
+	}
+	return err
 }
 
-// ListenPort returns the listened port, such as '8080'.
+// ListenPort returns the listened port, such as '9090'.
 func (s *SrvConfig) ListenPort() string {
 	_, port, err := net.SplitHostPort(s.ListenAddress)
 	if err != nil {
@@ -77,6 +85,11 @@ func (s *SrvConfig) OuterIpPort() string {
 }
 
 func (s *SrvConfig) peerConfig() tp.PeerConfig {
+	host, port, err := net.SplitHostPort(s.ListenAddress)
+	if err != nil {
+		tp.Fatalf("%v", err)
+	}
+	listenPort, _ := strconv.Atoi(port)
 	return tp.PeerConfig{
 		DefaultSessionAge: s.DefaultSessionAge,
 		DefaultContextAge: s.DefaultContextAge,
@@ -85,7 +98,8 @@ func (s *SrvConfig) peerConfig() tp.PeerConfig {
 		PrintDetail:       s.PrintDetail,
 		CountTime:         s.CountTime,
 		Network:           s.Network,
-		ListenAddress:     s.ListenAddress,
+		LocalIP:           host,
+		ListenPort:        uint16(listenPort),
 	}
 }
 

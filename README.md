@@ -166,58 +166,58 @@ package __ANT__TPL__
 //  /home
 //  /math/divide
 type __API__PULL__ interface {
-	Home(*struct{}) *HomeResult
-	Math
+    Home(*struct{}) *HomeResult
+    Math
 }
 
 // __API__PUSH__ register PUSH router:
 //  /stat
 type __API__PUSH__ interface {
-	Stat(*StatArg)
+    Stat(*StatArg)
 }
 
 // MODEL create model
 type __MODEL__ struct {
-	DivideArg
-	User
+    DivideArg
+    User
 }
 
 // Math controller
 type Math interface {
-	// Divide handler
-	Divide(*DivideArg) *DivideResult
+    // Divide handler
+    Divide(*DivideArg) *DivideResult
 }
 
 // HomeResult home result
 type HomeResult struct {
-	Content string // text
+    Content string // text
 }
 
 type (
-	// DivideArg divide api arg
-	DivideArg struct {
-		// dividend
-		A float64
-		// divisor
-		B float64 `param:"<range: 0.01:100000>"`
-	}
-	// DivideResult divide api result
-	DivideResult struct {
-		// quotient
-		C float64
-	}
+    // DivideArg divide api arg
+    DivideArg struct {
+        // dividend
+        A float64
+        // divisor
+        B float64 `param:"<range: 0.01:100000>"`
+    }
+    // DivideResult divide api result
+    DivideResult struct {
+        // quotient
+        C float64
+    }
 )
 
 // StatArg stat handler arg
 type StatArg struct {
-	Ts int64 // timestamps
+    Ts int64 // timestamps
 }
 
 // User user info
 type User struct {
-	Id   int64
-	Name string
-	Age  int32
+    Id   int64
+    Name string
+    Age  int32
 }
 ```
 
@@ -480,23 +480,23 @@ peer.SetUnknownPush(XxxUnknownPush)
 ```go
 // SrvConfig server config
 type SrvConfig struct {
-	Network           string        `yaml:"network"              ini:"network"              comment:"Network; tcp, tcp4, tcp6, unix or unixpacket"`
-	ListenAddress     string        `yaml:"listen_address"       ini:"listen_address"       comment:"Listen address; for server role"`
-	TlsCertFile       string        `yaml:"tls_cert_file"        ini:"tls_cert_file"        comment:"TLS certificate file path"`
-	TlsKeyFile        string        `yaml:"tls_key_file"         ini:"tls_key_file"         comment:"TLS key file path"`
-	DefaultSessionAge time.Duration `yaml:"default_session_age"  ini:"default_session_age"  comment:"Default session max age, if less than or equal to 0, no time limit; ns,µs,ms,s,m,h"`
-	DefaultContextAge time.Duration `yaml:"default_context_age"  ini:"default_context_age"  comment:"Default PULL or PUSH context max age, if less than or equal to 0, no time limit; ns,µs,ms,s,m,h"`
-	SlowCometDuration time.Duration `yaml:"slow_comet_duration"  ini:"slow_comet_duration"  comment:"Slow operation alarm threshold; ns,µs,ms,s ..."`
-	DefaultBodyCodec  string        `yaml:"default_body_codec"   ini:"default_body_codec"   comment:"Default body codec type id"`
-	PrintDetail       bool          `yaml:"print_detail"         ini:"print_detail"         comment:"Is print body and metadata or not"`
-	CountTime         bool          `yaml:"count_time"           ini:"count_time"           comment:"Is count cost time or not"`
-	EnableHeartbeat   bool          `yaml:"enable_heartbeat"     ini:"enable_heartbeat"     comment:"enable heartbeat"`
+    Network           string        `yaml:"network"              ini:"network"              comment:"Network; tcp, tcp4, tcp6, unix or unixpacket"`
+    ListenAddress     string        `yaml:"listen_address"       ini:"listen_address"       comment:"Listen address; for server role"`
+    TlsCertFile       string        `yaml:"tls_cert_file"        ini:"tls_cert_file"        comment:"TLS certificate file path"`
+    TlsKeyFile        string        `yaml:"tls_key_file"         ini:"tls_key_file"         comment:"TLS key file path"`
+    DefaultSessionAge time.Duration `yaml:"default_session_age"  ini:"default_session_age"  comment:"Default session max age, if less than or equal to 0, no time limit; ns,µs,ms,s,m,h"`
+    DefaultContextAge time.Duration `yaml:"default_context_age"  ini:"default_context_age"  comment:"Default PULL or PUSH context max age, if less than or equal to 0, no time limit; ns,µs,ms,s,m,h"`
+    SlowCometDuration time.Duration `yaml:"slow_comet_duration"  ini:"slow_comet_duration"  comment:"Slow operation alarm threshold; ns,µs,ms,s ..."`
+    DefaultBodyCodec  string        `yaml:"default_body_codec"   ini:"default_body_codec"   comment:"Default body codec type id"`
+    PrintDetail       bool          `yaml:"print_detail"         ini:"print_detail"         comment:"Is print body and metadata or not"`
+    CountTime         bool          `yaml:"count_time"           ini:"count_time"           comment:"Is count cost time or not"`
+    EnableHeartbeat   bool          `yaml:"enable_heartbeat"     ini:"enable_heartbeat"     comment:"enable heartbeat"`
 }
 
 // CliConfig client config
 type CliConfig struct {
     Network             string               `yaml:"network"                ini:"network"                comment:"Network; tcp, tcp4, tcp6, unix or unixpacket"`
-    LocalAddress        string               `yaml:"local_address"          ini:"local_address"          comment:"Local address; for client role"`
+    LocalIP             string               `yaml:"local_ip"               ini:"local_ip"               comment:"Local IP"`
     TlsCertFile         string               `yaml:"tls_cert_file"          ini:"tls_cert_file"          comment:"TLS certificate file path"`
     TlsKeyFile          string               `yaml:"tls_key_file"           ini:"tls_key_file"           comment:"TLS key file path"`
     DefaultSessionAge   time.Duration        `yaml:"default_session_age"    ini:"default_session_age"    comment:"Default session max age, if less than or equal to 0, no time limit; ns,µs,ms,s,m,h"`

@@ -32,7 +32,7 @@ type (
 	//  ini tag is used for github.com/henrylee2cn/ini
 	CliConfig struct {
 		Network             string               `yaml:"network"                ini:"network"                comment:"Network; tcp, tcp4, tcp6, unix or unixpacket"`
-		LocalAddress        string               `yaml:"local_address"          ini:"local_address"          comment:"Local address; for client role"`
+		LocalIP             string               `yaml:"local_ip"               ini:"local_ip"               comment:"Local IP"`
 		TlsCertFile         string               `yaml:"tls_cert_file"          ini:"tls_cert_file"          comment:"TLS certificate file path"`
 		TlsKeyFile          string               `yaml:"tls_key_file"           ini:"tls_key_file"           comment:"TLS key file path"`
 		DefaultSessionAge   time.Duration        `yaml:"default_session_age"    ini:"default_session_age"    comment:"Default session max age, if less than or equal to 0, no time limit; ns,µs,ms,s,m,h"`
@@ -67,6 +67,12 @@ func (c *CliConfig) Reload(bind cfgo.BindFunc) error {
 }
 
 func (c *CliConfig) Check() error {
+	if len(c.Network) == 0 {
+		c.Network = "tcp"
+	}
+	if len(c.LocalIP) == 0 {
+		c.LocalIP = "0.0.0.0"
+	}
 	if c.SessMaxQuota <= 0 {
 		c.SessMaxQuota = 100
 	}
@@ -101,7 +107,7 @@ func (c *CliConfig) peerConfig() tp.PeerConfig {
 		PrintDetail:        c.PrintDetail,
 		CountTime:          c.CountTime,
 		Network:            c.Network,
-		LocalAddress:       c.LocalAddress,
+		LocalIP:            c.LocalIP,
 	}
 }
 
