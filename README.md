@@ -6,6 +6,10 @@ TP-Micro is a simple, powerful micro service framework based on [Teleport](https
 
 [简体中文](https://github.com/henrylee2cn/tp-micro/blob/master/README_ZH.md)
 
+## NOTE
+
+**The package has been moved to [https://github.com/xiaoenai/tp-micro](https://github.com/xiaoenai/tp-micro)**
+
 
 ## Install
 
@@ -36,11 +40,6 @@ go get -u -f github.com/henrylee2cn/tp-micro
 - Support network list: `tcp`, `tcp4`, `tcp6`, `unix`, `unixpacket` and so on
 - Client support automatically redials after disconnection
 - Circuit breaker for overload protection
-
-## Platform Case
-
-[Ants](https://github.com/xiaoenai/ants): A highly available micro service platform based on [TP-Micro](https://github.com/henrylee2cn/tp-micro) and [Teleport](https://github.com/henrylee2cn/teleport).
-
 
 ## Example
 

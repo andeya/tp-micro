@@ -4,6 +4,9 @@
 
 TP-Micro 是一个基于 [Teleport](https://github.com/henrylee2cn/teleport) 定制的、简约而强大的微服务框架。
 
+## 须知
+
+**该项目已迁移至 [https://github.com/xiaoenai/tp-micro](https://github.com/xiaoenai/tp-micro)**
 
 ## 安装
 
@@ -33,10 +36,6 @@ go get -u -f github.com/henrylee2cn/tp-micro
 - 支持的网络类型：`tcp`、`tcp4`、`tcp6`、`unix`、`unixpacket`等
 - 客户端支持断线后自动重连
 - 支持过载保护（断路器）
-
-## 平台方案
-
-[Ants](https://github.com/xiaoenai/ants): 一套基于 [TP-Micro](https://github.com/henrylee2cn/tp-micro) 和 [Teleport](https://github.com/henrylee2cn/teleport) 的、高可用的微服务平台解决方案。
 
 ## 代码示例
 
